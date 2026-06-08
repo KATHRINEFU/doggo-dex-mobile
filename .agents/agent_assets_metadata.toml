@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "4WG8ZwLmbC9_h4pNT8ma1"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "dogdex app icon"
