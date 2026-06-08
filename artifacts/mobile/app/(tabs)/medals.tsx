@@ -18,26 +18,35 @@ export default function MedalsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={["#3396D3", "#1a7ab5"]}
+        colors={["#0B1626", "#0d2040"]}
         style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 67 : 0) }]}
       >
-        <Text style={styles.headerTitle}>Medals</Text>
-        <Text style={styles.headerSub}>
-          {unlocked}/{medals.length} earned
-        </Text>
-
-        {nextMedal && (
-          <View style={styles.nextMedalBanner}>
-            <Ionicons name="ribbon" size={18} color="#FFF0CE" />
-            <Text style={styles.nextMedalText}>
-              Next: {nextMedal.name} — {nextMedal.required - collectionCount} more to go!
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.primary }]}>Medals</Text>
+            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+              {unlocked}/{medals.length} earned
             </Text>
           </View>
-        )}
-        {!nextMedal && (
-          <View style={styles.nextMedalBanner}>
-            <Ionicons name="trophy" size={18} color="#FFF0CE" />
-            <Text style={styles.nextMedalText}>All medals earned! You're a DogDex legend!</Text>
+          <View style={[styles.trophyBadge, { backgroundColor: `${colors.primary}22`, borderColor: `${colors.primary}44` }]}>
+            <Ionicons name="trophy" size={28} color={colors.primary} />
+          </View>
+        </View>
+
+        {nextMedal ? (
+          <View style={[styles.nextBanner, { backgroundColor: colors.secondary, borderColor: `${colors.primary}44` }]}>
+            <Ionicons name="ribbon" size={16} color={colors.primary} />
+            <Text style={[styles.nextText, { color: colors.foreground }]}>
+              <Text style={{ color: colors.primary, fontFamily: "Inter_700Bold" }}>{nextMedal.name}</Text>
+              {" — "}{nextMedal.required - collectionCount} more breeds to go!
+            </Text>
+          </View>
+        ) : (
+          <View style={[styles.nextBanner, { backgroundColor: `${colors.primary}22`, borderColor: `${colors.primary}55` }]}>
+            <Ionicons name="trophy" size={16} color={colors.primary} />
+            <Text style={[styles.nextText, { color: colors.primary }]}>
+              All medals earned! Legendary DogDex Master!
+            </Text>
           </View>
         )}
       </LinearGradient>
@@ -49,24 +58,29 @@ export default function MedalsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Your Achievements</Text>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Achievements</Text>
         {medals.map((medal) => (
           <MedalCard key={medal.id} medal={medal} currentCount={collectionCount} />
         ))}
 
-        {/* Tips section */}
         <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 8 }]}>
-          Tips for Collectors
+          Pro Tips
         </Text>
-        <View style={[styles.tipsCard, { backgroundColor: colors.card, borderRadius: colors.radius }]}>
+        <View style={[styles.tipsCard, { backgroundColor: colors.card, borderRadius: colors.radius, borderColor: colors.border }]}>
           {[
-            "Legendary breeds are the rarest — keep your eyes peeled!",
-            "Visit dog parks, shelters, and shows to spot uncommon breeds.",
-            "Try photos from different angles for better detection accuracy.",
-            "Some rare breeds only appear in specific countries.",
+            "Legendary breeds are ultra-rare — stay on the lookout!",
+            "Dog parks and shows are great spots for uncommon breeds.",
+            "Clear, well-lit photos give the best detection accuracy.",
+            "Each breed can only be added once to your DogDex.",
           ].map((tip, i) => (
-            <View key={i} style={[styles.tip, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
-              <Ionicons name="paw" size={16} color={colors.primary} />
+            <View
+              key={i}
+              style={[
+                styles.tip,
+                i > 0 && { borderTopWidth: 1, borderTopColor: colors.border },
+              ]}
+            >
+              <Ionicons name="paw" size={14} color={colors.primary} />
               <Text style={[styles.tipText, { color: colors.foreground }]}>{tip}</Text>
             </View>
           ))}
@@ -80,33 +94,44 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   headerTitle: {
     fontSize: 28,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
-    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   headerSub: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: 12,
+    marginTop: 2,
   },
-  nextMedalBanner: {
+  trophyBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  nextBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
   },
-  nextMedalText: {
+  nextText: {
     fontSize: 13,
     fontFamily: "Inter_500Medium",
-    color: "#FFF0CE",
     flex: 1,
   },
   content: {
@@ -119,11 +144,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tipsCard: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
     overflow: "hidden",
   },
   tip: {

@@ -13,45 +13,47 @@ export function MedalCard({ medal, currentCount }: Props) {
   const colors = useColors();
   const progress = Math.min(currentCount / medal.required, 1);
 
+  const iconName =
+    medal.icon === "paw"
+      ? "paw"
+      : medal.icon === "search"
+      ? "search"
+      : medal.icon === "star"
+      ? "star"
+      : "trophy";
+
   return (
     <View
       style={[
         styles.card,
         {
-          backgroundColor: medal.unlocked ? colors.card : colors.muted,
+          backgroundColor: colors.card,
           borderRadius: colors.radius,
-          borderColor: medal.unlocked ? colors.legendary : colors.border,
-          borderWidth: medal.unlocked ? 2 : 1,
+          borderColor: medal.unlocked ? colors.primary : colors.border,
+          borderWidth: medal.unlocked ? 1.5 : 1,
         },
       ]}
     >
       <View
         style={[
-          styles.iconContainer,
+          styles.iconWrap,
           {
-            backgroundColor: medal.unlocked ? colors.legendary : colors.border,
+            backgroundColor: medal.unlocked ? `${colors.primary}22` : colors.secondary,
+            borderColor: medal.unlocked ? `${colors.primary}55` : colors.border,
           },
         ]}
       >
         <Ionicons
-          name={
-            medal.icon === "paw"
-              ? "paw"
-              : medal.icon === "search"
-              ? "search"
-              : medal.icon === "star"
-              ? "star"
-              : "trophy"
-          }
-          size={28}
-          color={medal.unlocked ? "#fff" : colors.mutedForeground}
+          name={iconName}
+          size={26}
+          color={medal.unlocked ? colors.primary : colors.mutedForeground}
         />
       </View>
       <View style={styles.content}>
         <Text
           style={[
             styles.name,
-            { color: medal.unlocked ? colors.foreground : colors.mutedForeground },
+            { color: medal.unlocked ? colors.primary : colors.mutedForeground },
           ]}
         >
           {medal.name}
@@ -59,13 +61,12 @@ export function MedalCard({ medal, currentCount }: Props) {
         <Text style={[styles.description, { color: colors.mutedForeground }]}>
           {medal.description}
         </Text>
-        {/* Progress bar */}
-        <View style={[styles.progressBg, { backgroundColor: colors.border }]}>
+        <View style={[styles.progressBg, { backgroundColor: colors.secondary }]}>
           <View
             style={[
               styles.progressFill,
               {
-                backgroundColor: medal.unlocked ? colors.legendary : colors.primary,
+                backgroundColor: medal.unlocked ? colors.primary : colors.accent,
                 width: `${progress * 100}%`,
               },
             ]}
@@ -73,6 +74,7 @@ export function MedalCard({ medal, currentCount }: Props) {
         </View>
         <Text style={[styles.progressLabel, { color: colors.mutedForeground }]}>
           {Math.min(currentCount, medal.required)}/{medal.required} breeds
+          {medal.unlocked ? " — Earned!" : ""}
         </Text>
       </View>
     </View>
@@ -87,24 +89,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.15,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 3,
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  iconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
+    borderWidth: 1,
   },
-  content: {
-    flex: 1,
-  },
+  content: { flex: 1 },
   name: {
     fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     marginBottom: 2,
   },
   description: {
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressBg: {
-    height: 6,
+    height: 5,
     borderRadius: 3,
     overflow: "hidden",
     marginBottom: 4,

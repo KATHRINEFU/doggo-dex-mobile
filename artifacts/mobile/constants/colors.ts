@@ -1,37 +1,37 @@
 const colors = {
   light: {
     text: "#1a2332",
-    tint: "#3396D3",
+    tint: "#FFC400",
 
-    background: "#FFF8EC",
-    foreground: "#1a2332",
+    background: "#0B1626",
+    foreground: "#F0F4F8",
 
-    card: "#FFFFFF",
-    cardForeground: "#1a2332",
+    card: "#162033",
+    cardForeground: "#F0F4F8",
 
-    primary: "#3396D3",
-    primaryForeground: "#FFFFFF",
+    primary: "#FFC400",
+    primaryForeground: "#0B1626",
 
-    secondary: "#FFF0CE",
-    secondaryForeground: "#1a2332",
+    secondary: "#1E3048",
+    secondaryForeground: "#F0F4F8",
 
-    muted: "#F5EDD8",
-    mutedForeground: "#7a8a9a",
+    muted: "#1E3048",
+    mutedForeground: "#6B8099",
 
-    accent: "#FFD97D",
-    accentForeground: "#1a2332",
+    accent: "#3396D3",
+    accentForeground: "#FFFFFF",
 
     destructive: "#ef4444",
     destructiveForeground: "#ffffff",
 
-    border: "#E8D9B5",
-    input: "#E8D9B5",
+    border: "#1E3048",
+    input: "#1E3048",
 
-    // DogDex specific
+    // DogDex rarity
     common: "#78C44C",
     uncommon: "#3396D3",
     rare: "#A855F7",
-    legendary: "#F59E0B",
+    legendary: "#FFC400",
   },
 
   radius: 16,

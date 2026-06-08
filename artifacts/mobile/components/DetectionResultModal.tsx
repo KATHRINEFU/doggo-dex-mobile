@@ -66,12 +66,12 @@ export function DetectionResultModal({
   if (!result) return null;
 
   const rarityColor = breed
-    ? {
+    ? ({
         common: colors.common,
         uncommon: colors.uncommon,
         rare: colors.rare,
         legendary: colors.legendary,
-      }[breed.rarity] ?? colors.primary
+      }[breed.rarity] ?? colors.primary)
     : colors.primary;
 
   return (
@@ -85,18 +85,18 @@ export function DetectionResultModal({
               borderRadius: colors.radius + 4,
               paddingBottom: insets.bottom + 16,
               borderColor: rarityColor,
-              borderWidth: breed ? 2 : 0,
+              borderWidth: breed ? 1.5 : 0,
             },
             cardStyle,
           ]}
         >
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <Ionicons name="close-circle" size={30} color={colors.mutedForeground} />
+            <Ionicons name="close-circle" size={28} color={colors.mutedForeground} />
           </TouchableOpacity>
 
           {!result.isDog ? (
             <View style={styles.noDogContainer}>
-              <Text style={styles.noDogEmoji}>🐾</Text>
+              <Ionicons name="paw-outline" size={56} color={colors.mutedForeground} />
               <Text style={[styles.noDogTitle, { color: colors.foreground }]}>No Dog Found</Text>
               <Text style={[styles.noDogSub, { color: colors.mutedForeground }]}>
                 {result.description}
@@ -107,31 +107,29 @@ export function DetectionResultModal({
               {/* Captured photo */}
               <View style={[styles.photoContainer, { borderRadius: colors.radius }]}>
                 <Image source={{ uri: imageUri }} style={styles.photo} contentFit="cover" />
-                <View style={[styles.rarityBanner, { backgroundColor: rarityColor }]}>
-                  <Text style={styles.rarityText}>
-                    {breed ? breed.rarity.toUpperCase() : "DETECTED"}
-                  </Text>
-                </View>
+                {breed && (
+                  <View style={[styles.rarityBanner, { backgroundColor: rarityColor }]}>
+                    <Text style={styles.rarityBannerText}>{breed.rarity.toUpperCase()}</Text>
+                  </View>
+                )}
               </View>
 
-              {/* Breed name */}
+              {/* Header */}
               <View style={styles.breedHeader}>
                 <Text style={[styles.breedName, { color: colors.foreground }]}>
                   {result.breedName}
                 </Text>
-                <View style={[styles.confidenceBadge, { backgroundColor: colors.secondary }]}>
-                  <Text style={[styles.confidenceText, { color: colors.foreground }]}>
+                <View style={[styles.confidenceBadge, { backgroundColor: `${colors.primary}22`, borderColor: `${colors.primary}44` }]}>
+                  <Text style={[styles.confidenceText, { color: colors.primary }]}>
                     {Math.round(result.confidence * 100)}% match
                   </Text>
                 </View>
               </View>
 
-              {/* Fun fact */}
               <Text style={[styles.description, { color: colors.mutedForeground }]}>
                 {result.description}
               </Text>
 
-              {/* Breed info from DB */}
               {breed && (
                 <View style={[styles.statsGrid, { borderColor: colors.border }]}>
                   <StatItem label="Origin" value={breed.origin} colors={colors} />
@@ -141,14 +139,17 @@ export function DetectionResultModal({
                 </View>
               )}
 
-              {/* CTA */}
               {!result.breedId || alreadyCollected ? (
                 <View
                   style={[
                     styles.collectedBanner,
                     {
-                      backgroundColor: alreadyCollected ? colors.secondary : colors.muted,
+                      backgroundColor: alreadyCollected
+                        ? `${colors.common}22`
+                        : colors.secondary,
                       borderRadius: colors.radius,
+                      borderWidth: 1,
+                      borderColor: alreadyCollected ? `${colors.common}44` : colors.border,
                     },
                   ]}
                 >
@@ -171,8 +172,10 @@ export function DetectionResultModal({
                   ]}
                   onPress={onCollect}
                 >
-                  <Ionicons name="add-circle" size={22} color="#fff" />
-                  <Text style={styles.collectBtnText}>Add to DogDex!</Text>
+                  <Ionicons name="add-circle" size={22} color={colors.primaryForeground} />
+                  <Text style={[styles.collectBtnText, { color: colors.primaryForeground }]}>
+                    Add to DogDex!
+                  </Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
@@ -209,7 +212,7 @@ function StatItem({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "flex-end",
     paddingHorizontal: 12,
     paddingBottom: 8,
@@ -219,26 +222,19 @@ const styles = StyleSheet.create({
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
   },
-  closeBtn: {
-    alignSelf: "flex-end",
-    marginBottom: 8,
-  },
+  closeBtn: { alignSelf: "flex-end", marginBottom: 8 },
   noDogContainer: {
     alignItems: "center",
     paddingVertical: 32,
-  },
-  noDogEmoji: {
-    fontSize: 56,
-    marginBottom: 16,
+    gap: 12,
   },
   noDogTitle: {
     fontSize: 22,
     fontFamily: "Inter_700Bold",
-    marginBottom: 8,
   },
   noDogSub: {
     fontSize: 15,
@@ -250,22 +246,19 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 16,
   },
-  photo: {
-    width: "100%",
-    height: "100%",
-  },
+  photo: { width: "100%", height: "100%" },
   rarityBanner: {
     position: "absolute",
-    bottom: 10,
-    right: 10,
+    top: 10,
+    left: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  rarityText: {
+  rarityBannerText: {
     fontSize: 10,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
+    color: "#0B1626",
     letterSpacing: 1,
   },
   breedHeader: {
@@ -284,6 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     marginLeft: 8,
+    borderWidth: 1,
   },
   confidenceText: {
     fontSize: 12,
@@ -308,7 +302,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderColor: "transparent",
   },
   statLabel: {
     fontSize: 11,
@@ -333,7 +326,6 @@ const styles = StyleSheet.create({
   collectBtnText: {
     fontSize: 17,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
   },
   collectedBanner: {
     flexDirection: "row",

@@ -1,11 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -64,26 +62,34 @@ export default function CollectionScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <LinearGradient
-        colors={["#3396D3", "#1a7ab5"]}
+        colors={["#0B1626", "#0d2040"]}
         style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 67 : 0) }]}
       >
-        <Text style={styles.headerTitle}>DogDex</Text>
-        <View style={styles.progressSection}>
-          <Text style={styles.progressCount}>
-            {collectionCount}/{totalBreeds}
-          </Text>
-          <Text style={styles.progressLabel}>breeds collected</Text>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
+        <View style={styles.headerRow}>
+          <Text style={[styles.headerTitle, { color: colors.primary }]}>DogDex</Text>
+          <View style={[styles.countPill, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.countPillText, { color: colors.primaryForeground }]}>
+              {collectionCount}/{totalBreeds}
+            </Text>
           </View>
         </View>
 
-        {/* Rarity stats */}
+        {/* Progress */}
+        <View style={[styles.progressTrack, { backgroundColor: colors.secondary }]}>
+          <View
+            style={[
+              styles.progressFill,
+              { backgroundColor: colors.primary, width: `${progressPct}%` },
+            ]}
+          />
+        </View>
+
+        {/* Rarity badges */}
         <View style={styles.rarityRow}>
           {rarityStats.map((s) => (
-            <View key={s.rarity} style={styles.rarityStat}>
+            <View key={s.rarity} style={[styles.rarityBadge, { backgroundColor: `${s.color}22`, borderColor: `${s.color}55` }]}>
               <View style={[styles.rarityDot, { backgroundColor: s.color }]} />
-              <Text style={styles.rarityStatText}>
+              <Text style={[styles.rarityStatText, { color: s.color }]}>
                 {s.collected}/{s.total}
               </Text>
             </View>
@@ -118,7 +124,7 @@ export default function CollectionScreen() {
         <View style={styles.loadingContainer}>
           <Ionicons name="paw" size={40} color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
-            Fetching breeds...
+            Loading breeds...
           </Text>
         </View>
       ) : (
@@ -134,7 +140,6 @@ export default function CollectionScreen() {
                 insets.bottom + (Platform.OS === "web" ? 34 : 0) + 100,
             },
           ]}
-          scrollEnabled={!!filteredBreeds.length}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="paw-outline" size={56} color={colors.mutedForeground} />
@@ -143,7 +148,7 @@ export default function CollectionScreen() {
               </Text>
               <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
                 {filter === "collected"
-                  ? "Go scan some dogs to start your collection."
+                  ? "Go scan some dogs on the Scan tab."
                   : "You've collected every breed in this filter!"}
               </Text>
             </View>
@@ -168,58 +173,59 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   headerTitle: {
     fontSize: 28,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
-    marginBottom: 12,
+    letterSpacing: -0.5,
   },
-  progressSection: {
-    marginBottom: 12,
+  countPill: {
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
-  progressCount: {
-    fontSize: 36,
+  countPillText: {
+    fontSize: 15,
     fontFamily: "Inter_700Bold",
-    color: "#fff",
-  },
-  progressLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
-    marginBottom: 10,
   },
   progressTrack: {
-    height: 8,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#FFF0CE",
-    borderRadius: 4,
+    borderRadius: 3,
   },
   rarityRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
+    gap: 8,
+    flexWrap: "wrap",
   },
-  rarityStat: {
+  rarityBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   rarityDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   rarityStatText: {
     fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: "rgba(255,255,255,0.9)",
+    fontFamily: "Inter_600SemiBold",
   },
   filterRow: {
     flexDirection: "row",
@@ -232,31 +238,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  filterTabActive: {
-    borderBottomWidth: 2,
-  },
+  filterTabActive: { borderBottomWidth: 2 },
   filterTabText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
   },
-  grid: {
-    padding: 12,
-    gap: 12,
-  },
-  row: {
-    gap: 12,
-    justifyContent: "space-between",
-  },
+  grid: { padding: 12, gap: 12 },
+  row: { gap: 12, justifyContent: "space-between" },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
   },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: "Inter_400Regular",
-  },
+  loadingText: { fontSize: 16, fontFamily: "Inter_400Regular" },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
@@ -264,10 +259,7 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     gap: 12,
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-  },
+  emptyTitle: { fontSize: 22, fontFamily: "Inter_700Bold" },
   emptySub: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
