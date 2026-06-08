@@ -12,17 +12,20 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { setBaseUrl } from "@workspace/api-client-react";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { CollectionProvider } from "@/context/CollectionContext";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
@@ -48,9 +51,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <RootLayoutNav />
+              <CollectionProvider>
+                <RootLayoutNav />
+              </CollectionProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

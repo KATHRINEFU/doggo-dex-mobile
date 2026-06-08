@@ -6,17 +6,26 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#3396D3"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "DogDex uses your camera to take photos of dogs for breed detection.",
+        "NSPhotoLibraryUsageDescription": "DogDex accesses your photo library so you can pick dog photos for breed detection."
+      }
     },
-    "android": {},
+    "android": {
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -28,7 +37,14 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DogDex accesses your photos to identify dog breeds.",
+          "cameraPermission": "DogDex uses your camera to take photos of dogs."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
