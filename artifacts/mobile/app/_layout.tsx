@@ -17,7 +17,9 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CollectionProvider } from "@/context/CollectionContext";
 
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+const _apiBase = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
+console.log("[DogDex] API base URL:", _apiBase);
+setBaseUrl(_apiBase);
 
 SplashScreen.preventAutoHideAsync();
 

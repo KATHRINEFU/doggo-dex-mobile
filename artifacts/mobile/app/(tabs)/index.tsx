@@ -97,37 +97,56 @@ export default function HomeScreen() {
   }
 
   async function pickAndDetect(fromCamera: boolean) {
+    let asset: ImagePicker.ImagePickerAsset | null = null;
     try {
       let picked: ImagePicker.ImagePickerResult;
       if (fromCamera) {
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
         if (!granted) { Alert.alert("Permission needed", "Camera access is required."); return; }
-        picked = await ImagePicker.launchCameraAsync({ mediaTypes: "Images" as any, quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1] });
+        picked = await ImagePicker.launchCameraAsync({ mediaTypes: "Images" as any, quality: 0.82, base64: true, allowsEditing: true, aspect: [1, 1] });
       } else {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!granted) { Alert.alert("Permission needed", "Photo library access is required."); return; }
-        picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "Images" as any, quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1] });
+        picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "Images" as any, quality: 0.82, base64: true, allowsEditing: true, aspect: [1, 1] });
       }
 
       if (picked.canceled || !picked.assets?.[0]) return;
-      const asset = picked.assets[0];
+      asset = picked.assets[0];
 
       setImageUri(asset.uri);
       setDetecting(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Re-encode to JPEG via canvas/native — fixes HEIC, WebP, PNG variants
-      const manipulated = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 1024 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-      );
-
-      if (!manipulated.base64) { Alert.alert("Error", "Could not process image."); setDetecting(false); return; }
-
+      // Re-encode to JPEG via ImageManipulator (handles HEIC/WebP); fall back to picker base64
+      let base64Data: string;
+      let usedFallback = false;
+      try {
+        const manipulated = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1024 } }],
+          { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        );
+        if (!manipulated.base64) throw new Error("manipulateAsync returned no base64");
+        base64Data = manipulated.base64;
+        console.log("[DogDex] ImageManipulator OK, bytes:", base64Data.length);
+      } catch (manipErr) {
+        console.warn("[DogDex] ImageManipulator failed, using picker base64 fallback:", manipErr);
+        if (asset.base64) {
+          base64Data = asset.base64;
+          usedFallback = true;
+          console.log("[DogDex] Picker fallback base64 length:", base64Data.length);
+        } else {
+          console.error("[DogDex] No base64 available at all");
+          Alert.alert("Image error", `Could not read image: ${manipErr instanceof Error ? manipErr.message : String(manipErr)}`);
+          setDetecting(false);
+          return;
+        }
+      }
+      console.log("[DogDex] Sending detect request (fallback=" + usedFallback + ")…");
       const res = await detectMutation.mutateAsync({
-        data: { imageBase64: manipulated.base64, mimeType: "image/jpeg" },
+        data: { imageBase64: base64Data, mimeType: "image/jpeg" },
       });
+      console.log("[DogDex] Detect response:", JSON.stringify(res));
 
       setResult(res);
       const found = res.breedId && allBreeds ? allBreeds.find((b) => b.id === res.breedId) ?? null : null;
@@ -153,8 +172,10 @@ export default function HomeScreen() {
       }
 
       setModalVisible(true);
-    } catch {
-      Alert.alert("Detection failed", "Could not analyze the image. Please try again.");
+    } catch (err) {
+      console.error("[DogDex] Detection error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert("Detection failed", msg || "Could not analyze the image. Please try again.");
     } finally {
       setDetecting(false);
     }
