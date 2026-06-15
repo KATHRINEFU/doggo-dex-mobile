@@ -1,6 +1,7 @@
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -110,14 +111,22 @@ export default function HomeScreen() {
 
       if (picked.canceled || !picked.assets?.[0]) return;
       const asset = picked.assets[0];
-      if (!asset.base64) { Alert.alert("Error", "Could not read image."); return; }
 
       setImageUri(asset.uri);
       setDetecting(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      // Re-encode to JPEG via canvas/native — fixes HEIC, WebP, PNG variants
+      const manipulated = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+
+      if (!manipulated.base64) { Alert.alert("Error", "Could not process image."); setDetecting(false); return; }
+
       const res = await detectMutation.mutateAsync({
-        data: { imageBase64: asset.base64, mimeType: asset.mimeType ?? "image/jpeg" },
+        data: { imageBase64: manipulated.base64, mimeType: "image/jpeg" },
       });
 
       setResult(res);
