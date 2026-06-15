@@ -1,5 +1,6 @@
 import { Router } from "express";
 import OpenAI from "openai";
+import sharp from "sharp";
 
 const router = Router();
 
@@ -196,24 +197,22 @@ router.post("/dogs/detect", async (req, res) => {
     if (match) mimeType = match[1];
   }
 
-  // Normalise to formats OpenAI actually accepts
-  const MIME_MAP: Record<string, string> = {
-    "image/jpg": "image/jpeg",
-    "image/heic": "image/jpeg",
-    "image/heif": "image/jpeg",
-    "image/bmp": "image/png",
-    "image/tiff": "image/png",
-  };
-  const SUPPORTED = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-  const resolvedMime = MIME_MAP[mimeType] ?? (SUPPORTED.includes(mimeType) ? mimeType : "image/jpeg");
-
-  // Detect actual format from magic bytes as a last-resort override
-  const header4 = Buffer.from(imageBase64.slice(0, 8), "base64");
-  let detectedMime = resolvedMime;
-  if (header4[0] === 0x89 && header4[1] === 0x50) detectedMime = "image/png";
-  else if (header4[0] === 0xff && header4[1] === 0xd8) detectedMime = "image/jpeg";
-  else if (header4[0] === 0x47 && header4[1] === 0x49) detectedMime = "image/gif";
-  else if (header4[0] === 0x52 && header4[4] === 0x57) detectedMime = "image/webp";
+  // Convert any image format (HEIC, WebP, PNG, TIFF, etc.) to JPEG using sharp
+  // This is the single source of truth for format normalisation — no magic byte guessing needed.
+  let jpegBase64 = imageBase64;
+  try {
+    const inputBuffer = Buffer.from(imageBase64, "base64");
+    const jpegBuffer = await sharp(inputBuffer)
+      .rotate()           // respect EXIF orientation
+      .resize({ width: 1024, withoutEnlargement: true })
+      .jpeg({ quality: 88 })
+      .toBuffer();
+    jpegBase64 = jpegBuffer.toString("base64");
+    req.log?.info({ inputBytes: inputBuffer.length, outputBytes: jpegBuffer.length }, "sharp conversion OK");
+  } catch (sharpErr) {
+    req.log?.warn({ sharpErr }, "sharp conversion failed — using raw base64");
+    // jpegBase64 stays as the original; we still attempt OpenAI and let it give the clearest error
+  }
 
   try {
     const response = await openai.chat.completions.create({
@@ -226,7 +225,7 @@ router.post("/dogs/detect", async (req, res) => {
             {
               type: "image_url",
               image_url: {
-                url: `data:${detectedMime};base64,${imageBase64}`,
+                url: `data:image/jpeg;base64,${jpegBase64}`,
                 detail: "low",
               },
             },
