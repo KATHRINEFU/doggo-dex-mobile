@@ -178,7 +178,7 @@ router.get("/dogs/breeds/:id", (req, res) => {
 });
 
 router.post("/dogs/detect", async (req, res) => {
-  const { imageBase64, mimeType = "image/jpeg" } = req.body as {
+  let { imageBase64, mimeType = "image/jpeg" } = req.body as {
     imageBase64: string;
     mimeType?: string;
   };
@@ -186,6 +186,34 @@ router.post("/dogs/detect", async (req, res) => {
   if (!imageBase64) {
     return res.status(400).json({ error: "bad_request", message: "imageBase64 is required" });
   }
+
+  // Strip data-URL prefix if the client included it (common on web)
+  if (imageBase64.includes(",")) {
+    const parts = imageBase64.split(",");
+    const header = parts[0]; // e.g. "data:image/jpeg;base64"
+    imageBase64 = parts[1];
+    const match = header.match(/data:([^;]+);/);
+    if (match) mimeType = match[1];
+  }
+
+  // Normalise to formats OpenAI actually accepts
+  const MIME_MAP: Record<string, string> = {
+    "image/jpg": "image/jpeg",
+    "image/heic": "image/jpeg",
+    "image/heif": "image/jpeg",
+    "image/bmp": "image/png",
+    "image/tiff": "image/png",
+  };
+  const SUPPORTED = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const resolvedMime = MIME_MAP[mimeType] ?? (SUPPORTED.includes(mimeType) ? mimeType : "image/jpeg");
+
+  // Detect actual format from magic bytes as a last-resort override
+  const header4 = Buffer.from(imageBase64.slice(0, 8), "base64");
+  let detectedMime = resolvedMime;
+  if (header4[0] === 0x89 && header4[1] === 0x50) detectedMime = "image/png";
+  else if (header4[0] === 0xff && header4[1] === 0xd8) detectedMime = "image/jpeg";
+  else if (header4[0] === 0x47 && header4[1] === 0x49) detectedMime = "image/gif";
+  else if (header4[0] === 0x52 && header4[4] === 0x57) detectedMime = "image/webp";
 
   try {
     const response = await openai.chat.completions.create({
@@ -198,7 +226,7 @@ router.post("/dogs/detect", async (req, res) => {
             {
               type: "image_url",
               image_url: {
-                url: `data:${mimeType};base64,${imageBase64}`,
+                url: `data:${detectedMime};base64,${imageBase64}`,
                 detail: "low",
               },
             },
