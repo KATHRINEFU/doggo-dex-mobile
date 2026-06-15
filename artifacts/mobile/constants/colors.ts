@@ -1,40 +1,47 @@
 const colors = {
   light: {
-    text: "#1a2332",
-    tint: "#FFC400",
+    background: "#F4EDDA",
+    card: "#FDFAF3",
+    cardAlt: "#EFE8D3",
 
-    background: "#0B1626",
-    foreground: "#F0F4F8",
+    foreground: "#3D3529",
+    text: "#3D3529",
+    tint: "#5B7A3A",
 
-    card: "#162033",
-    cardForeground: "#F0F4F8",
+    primary: "#5B7A3A",
+    primaryForeground: "#FFFFFF",
 
-    primary: "#FFC400",
-    primaryForeground: "#0B1626",
+    secondary: "#8B7355",
+    secondaryForeground: "#FFFFFF",
 
-    secondary: "#1E3048",
-    secondaryForeground: "#F0F4F8",
+    muted: "#EFE8D3",
+    mutedForeground: "#9B8E7E",
 
-    muted: "#1E3048",
-    mutedForeground: "#6B8099",
+    accent: "#A8C478",
+    accentForeground: "#3D3529",
 
-    accent: "#3396D3",
-    accentForeground: "#FFFFFF",
+    border: "#E5D9C3",
+    input: "#EFE8D3",
 
-    destructive: "#ef4444",
-    destructiveForeground: "#ffffff",
+    destructive: "#C0392B",
+    destructiveForeground: "#FFFFFF",
 
-    border: "#1E3048",
-    input: "#1E3048",
-
-    // DogDex rarity
-    common: "#78C44C",
-    uncommon: "#3396D3",
-    rare: "#A855F7",
-    legendary: "#FFC400",
+    // DogDex rarity colours — softer/more muted to fit the watercolour palette
+    common: "#6B9E4A",
+    uncommon: "#5B7A9E",
+    rare: "#9B6FA8",
+    legendary: "#C8943A",
   },
 
-  radius: 16,
+  radius: 18,
+
+  fonts: {
+    serif: "Georgia",
+    sansRegular: "Inter_400Regular",
+    sansMedium: "Inter_500Medium",
+    sansSemiBold: "Inter_600SemiBold",
+    sansBold: "Inter_700Bold",
+  },
 };
 
 export default colors;

@@ -1,95 +1,53 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef, useState } from "react";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Dimensions,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
   withSpring,
   withTiming,
+  withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useCollection } from "@/context/CollectionContext";
 import { DetectionResultModal } from "@/components/DetectionResultModal";
 import { ConfettiAnimation } from "@/components/ConfettiAnimation";
-import { XPBar } from "@/components/XPBar";
 import { useDetectDogBreed, useGetDogBreeds } from "@workspace/api-client-react";
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const RADAR_SIZE = Math.min(SCREEN_WIDTH * 0.72, 300);
+const { width: W } = Dimensions.get("window");
 
-function PulseRing({ delay, size, color }: { delay: number; size: number; color: string }) {
-  const scale = useSharedValue(0.4);
-  const opacity = useSharedValue(0.8);
+const HERO_DOG =
+  "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=300&q=80";
 
-  useEffect(() => {
-    scale.value = withDelay(delay, withRepeat(withTiming(1.0, { duration: 2200, easing: Easing.out(Easing.ease) }), -1, false));
-    opacity.value = withDelay(delay, withRepeat(withTiming(0, { duration: 2200, easing: Easing.out(Easing.ease) }), -1, false));
-  }, []);
+const RARITY_DOT: Record<string, string> = {
+  common: "#6B9E4A",
+  uncommon: "#5B7A9E",
+  rare: "#9B6FA8",
+  legendary: "#C8943A",
+};
 
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View
-      style={[{ position: "absolute", width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: color }, style]}
-    />
-  );
-}
-
-function RadarSweep({ color }: { color: string }) {
-  const rotate = useSharedValue(0);
-  useEffect(() => {
-    rotate.value = withRepeat(withTiming(360, { duration: 3000, easing: Easing.linear }), -1, false);
-  }, []);
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
-
-  return (
-    <Animated.View
-      style={[{ position: "absolute", width: RADAR_SIZE, height: RADAR_SIZE, borderRadius: RADAR_SIZE / 2, overflow: "hidden" }, style]}
-      pointerEvents="none"
-    >
-      <View style={{ position: "absolute", top: "50%", left: "50%", width: RADAR_SIZE / 2, height: RADAR_SIZE / 2, transformOrigin: "0% 100%", backgroundColor: `${color}22`, borderTopLeftRadius: RADAR_SIZE / 2 }} />
-    </Animated.View>
-  );
-}
-
-function DetectingAnimation({ color }: { color: string }) {
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    scale.value = withRepeat(withSequence(withTiming(1.15, { duration: 500 }), withTiming(1.0, { duration: 500 })), -1, false);
-  }, []);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  return (
-    <Animated.View style={[styles.radarCenter, { backgroundColor: `${color}22` }, style]}>
-      <ActivityIndicator size="large" color={color} />
-    </Animated.View>
-  );
-}
-
-export default function ScanScreen() {
+export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { addDog, isCollected, collectionCount, xp, xpLevel, streak } = useCollection();
+  const router = useRouter();
+  const { addDog, isCollected, collectionCount, collectedDogs } = useCollection();
 
   const [detecting, setDetecting] = useState(false);
   const [imageUri, setImageUri] = useState("");
@@ -97,26 +55,38 @@ export default function ScanScreen() {
   const [matchedBreed, setMatchedBreed] = useState<DogBreed | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
-  const [xpPopup, setXpPopup] = useState<{ amount: number; isNew: boolean } | null>(null);
   const confettiTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scanBtnScale = useSharedValue(1);
+  const btnScale = useSharedValue(1);
   const xpPopupY = useSharedValue(0);
   const xpPopupOpacity = useSharedValue(0);
+  const [xpMsg, setXpMsg] = useState("");
 
   const { data: allBreeds } = useGetDogBreeds();
   const detectMutation = useDetectDogBreed();
 
-  const scanBtnStyle = useAnimatedStyle(() => ({ transform: [{ scale: scanBtnScale.value }] }));
-  const xpPopupStyle = useAnimatedStyle(() => ({ transform: [{ translateY: xpPopupY.value }], opacity: xpPopupOpacity.value }));
+  const totalBreeds = allBreeds?.length ?? 100;
+  const progress = Math.min(collectionCount / totalBreeds, 1);
 
-  function showXpPopup(amount: number, isNew: boolean) {
-    setXpPopup({ amount, isNew });
+  const recentDogs = [...collectedDogs]
+    .sort((a, b) => b.collectedAt.localeCompare(a.collectedAt))
+    .slice(0, 8);
+
+  const btnStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: btnScale.value }],
+  }));
+
+  const xpStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: xpPopupY.value }],
+    opacity: xpPopupOpacity.value,
+  }));
+
+  function showXp(msg: string) {
+    setXpMsg(msg);
     xpPopupY.value = 0;
     xpPopupOpacity.value = 1;
-    xpPopupY.value = withTiming(-60, { duration: 1200 });
-    xpPopupOpacity.value = withDelay(800, withTiming(0, { duration: 400 }));
-    setTimeout(() => setXpPopup(null), 1400);
+    xpPopupY.value = withTiming(-50, { duration: 1000 });
+    xpPopupOpacity.value = withDelay(700, withTiming(0, { duration: 300 }));
   }
 
   function triggerConfetti() {
@@ -131,31 +101,29 @@ export default function ScanScreen() {
       if (fromCamera) {
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
         if (!granted) { Alert.alert("Permission needed", "Camera access is required."); return; }
-        picked = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1] });
+        picked = await ImagePicker.launchCameraAsync({ mediaTypes: "Images" as any, quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1] });
       } else {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!granted) { Alert.alert("Permission needed", "Photo library access is required."); return; }
-        picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1] });
+        picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "Images" as any, quality: 0.7, base64: true, allowsEditing: true, aspect: [1, 1] });
       }
 
       if (picked.canceled || !picked.assets?.[0]) return;
       const asset = picked.assets[0];
-      if (!asset.base64) { Alert.alert("Error", "Could not read image data."); return; }
+      if (!asset.base64) { Alert.alert("Error", "Could not read image."); return; }
 
       setImageUri(asset.uri);
       setDetecting(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const res = await detectMutation.mutateAsync({
         data: { imageBase64: asset.base64, mimeType: asset.mimeType ?? "image/jpeg" },
       });
 
       setResult(res);
-
       const found = res.breedId && allBreeds ? allBreeds.find((b) => b.id === res.breedId) ?? null : null;
       setMatchedBreed(found);
 
-      // Auto-add if confidence > 70%
       if (res.isDog && res.confidence >= 0.7 && res.breedId && found) {
         const { isNew, xpGained } = await addDog({
           breedId: res.breedId,
@@ -166,14 +134,13 @@ export default function ScanScreen() {
           description: res.description,
           rarity: found.rarity,
         });
-
         if (isNew) {
           triggerConfetti();
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showXp(`+${xpGained} XP · New breed!`);
         } else {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          showXp("Already in your DogDex!");
         }
-        showXpPopup(xpGained, isNew);
       }
 
       setModalVisible(true);
@@ -184,106 +151,152 @@ export default function ScanScreen() {
     }
   }
 
-  const totalBreeds = allBreeds?.length ?? 100;
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ConfettiAnimation active={confettiActive} />
 
       {/* XP popup */}
-      {xpPopup && (
-        <Animated.View style={[styles.xpPopup, { backgroundColor: colors.primary }, xpPopupStyle]}>
-          <Text style={[styles.xpPopupText, { color: colors.primaryForeground }]}>
-            {xpPopup.isNew ? `+${xpPopup.amount} XP` : "Already caught!"}
-          </Text>
+      {xpMsg ? (
+        <Animated.View style={[styles.xpPop, { backgroundColor: colors.primary }, xpStyle]}>
+          <Text style={[styles.xpPopText, { color: colors.primaryForeground }]}>{xpMsg}</Text>
         </Animated.View>
-      )}
+      ) : null}
 
-      {/* Header */}
-      <LinearGradient colors={["#0B1626", "#0d2040"]} style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 67 : 0) }]}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.headerTitle, { color: colors.primary }]}>DogDex</Text>
-            <XPBar xp={xp} levelName={xpLevel.name} compact />
-          </View>
-          <View style={styles.headerRight}>
-            <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.countText, { color: colors.primaryForeground }]}>{collectionCount}/{totalBreeds}</Text>
-              <Text style={[styles.countLabel, { color: colors.primaryForeground }]}>caught</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 90 + (Platform.OS === "web" ? 34 : 0) }}
+      >
+        {/* ── Header ──────────────────────────────────── */}
+        <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 70 : 16) }]}>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => router.push("/medals" as any)}>
+            <Feather name="settings" size={20} color={colors.mutedForeground} />
+          </TouchableOpacity>
+
+          <View style={styles.titleBlock}>
+            {/* Paw watermark above */}
+            <Text style={[styles.pawWatermark, { color: `${colors.primary}55` }]}>🐾</Text>
+
+            <View style={styles.titleRow}>
+              <Text style={[styles.leafL, { color: `${colors.primary}77` }]}>🌿</Text>
+              <Text style={[styles.title, { color: colors.foreground }]}>DogDex</Text>
+              <Text style={[styles.leafR, { color: `${colors.primary}77` }]}>🌿</Text>
             </View>
-            {streak > 1 && (
-              <View style={[styles.streakBadge, { backgroundColor: "#FF6B35" }]}>
-                <Ionicons name="flame" size={12} color="#fff" />
-                <Text style={styles.streakText}>{streak}</Text>
-              </View>
-            )}
+
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+              Collect every dog. Share every story.
+            </Text>
           </View>
         </View>
-      </LinearGradient>
 
-      {/* Radar area */}
-      <View style={styles.scanArea}>
-        <View style={styles.gridOverlay} pointerEvents="none">
-          {[...Array(6)].map((_, i) => (
-            <View key={i} style={[styles.gridLine, { borderColor: `${colors.accent}18` }]} />
-          ))}
-        </View>
+        {/* ── Collection Progress Card ─────────────────── */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginHorizontal: 20, borderRadius: colors.radius }]}>
+          {/* Watercolour dog illustration */}
+          <Image
+            source={{ uri: HERO_DOG }}
+            style={styles.heroDog}
+            contentFit="cover"
+          />
 
-        <View style={styles.radarWrapper}>
-          {[0.35, 0.6, 0.85, 1.0].map((r, i) => (
-            <View key={i} style={{ position: "absolute", width: RADAR_SIZE * r, height: RADAR_SIZE * r, borderRadius: (RADAR_SIZE * r) / 2, borderWidth: 1, borderColor: `${colors.accent}30` }} />
-          ))}
-          <PulseRing delay={0} size={RADAR_SIZE * 0.6} color={colors.primary} />
-          <PulseRing delay={730} size={RADAR_SIZE * 0.8} color={colors.primary} />
-          <PulseRing delay={1460} size={RADAR_SIZE} color={colors.primary} />
-          {!detecting && <RadarSweep color={colors.primary} />}
-          <View style={[styles.crossH, { backgroundColor: `${colors.accent}40` }]} />
-          <View style={[styles.crossV, { backgroundColor: `${colors.accent}40` }]} />
+          <View style={styles.cardTop}>
+            <Text style={[styles.progressLabel, { color: colors.mutedForeground }]}>
+              COLLECTION PROGRESS
+            </Text>
+            <Text style={[styles.progressCount, { color: colors.foreground }]}>
+              <Text style={{ fontFamily: "Georgia", fontSize: 48 }}>{collectionCount}</Text>
+              <Text style={{ fontSize: 22, color: colors.mutedForeground }}> / {totalBreeds}</Text>
+            </Text>
 
-          {detecting ? (
-            <DetectingAnimation color={colors.primary} />
-          ) : (
-            <TouchableOpacity
-              activeOpacity={1}
-              onPressIn={() => { scanBtnScale.value = withSpring(0.92, { damping: 12 }); }}
-              onPressOut={() => { scanBtnScale.value = withSpring(1, { damping: 12 }); }}
-              onPress={() => pickAndDetect(true)}
-            >
-              <Animated.View style={[styles.radarCenter, { backgroundColor: colors.primary, shadowColor: colors.primary }, scanBtnStyle]}>
-                <Ionicons name="camera" size={40} color={colors.primaryForeground} />
-                <Text style={[styles.centerLabel, { color: colors.primaryForeground }]}>SCAN</Text>
+            {/* Progress bar */}
+            <View style={[styles.progressTrack, { backgroundColor: colors.muted }]}>
+              <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${progress * 100}%` }]} />
+            </View>
+          </View>
+
+          {/* Camera button */}
+          <View style={styles.cameraArea}>
+            <View style={[styles.cameraRing, { borderColor: `${colors.primary}30` }]}>
+              <Animated.View style={btnStyle}>
+                <Pressable
+                  style={[styles.cameraBtn, { backgroundColor: colors.primary }]}
+                  onPressIn={() => { btnScale.value = withSpring(0.91, { damping: 14 }); }}
+                  onPressOut={() => { btnScale.value = withSpring(1, { damping: 14 }); }}
+                  onPress={() => pickAndDetect(true)}
+                  disabled={detecting}
+                >
+                  {detecting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="camera" size={32} color="#fff" />
+                  )}
+                </Pressable>
               </Animated.View>
-            </TouchableOpacity>
-          )}
+            </View>
+
+            <Text style={[styles.findLabel, { color: colors.mutedForeground }]}>
+              {detecting ? "Identifying breed…" : "Find a dog"}
+            </Text>
+            <Text style={[styles.findSub, { color: colors.mutedForeground }]}>
+              {detecting ? "" : "and add to your collection"}
+            </Text>
+          </View>
         </View>
 
-        <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
-          {detecting ? "Analyzing breed with AI..." : "Point at a dog and tap SCAN"}
-        </Text>
-
-        <Text style={[styles.autoAddNote, { color: `${colors.primary}99` }]}>
-          Breeds with 70%+ confidence are auto-added!
-        </Text>
-      </View>
-
-      {/* Bottom bar */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 70 }]}>
+        {/* Upload hint */}
         <TouchableOpacity
-          style={[styles.sideBtn, { backgroundColor: colors.secondary, borderRadius: colors.radius }]}
+          style={[styles.uploadRow, { borderColor: colors.border }]}
           onPress={() => pickAndDetect(false)}
           disabled={detecting}
         >
-          <Ionicons name="images-outline" size={22} color={colors.primary} />
-          <Text style={[styles.sideBtnText, { color: colors.foreground }]}>Upload</Text>
+          <Feather name="image" size={15} color={colors.primary} />
+          <Text style={[styles.uploadText, { color: colors.primary }]}>Upload from gallery</Text>
         </TouchableOpacity>
-        <View style={styles.centerSpacer}>
-          <Text style={[styles.tipText, { color: colors.mutedForeground }]}>or upload from gallery</Text>
+
+        {/* ── Recent Discoveries ───────────────────────── */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>RECENT DISCOVERIES</Text>
+          <TouchableOpacity onPress={() => router.push("/collection" as any)}>
+            <Text style={[styles.viewAll, { color: colors.primary }]}>View All &gt;</Text>
+          </TouchableOpacity>
         </View>
-        <View style={[styles.sideBtn, { backgroundColor: colors.secondary, borderRadius: colors.radius }]}>
-          <Ionicons name="paw-outline" size={22} color={colors.accent} />
-          <Text style={[styles.sideBtnText, { color: colors.foreground }]}>{totalBreeds - collectionCount} left</Text>
-        </View>
-      </View>
+
+        {recentDogs.length === 0 ? (
+          <View style={[styles.emptyRecent, { backgroundColor: colors.card, borderColor: colors.border, marginHorizontal: 20, borderRadius: colors.radius }]}>
+            <Text style={{ fontSize: 36 }}>🐕</Text>
+            <Text style={[styles.emptyRecentText, { color: colors.mutedForeground }]}>
+              No discoveries yet — go scan a dog!
+            </Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentScroll}>
+            {recentDogs.map((dog) => {
+              const breed = allBreeds?.find((b) => b.id === dog.breedId);
+              const rarityColor = RARITY_DOT[breed?.rarity ?? "common"];
+              const dateStr = new Date(dog.collectedAt).toLocaleDateString("en-US", {
+                month: "short", day: "numeric", year: "numeric",
+              });
+              return (
+                <TouchableOpacity
+                  key={dog.breedId}
+                  style={[styles.recentCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: 16 }]}
+                  onPress={() => router.push(`/breed/${dog.breedId}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <Image source={{ uri: dog.imageUri }} style={styles.recentImg} contentFit="cover" />
+                  <View style={styles.recentInfo}>
+                    <Text style={[styles.recentName, { color: colors.foreground }]} numberOfLines={1}>
+                      {dog.breedName}
+                    </Text>
+                    <View style={styles.recentDateRow}>
+                      <View style={[styles.rarityDot, { backgroundColor: rarityColor }]} />
+                      <Text style={[styles.recentDate, { color: colors.mutedForeground }]}>{dateStr}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+      </ScrollView>
 
       <DetectionResultModal
         visible={modalVisible}
@@ -299,31 +312,50 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 16 },
-  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  headerTitle: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 4 },
-  headerRight: { alignItems: "center", gap: 4 },
-  countBadge: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, alignItems: "center" },
-  countText: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  countLabel: { fontSize: 9, fontFamily: "Inter_500Medium", textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.75 },
-  streakBadge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  streakText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#fff" },
-  scanArea: { flex: 1, alignItems: "center", justifyContent: "center" },
-  gridOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, flexDirection: "column", justifyContent: "space-around" },
-  gridLine: { flex: 1, borderBottomWidth: 1 },
-  radarWrapper: { width: RADAR_SIZE, height: RADAR_SIZE, alignItems: "center", justifyContent: "center", position: "relative" },
-  crossH: { position: "absolute", width: RADAR_SIZE, height: 1 },
-  crossV: { position: "absolute", width: 1, height: RADAR_SIZE },
-  radarCenter: { width: 110, height: 110, borderRadius: 55, alignItems: "center", justifyContent: "center", gap: 4, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 20, elevation: 10 },
-  centerLabel: { fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 2 },
-  statusText: { marginTop: 32, fontSize: 14, fontFamily: "Inter_500Medium", textAlign: "center" },
-  autoAddNote: { marginTop: 6, fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center" },
-  bottomBar: { flexDirection: "row", alignItems: "center", paddingTop: 16, paddingHorizontal: 24, borderTopWidth: 1, gap: 12 },
-  sideBtn: { alignItems: "center", justifyContent: "center", paddingVertical: 12, paddingHorizontal: 16, gap: 4, minWidth: 80 },
-  sideBtnText: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  centerSpacer: { flex: 1, alignItems: "center" },
-  tipText: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center" },
-  xpPopup: { position: "absolute", top: "40%", alignSelf: "center", zIndex: 100, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
-  xpPopupText: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  root: { flex: 1 },
+  header: { alignItems: "center", paddingHorizontal: 20, paddingBottom: 20, position: "relative" },
+  settingsBtn: { position: "absolute", right: 20, top: Platform.OS === "web" ? 82 : 56, padding: 8 },
+  titleBlock: { alignItems: "center", gap: 4 },
+  pawWatermark: { fontSize: 22, marginBottom: 2 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  leafL: { fontSize: 20 },
+  leafR: { fontSize: 20 },
+  title: { fontFamily: "Georgia", fontSize: 42, letterSpacing: -1 },
+  subtitle: { fontStyle: "italic", fontFamily: "Inter_400Regular", fontSize: 14, marginTop: 2 },
+
+  card: { borderWidth: 1, overflow: "hidden", marginBottom: 8 },
+  heroDog: { position: "absolute", right: -10, top: -10, width: 130, height: 130, opacity: 0.85, borderRadius: 12 },
+  cardTop: { padding: 20, paddingBottom: 0, paddingRight: 130 },
+  progressLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5 },
+  progressCount: { marginTop: 2 },
+  progressTrack: { height: 8, borderRadius: 4, overflow: "hidden", marginTop: 10, marginBottom: 0 },
+  progressFill: { height: "100%", borderRadius: 4 },
+
+  cameraArea: { alignItems: "center", paddingVertical: 24, gap: 6 },
+  cameraRing: { width: 96, height: 96, borderRadius: 48, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  cameraBtn: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center", shadowColor: "#5B7A3A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+  findLabel: { fontFamily: "Georgia", fontSize: 16, fontStyle: "italic" },
+  findSub: { fontFamily: "Georgia", fontSize: 14, fontStyle: "italic" },
+
+  uploadRow: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "center", paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderRadius: 20, marginBottom: 24 },
+  uploadText: { fontFamily: "Inter_500Medium", fontSize: 13 },
+
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 12 },
+  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5 },
+  viewAll: { fontFamily: "Inter_500Medium", fontSize: 13 },
+
+  recentScroll: { paddingHorizontal: 20, gap: 12 },
+  recentCard: { width: 140, borderWidth: 1, overflow: "hidden" },
+  recentImg: { width: "100%", height: 120 },
+  recentInfo: { padding: 10, gap: 4 },
+  recentName: { fontFamily: "Inter_600SemiBold", fontSize: 13 },
+  recentDateRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  rarityDot: { width: 7, height: 7, borderRadius: 4 },
+  recentDate: { fontFamily: "Inter_400Regular", fontSize: 11 },
+
+  emptyRecent: { padding: 28, alignItems: "center", gap: 10, marginBottom: 16 },
+  emptyRecentText: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center" },
+
+  xpPop: { position: "absolute", top: "38%", alignSelf: "center", zIndex: 100, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20 },
+  xpPopText: { fontFamily: "Inter_600SemiBold", fontSize: 15 },
 });
