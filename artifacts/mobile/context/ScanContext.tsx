@@ -136,6 +136,9 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         );
         if (!manip.base64) throw new Error("no base64");
         base64Data = manip.base64;
+        // Update overlay image to the converted JPEG — more reliable to display
+        // than the original blob/file URI on all platforms.
+        setImageUri(manip.uri);
       } catch {
         // ImageManipulator failed (common for HEIC on web).
         if (!asset.base64) {

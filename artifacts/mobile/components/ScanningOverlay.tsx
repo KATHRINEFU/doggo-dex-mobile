@@ -1,10 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   Modal,
   StyleSheet,
   Text,
@@ -133,7 +133,11 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
           {/* Image with rounded corners */}
           <View style={styles.imageFrame}>
             {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.image} contentFit="cover" />
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.image}
+                resizeMode="cover"
+              />
             ) : (
               <View style={[styles.image, styles.imagePlaceholder]}>
                 <Text style={{ fontSize: 48 }}>🐕</Text>
