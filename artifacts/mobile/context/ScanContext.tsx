@@ -88,6 +88,12 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     try {
       let asset: ImagePicker.ImagePickerAsset | null = null;
 
+      // On web, allowsEditing:true prevents asset.base64 from being populated,
+      // so we disable it on web and rely on ImageManipulator for cropping/resizing.
+      const editOptions = Platform.OS === "web"
+        ? {}
+        : { allowsEditing: true as const, aspect: [1, 1] as [number, number] };
+
       if (fromCamera) {
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
         if (!granted) {
@@ -98,8 +104,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           mediaTypes: "Images" as any,
           quality: 0.85,
           base64: true,
-          allowsEditing: true,
-          aspect: [1, 1],
+          ...editOptions,
         });
         if (picked.canceled || !picked.assets?.[0]) return;
         asset = picked.assets[0];
@@ -113,15 +118,35 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           mediaTypes: "Images" as any,
           quality: 0.85,
           base64: true,
-          allowsEditing: true,
-          aspect: [1, 1],
+          ...editOptions,
         });
         if (picked.canceled || !picked.assets?.[0]) return;
         asset = picked.assets[0];
       }
 
       pickedUri = asset.uri;
-      setImageUri(pickedUri);
+
+      // Build a data: URL for the overlay — blob/file URIs are unreliable inside
+      // Modals on web. Prefer asset.base64 (available when allowsEditing is off),
+      // then fall back to reading the blob via FileReader.
+      let previewUri = asset.uri;
+      if (asset.base64) {
+        previewUri = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
+      } else if (Platform.OS === "web" && asset.uri) {
+        try {
+          const resp = await fetch(asset.uri);
+          const blob = await resp.blob();
+          previewUri = await new Promise<string>((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result as string);
+            fr.onerror = rej;
+            fr.readAsDataURL(blob);
+          });
+        } catch {
+          previewUri = asset.uri;
+        }
+      }
+      setImageUri(previewUri);
       setDetecting(true);
 
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
@@ -136,9 +161,8 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         );
         if (!manip.base64) throw new Error("no base64");
         base64Data = manip.base64;
-        // Update overlay image to the converted JPEG — more reliable to display
-        // than the original blob/file URI on all platforms.
-        setImageUri(manip.uri);
+        // Swap to the smaller converted JPEG data URL for display.
+        setImageUri(`data:image/jpeg;base64,${manip.base64}`);
       } catch {
         // ImageManipulator failed (common for HEIC on web).
         if (!asset.base64) {
