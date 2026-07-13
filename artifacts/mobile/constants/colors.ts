@@ -1,41 +1,41 @@
 const colors = {
   light: {
-    background: "#0D3B3B",
-    card: "rgba(255,255,255,0.96)",
-    cardAlt: "rgba(255,255,255,0.82)",
+    background: "#0A1628",
+    card: "rgba(255,255,255,0.92)",
+    cardAlt: "rgba(255,255,255,0.72)",
 
-    foreground: "#111827",
-    text: "#111827",
-    tint: "#16C8A0",
+    foreground: "#0F172A",
+    text: "#0F172A",
+    tint: "#5AC8FA",
 
-    primary: "#16C8A0",
+    primary: "#5AC8FA",
     primaryForeground: "#FFFFFF",
 
-    secondary: "#3B82F6",
+    secondary: "#007AFF",
     secondaryForeground: "#FFFFFF",
 
-    muted: "#F3F4F6",
-    mutedForeground: "#6B7280",
+    muted: "#F0F7FF",
+    mutedForeground: "#64748B",
 
     accent: "#FFCB05",
-    accentForeground: "#111827",
+    accentForeground: "#0F172A",
 
-    border: "#E5E7EB",
-    input: "#F9FAFB",
+    border: "#E2EAF4",
+    input: "#F8FAFC",
 
     destructive: "#EF4444",
     destructiveForeground: "#FFFFFF",
 
-    common: "#22C55E",
-    uncommon: "#3B82F6",
-    rare: "#A855F7",
-    legendary: "#F59E0B",
+    common: "#34D399",
+    uncommon: "#60A5FA",
+    rare: "#A78BFA",
+    legendary: "#FBBF24",
 
     pokeRed: "#E8232A",
     pokeDark: "#1A1A2E",
   },
 
-  radius: 20,
+  radius: 22,
 
   fonts: {
     serif: "Georgia",

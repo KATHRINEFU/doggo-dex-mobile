@@ -16,6 +16,7 @@ import { setBaseUrl } from "@workspace/api-client-react";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CollectionProvider } from "@/context/CollectionContext";
+import { ScanProvider } from "@/context/ScanContext";
 
 const _apiBase = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
 console.log("[DogDex] API base URL:", _apiBase);
@@ -56,7 +57,9 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <CollectionProvider>
-                <RootLayoutNav />
+                <ScanProvider>
+                  <RootLayoutNav />
+                </ScanProvider>
               </CollectionProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
