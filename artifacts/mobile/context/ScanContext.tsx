@@ -142,16 +142,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           setDetecting(false);
           return;
         }
-        // Detect HEIC before sending — the server rejects it with 422 anyway,
-        // but catching it here gives a faster, friendlier experience.
-        if (isHeicBase64(asset.base64)) {
-          showError(
-            "HEIC photos aren't supported here. On iOS go to Settings → Camera → Formats and choose \"Most Compatible\" to save as JPEG.",
-            pickedUri,
-          );
-          setDetecting(false);
-          return;
-        }
+        // Pass through — the server uses heic-convert to handle HEIC automatically.
         base64Data = asset.base64;
       }
 

@@ -209,17 +209,30 @@ router.post("/dogs/detect", async (req, res) => {
     jpegBase64 = jpegBuffer.toString("base64");
     req.log?.info({ inputBytes: inputBuffer.length, outputBytes: jpegBuffer.length }, "sharp conversion OK");
   } catch (sharpErr) {
-    req.log?.warn({ sharpErr }, "sharp conversion failed");
-    // Check magic bytes — HEIC has "ftyp" at byte offset 4.
-    // Sending raw HEIC to OpenAI always fails with 400, so return a friendly 422 here.
+    req.log?.warn({ sharpErr }, "sharp conversion failed — trying heic-convert fallback");
+    // HEIC files have "ftyp" at byte offset 4. sharp/libvips hits a security limit on
+    // complex HEIC (many iref entries). heic-convert uses a separate WASM libheif build
+    // that handles these files.
     const magic = inputBuffer.slice(4, 8).toString("ascii");
     if (magic === "ftyp") {
-      return res.status(422).json({
-        error: "heic_not_supported",
-        message: "HEIC photos can't be analyzed directly. On iOS, go to Settings → Camera → Formats and choose 'Most Compatible' to save as JPEG. Or export the photo as JPEG before uploading.",
-      });
+      try {
+        const { default: heicConvert } = await import("heic-convert");
+        const outputBuffer = await heicConvert({
+          buffer: inputBuffer,
+          format: "JPEG",
+          quality: 0.88,
+        });
+        jpegBase64 = Buffer.from(outputBuffer as ArrayBuffer).toString("base64");
+        req.log?.info({ outputBytes: jpegBase64.length }, "heic-convert conversion OK");
+      } catch (heicErr) {
+        req.log?.error({ heicErr }, "heic-convert also failed");
+        return res.status(422).json({
+          error: "heic_conversion_failed",
+          message: "Could not convert this HEIC photo. Please try again with a JPEG or PNG.",
+        });
+      }
     }
-    // For other formats, pass through and let OpenAI give the clearest error.
+    // Non-HEIC formats: pass through and let OpenAI give the clearest error.
   }
 
   try {
