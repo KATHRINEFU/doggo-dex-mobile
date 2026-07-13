@@ -1,39 +1,41 @@
 const colors = {
   light: {
-    background: "#F4EDDA",
-    card: "#FDFAF3",
-    cardAlt: "#EFE8D3",
+    background: "#0D3B3B",
+    card: "rgba(255,255,255,0.96)",
+    cardAlt: "rgba(255,255,255,0.82)",
 
-    foreground: "#3D3529",
-    text: "#3D3529",
-    tint: "#5B7A3A",
+    foreground: "#111827",
+    text: "#111827",
+    tint: "#16C8A0",
 
-    primary: "#5B7A3A",
+    primary: "#16C8A0",
     primaryForeground: "#FFFFFF",
 
-    secondary: "#8B7355",
+    secondary: "#3B82F6",
     secondaryForeground: "#FFFFFF",
 
-    muted: "#EFE8D3",
-    mutedForeground: "#9B8E7E",
+    muted: "#F3F4F6",
+    mutedForeground: "#6B7280",
 
-    accent: "#A8C478",
-    accentForeground: "#3D3529",
+    accent: "#FFCB05",
+    accentForeground: "#111827",
 
-    border: "#E5D9C3",
-    input: "#EFE8D3",
+    border: "#E5E7EB",
+    input: "#F9FAFB",
 
-    destructive: "#C0392B",
+    destructive: "#EF4444",
     destructiveForeground: "#FFFFFF",
 
-    // DogDex rarity colours — softer/more muted to fit the watercolour palette
-    common: "#6B9E4A",
-    uncommon: "#5B7A9E",
-    rare: "#9B6FA8",
-    legendary: "#C8943A",
+    common: "#22C55E",
+    uncommon: "#3B82F6",
+    rare: "#A855F7",
+    legendary: "#F59E0B",
+
+    pokeRed: "#E8232A",
+    pokeDark: "#1A1A2E",
   },
 
-  radius: 18,
+  radius: 20,
 
   fonts: {
     serif: "Georgia",
