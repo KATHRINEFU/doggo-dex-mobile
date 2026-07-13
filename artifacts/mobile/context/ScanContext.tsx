@@ -5,6 +5,7 @@ import React, { createContext, useCallback, useContext, useRef, useState } from 
 import { Alert, Platform } from "react-native";
 import { ConfettiAnimation } from "@/components/ConfettiAnimation";
 import { DetectionResultModal } from "@/components/DetectionResultModal";
+import { ScanningOverlay } from "@/components/ScanningOverlay";
 import { useCollection } from "@/context/CollectionContext";
 import { useDetectDogBreed, useGetDogBreeds } from "@workspace/api-client-react";
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
@@ -222,6 +223,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   return (
     <ScanContext.Provider value={{ openScan, isScanning: detecting, xpMessage, confettiActive }}>
       {children}
+      <ScanningOverlay visible={detecting} imageUri={imageUri} />
       <ConfettiAnimation active={confettiActive} />
       <DetectionResultModal
         visible={modalVisible}
