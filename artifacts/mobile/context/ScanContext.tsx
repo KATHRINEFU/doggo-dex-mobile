@@ -126,33 +126,14 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
       pickedUri = asset.uri;
 
-      // Build a data: URL for the overlay — blob/file URIs are unreliable inside
-      // Modals on web. Prefer asset.base64 (available when allowsEditing is off),
-      // then fall back to reading the blob via FileReader.
-      let previewUri = asset.uri;
-      if (asset.base64) {
-        previewUri = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
-      } else if (Platform.OS === "web" && asset.uri) {
-        try {
-          const resp = await fetch(asset.uri);
-          const blob = await resp.blob();
-          previewUri = await new Promise<string>((res, rej) => {
-            const fr = new FileReader();
-            fr.onload = () => res(fr.result as string);
-            fr.onerror = rej;
-            fr.readAsDataURL(blob);
-          });
-        } catch {
-          previewUri = asset.uri;
-        }
-      }
-      setImageUri(previewUri);
-      setDetecting(true);
-
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
 
-      // --- Build base64 JPEG ---
+      // --- Convert to JPEG first, then show overlay ---
+      // On web, Chrome cannot decode HEIC in <img> or Canvas, so we must attempt
+      // JPEG conversion before opening the overlay. If conversion fails (HEIC on web),
+      // the overlay opens with the 🐕 placeholder — the server handles HEIC via heic-convert.
       let base64Data: string;
+      let displayUri = ""; // empty = show placeholder in overlay
       try {
         const manip = await ImageManipulator.manipulateAsync(
           asset.uri,
@@ -161,18 +142,51 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         );
         if (!manip.base64) throw new Error("no base64");
         base64Data = manip.base64;
-        // Swap to the smaller converted JPEG data URL for display.
-        setImageUri(`data:image/jpeg;base64,${manip.base64}`);
+        displayUri = `data:image/jpeg;base64,${manip.base64}`;
       } catch {
-        // ImageManipulator failed (common for HEIC on web).
-        if (!asset.base64) {
-          showError("Could not read this image. Please try a different photo.", pickedUri);
-          setDetecting(false);
-          return;
+        // ImageManipulator failed — likely HEIC on web (Chrome Canvas can't decode HEIC).
+        // Try heic2any to convert in the browser before falling back to placeholder.
+        if (Platform.OS === "web") {
+          try {
+            const heic2any = (await import("heic2any")).default;
+            const resp = await fetch(asset.uri);
+            const heicBlob = await resp.blob();
+            const converted = await (heic2any as (opts: unknown) => Promise<Blob | Blob[]>)({
+              blob: heicBlob,
+              toType: "image/jpeg",
+              quality: 0.82,
+            });
+            const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
+            // Read as data URL for overlay display
+            displayUri = await new Promise<string>((res, rej) => {
+              const fr = new FileReader();
+              fr.onload = () => res(fr.result as string);
+              fr.onerror = rej;
+              fr.readAsDataURL(jpegBlob);
+            });
+            // Extract base64 for the API (strip the data:image/jpeg;base64, prefix)
+            base64Data = displayUri.split(",")[1] ?? "";
+            if (!base64Data) throw new Error("empty base64 after heic2any");
+          } catch {
+            // heic2any also failed — send raw bytes to server, show placeholder
+            if (!asset.base64) {
+              showError("Could not read this image. Please try a different photo.", pickedUri);
+              return;
+            }
+            base64Data = asset.base64;
+            // displayUri stays "" → overlay shows 🐕 placeholder
+          }
+        } else {
+          if (!asset.base64) {
+            showError("Could not read this image. Please try a different photo.", pickedUri);
+            return;
+          }
+          base64Data = asset.base64;
         }
-        // Pass through — the server uses heic-convert to handle HEIC automatically.
-        base64Data = asset.base64;
       }
+
+      setImageUri(displayUri);
+      setDetecting(true);
 
       // --- Send to API ---
       let res: DetectBreedResult;

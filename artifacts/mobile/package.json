@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "expo-camera": "^17.0.10",
-    "expo-image-manipulator": "^14.0.8"
+    "expo-image-manipulator": "^14.0.8",
+    "heic2any": "^0.0.4"
   }
 }
