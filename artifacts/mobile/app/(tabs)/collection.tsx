@@ -155,7 +155,7 @@ export default function CollectionScreen() {
               onPress={() => setFilter(f)}
             >
               {f !== "all" && <View style={[styles.rarityDot, { backgroundColor: dotColor }]} />}
-              <Text style={[styles.filterPillText, { color: isActive ? dotColor : "rgba(255,255,255,0.75)" }]}>
+              <Text style={[styles.filterPillText, { color: isActive ? dotColor : "rgba(255,255,255,0.92)" }]}>
                 {RARITY_LABELS[f]}
               </Text>
             </TouchableOpacity>
@@ -260,9 +260,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "rgba(15,40,110,0.55)",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(200,220,255,0.5)",
+    borderBottomColor: "rgba(90,200,250,0.18)",
     flexWrap: "wrap",
   },
   filterPill: {
