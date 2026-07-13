@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "rgba(15,40,110,0.55)",
+    backgroundColor: "transparent",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(90,200,250,0.18)",
+    borderBottomColor: "rgba(255,255,255,0.12)",
   },
   searchBox: {
     flex: 1,
@@ -260,9 +260,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 6,
-    backgroundColor: "rgba(15,40,110,0.55)",
+    backgroundColor: "transparent",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(90,200,250,0.18)",
+    borderBottomColor: "rgba(255,255,255,0.12)",
     flexWrap: "wrap",
   },
   filterPill: {
