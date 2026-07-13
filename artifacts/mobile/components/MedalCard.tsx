@@ -1,7 +1,6 @@
-import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useColors } from "@/hooks/useColors";
 import type { Medal } from "@/context/CollectionContext";
 
 interface Props {
@@ -9,51 +8,98 @@ interface Props {
   currentCount: number;
 }
 
-const ICON_MAP: Record<string, string> = {
-  paw: "award", search: "search", people: "users", ear: "radio",
-  ribbon: "award", home: "home", star: "star", medal: "award", flame: "zap", trophy: "award",
+const TIER_GRADIENTS: Record<string, [string, string]> = {
+  b10:  ["#A8EDEA", "#66BB6A"],
+  b20:  ["#84FAB0", "#08AEEA"],
+  b30:  ["#A18CD1", "#FBC2EB"],
+  b40:  ["#FDDB92", "#D1FDFF"],
+  b50:  ["#5EE7DF", "#B490CA"],
+  b60:  ["#F6D365", "#FDA085"],
+  b70:  ["#F093FB", "#F5576C"],
+  b80:  ["#4FACFE", "#00F2FE"],
+  b90:  ["#43E97B", "#38F9D7"],
+  b100: ["#FFD700", "#FFA500"],
+};
+
+const EMOJI_MAP: Record<string, string> = {
+  b10: "🐾",
+  b20: "🔍",
+  b30: "🐺",
+  b40: "🎙️",
+  b50: "🎀",
+  b60: "🏠",
+  b70: "⭐",
+  b80: "🏅",
+  b90: "🔥",
+  b100: "🏆",
 };
 
 export function MedalCard({ medal, currentCount }: Props) {
-  const colors = useColors();
   const progress = Math.min(currentCount / medal.required, 1);
-  const iconName = ICON_MAP[medal.icon] ?? "award";
+  const gradColors = TIER_GRADIENTS[medal.id] ?? ["#5AC8FA", "#007AFF"];
+  const emoji = EMOJI_MAP[medal.id] ?? "🏅";
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.card,
-          borderRadius: colors.radius,
-          borderColor: medal.unlocked ? `${colors.primary}55` : colors.border,
-          borderWidth: 1,
-        },
-      ]}
-    >
-      <View
-        style={[
-          styles.iconWrap,
-          {
-            backgroundColor: medal.unlocked ? `${colors.primary}18` : colors.muted,
-            borderColor: medal.unlocked ? `${colors.primary}40` : colors.border,
-          },
-        ]}
-      >
-        <Feather name={iconName as any} size={22} color={medal.unlocked ? colors.primary : colors.mutedForeground} />
+    <View style={[styles.card, medal.unlocked && styles.cardUnlocked]}>
+      {/* Glow behind unlocked badges */}
+      {medal.unlocked && (
+        <View style={[styles.glow, { backgroundColor: gradColors[0] + "30" }]} />
+      )}
+
+      {/* Icon */}
+      <View style={styles.iconOuter}>
+        {medal.unlocked ? (
+          <LinearGradient
+            colors={gradColors}
+            style={styles.iconGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.iconEmoji}>{emoji}</Text>
+          </LinearGradient>
+        ) : (
+          <View style={styles.iconLocked}>
+            <Text style={[styles.iconEmoji, { opacity: 0.35 }]}>{emoji}</Text>
+          </View>
+        )}
       </View>
 
+      {/* Body */}
       <View style={styles.body}>
-        <Text style={[styles.name, { color: medal.unlocked ? colors.primary : colors.mutedForeground }]}>
-          {medal.name}
-        </Text>
-        <Text style={[styles.desc, { color: colors.mutedForeground }]}>{medal.description}</Text>
-        <View style={[styles.track, { backgroundColor: colors.muted }]}>
-          <View style={[styles.fill, { backgroundColor: medal.unlocked ? colors.primary : colors.secondary, width: `${progress * 100}%` }]} />
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, !medal.unlocked && styles.nameLocked]}>
+            {medal.name}
+          </Text>
+          {medal.unlocked && (
+            <View style={[styles.earnedPill, { backgroundColor: gradColors[0] + "30", borderColor: gradColors[0] + "60" }]}>
+              <Text style={[styles.earnedText, { color: gradColors[0] }]}>Earned ✓</Text>
+            </View>
+          )}
         </View>
-        <Text style={[styles.countLabel, { color: colors.mutedForeground }]}>
-          {Math.min(currentCount, medal.required)}/{medal.required}
-          {medal.unlocked ? " — Earned! 🎉" : ""}
+
+        <Text style={styles.desc}>{medal.description}</Text>
+
+        {/* Progress bar */}
+        <View style={styles.track}>
+          {medal.unlocked ? (
+            <LinearGradient
+              colors={gradColors}
+              style={styles.fillFull}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          ) : (
+            <View
+              style={[
+                styles.fillPartial,
+                { width: `${progress * 100}%` },
+              ]}
+            />
+          )}
+        </View>
+
+        <Text style={styles.countLabel}>
+          {Math.min(currentCount, medal.required)}/{medal.required} breeds
         </Text>
       </View>
     </View>
@@ -64,20 +110,85 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
     gap: 14,
-    shadowColor: "#8B7355",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 8,
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    marginBottom: 10,
+    overflow: "hidden",
   },
-  iconWrap: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  cardUnlocked: {
+    borderColor: "rgba(255,255,255,0.38)",
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  glow: {
+    position: "absolute",
+    top: -20,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+
+  iconOuter: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  iconGradient: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconLocked: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    borderRadius: 27,
+  },
+  iconEmoji: { fontSize: 26 },
+
   body: { flex: 1, gap: 4 },
-  name: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  desc: { fontFamily: "Inter_400Regular", fontSize: 12 },
-  track: { height: 5, borderRadius: 3, overflow: "hidden" },
-  fill: { height: "100%", borderRadius: 3 },
-  countLabel: { fontFamily: "Inter_400Regular", fontSize: 11 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  name: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#FFFFFF", flex: 1 },
+  nameLocked: { color: "rgba(255,255,255,0.45)" },
+
+  earnedPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  earnedText: { fontFamily: "Inter_600SemiBold", fontSize: 10 },
+
+  desc: { fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,255,0.55)" },
+
+  track: {
+    height: 5,
+    borderRadius: 3,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    marginTop: 2,
+  },
+  fillFull: { height: "100%", borderRadius: 3, width: "100%" },
+  fillPartial: {
+    height: "100%",
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.4)",
+  },
+
+  countLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.45)",
+  },
 });
