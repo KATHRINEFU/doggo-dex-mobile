@@ -115,17 +115,17 @@ export default function CollectionScreen() {
       {/* Search + sort */}
       <View style={styles.toolbar}>
         <View style={styles.searchBox}>
-          <Feather name="search" size={15} color="#64748B" />
+          <Feather name="search" size={15} color="rgba(255,255,255,0.5)" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search collected breeds…"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="rgba(255,255,255,0.4)"
             value={search}
             onChangeText={setSearch}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={16} color="#94A3B8" />
+              <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
         </View>
@@ -133,7 +133,7 @@ export default function CollectionScreen() {
           style={styles.sortBtn}
           onPress={() => setSort((s) => s === "default" ? "newest" : s === "newest" ? "name" : "default")}
         >
-          <Feather name={sortIcon} size={16} color="#007AFF" />
+          <Feather name={sortIcon} size={16} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
       </View>
 
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "rgba(15,40,110,0.55)",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.4)",
+    borderBottomColor: "rgba(90,200,250,0.18)",
   },
   searchBox: {
     flex: 1,
@@ -238,19 +238,19 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2EAF4",
-    backgroundColor: "#F8FAFC",
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.1)",
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, padding: 0, color: "#0F172A" },
+  searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, padding: 0, color: "#FFFFFF" },
   sortBtn: {
     width: 42,
     height: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2EAF4",
-    backgroundColor: "#F8FAFC",
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
