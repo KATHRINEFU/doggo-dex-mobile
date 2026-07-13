@@ -1,4 +1,5 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
@@ -28,10 +29,10 @@ const RARITY_LABELS: Record<RarityFilter, string> = {
 };
 
 const RARITY_COLORS: Record<string, string> = {
-  common: "#6B9E4A",
-  uncommon: "#5B7A9E",
-  rare: "#9B6FA8",
-  legendary: "#C8943A",
+  common: "#34D399",
+  uncommon: "#60A5FA",
+  rare: "#A78BFA",
+  legendary: "#FBBF24",
 };
 
 export default function CollectionScreen() {
@@ -67,91 +68,94 @@ export default function CollectionScreen() {
 
   const total = allBreeds?.length ?? 100;
   const progress = Math.min(collectionCount / total, 1);
-
-  const rarityStats = useMemo(() => {
-    if (!allBreeds) return [];
-    return (["common", "uncommon", "rare", "legendary"] as const).map((r) => ({
-      rarity: r,
-      total: allBreeds.filter((b) => b.rarity === r).length,
-      collected: collectedDogs.filter((d) => allBreeds.find((b) => b.id === d.breedId)?.rarity === r).length,
-    }));
-  }, [allBreeds, collectedDogs]);
-
   const sortIcon = sort === "newest" ? "clock" : sort === "name" ? "type" : "sliders";
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      />
+
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 70 : 16) }]}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Collection</Text>
-          <View style={[styles.countPill, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.countPillText, { color: "#fff" }]}>{collectionCount}/{total}</Text>
+          <Text style={styles.title}>Collection</Text>
+          <View style={styles.countPill}>
+            <Text style={styles.countPillText}>{collectionCount}/{total}</Text>
           </View>
         </View>
 
-        {/* Progress */}
-        <View style={[styles.progressTrack, { backgroundColor: colors.muted }]}>
-          <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${progress * 100}%` }]} />
+        <View style={[styles.progressTrack, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
+          <LinearGradient
+            colors={["#FFFFFF", "rgba(255,255,255,0.8)"]}
+            style={[styles.progressFill, { width: `${progress * 100}%` }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
         </View>
 
-        {/* Rarity stats */}
         <View style={styles.rarityStats}>
-          {rarityStats.map((s) => (
-            <View key={s.rarity} style={styles.rarityStat}>
-              <View style={[styles.rarityDot, { backgroundColor: RARITY_COLORS[s.rarity] }]} />
-              <Text style={[styles.rarityStatText, { color: colors.mutedForeground }]}>
-                {s.collected}/{s.total}
-              </Text>
-            </View>
-          ))}
+          {(["common", "uncommon", "rare", "legendary"] as const).map((r) => {
+            const total2 = allBreeds?.filter((b) => b.rarity === r).length ?? 0;
+            const collected2 = collectedDogs.filter((d) => allBreeds?.find((b) => b.id === d.breedId)?.rarity === r).length;
+            return (
+              <View key={r} style={styles.rarityStat}>
+                <View style={[styles.rarityDot, { backgroundColor: RARITY_COLORS[r] }]} />
+                <Text style={styles.rarityStatText}>{collected2}/{total2}</Text>
+              </View>
+            );
+          })}
         </View>
       </View>
 
       {/* Search + sort */}
-      <View style={[styles.toolbar, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-        <View style={[styles.searchBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Feather name="search" size={15} color={colors.mutedForeground} />
+      <View style={styles.toolbar}>
+        <View style={styles.searchBox}>
+          <Feather name="search" size={15} color="#64748B" />
           <TextInput
-            style={[styles.searchInput, { color: colors.foreground }]}
+            style={styles.searchInput}
             placeholder="Search collected breeds…"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor="#94A3B8"
             value={search}
             onChangeText={setSearch}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
+              <Ionicons name="close-circle" size={16} color="#94A3B8" />
             </TouchableOpacity>
           )}
         </View>
         <TouchableOpacity
-          style={[styles.sortBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+          style={styles.sortBtn}
           onPress={() => setSort((s) => s === "default" ? "newest" : s === "newest" ? "name" : "default")}
         >
-          <Feather name={sortIcon} size={16} color={colors.primary} />
+          <Feather name={sortIcon} size={16} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
       {/* Rarity filter pills */}
-      <View style={[styles.filterBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <View style={styles.filterBar}>
         {(["all", "common", "uncommon", "rare", "legendary"] as RarityFilter[]).map((f) => {
           const isActive = f === filter;
-          const dotColor = f === "all" ? colors.primary : RARITY_COLORS[f];
+          const dotColor = f === "all" ? "#5AC8FA" : RARITY_COLORS[f];
           return (
             <TouchableOpacity
               key={f}
               style={[
                 styles.filterPill,
                 {
-                  backgroundColor: isActive ? `${dotColor}18` : "transparent",
-                  borderColor: isActive ? dotColor : colors.border,
+                  backgroundColor: isActive ? `${dotColor}28` : "rgba(255,255,255,0.12)",
+                  borderColor: isActive ? dotColor : "rgba(255,255,255,0.3)",
                 },
               ]}
               onPress={() => setFilter(f)}
             >
               {f !== "all" && <View style={[styles.rarityDot, { backgroundColor: dotColor }]} />}
-              <Text style={[styles.filterPillText, { color: isActive ? dotColor : colors.mutedForeground }]}>
+              <Text style={[styles.filterPillText, { color: isActive ? dotColor : "rgba(255,255,255,0.75)" }]}>
                 {RARITY_LABELS[f]}
               </Text>
             </TouchableOpacity>
@@ -162,7 +166,7 @@ export default function CollectionScreen() {
       {isLoading ? (
         <View style={styles.centered}>
           <Text style={{ fontSize: 36 }}>🐕</Text>
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading breeds…</Text>
+          <Text style={styles.loadingText}>Loading breeds…</Text>
         </View>
       ) : (
         <FlatList
@@ -170,13 +174,13 @@ export default function CollectionScreen() {
           numColumns={2}
           keyExtractor={(item) => item.id}
           columnWrapperStyle={styles.row}
-          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 90 }]}
+          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 100 }]}
           ListEmptyComponent={
             <View style={styles.centered}>
               <Text style={{ fontSize: 48 }}>🔍</Text>
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No breeds found</Text>
-              <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
-                {search ? "Try a different search." : "Scan some dogs to start your collection!"}
+              <Text style={styles.emptyTitle}>No breeds found</Text>
+              <Text style={styles.emptySub}>
+                {search ? "Try a different search." : "Tap the Pokéball to start your collection!"}
               </Text>
             </View>
           }
@@ -201,26 +205,81 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: 20, paddingBottom: 14, gap: 10 },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { fontFamily: "Georgia", fontSize: 32 },
-  countPill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20 },
-  countPillText: { fontFamily: "Inter_700Bold", fontSize: 14 },
+  title: { fontFamily: "Georgia", fontSize: 32, color: "#FFFFFF" },
+  countPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  countPillText: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#FFFFFF" },
   progressTrack: { height: 7, borderRadius: 4, overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 4 },
   rarityStats: { flexDirection: "row", gap: 14 },
   rarityStat: { flexDirection: "row", alignItems: "center", gap: 5 },
   rarityDot: { width: 8, height: 8, borderRadius: 4 },
-  rarityStatText: { fontFamily: "Inter_500Medium", fontSize: 12 },
-  toolbar: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
-  searchBox: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
-  searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, padding: 0 },
-  sortBtn: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  filterBar: { flexDirection: "row", paddingHorizontal: 12, paddingVertical: 8, gap: 6, borderBottomWidth: 1, flexWrap: "wrap" },
-  filterPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  rarityStatText: { fontFamily: "Inter_500Medium", fontSize: 12, color: "rgba(255,255,255,0.8)" },
+
+  toolbar: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.4)",
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2EAF4",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, padding: 0, color: "#0F172A" },
+  sortBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2EAF4",
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  filterBar: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(200,220,255,0.5)",
+    flexWrap: "wrap",
+  },
+  filterPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
   filterPillText: { fontFamily: "Inter_500Medium", fontSize: 12 },
+
   grid: { padding: 14, gap: 12 },
   row: { gap: 12, justifyContent: "space-between" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 10 },
-  loadingText: { fontFamily: "Inter_400Regular", fontSize: 15 },
-  emptyTitle: { fontFamily: "Georgia", fontSize: 22 },
-  emptySub: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", paddingHorizontal: 32 },
+  loadingText: { fontFamily: "Inter_400Regular", fontSize: 15, color: "#FFFFFF" },
+  emptyTitle: { fontFamily: "Georgia", fontSize: 22, color: "#FFFFFF" },
+  emptySub: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", paddingHorizontal: 32, color: "rgba(255,255,255,0.75)" },
 });
