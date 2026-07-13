@@ -109,8 +109,8 @@ export default function HomeScreen() {
         <CameraView style={StyleSheet.absoluteFill} facing="back" />
       ) : (
         <LinearGradient
-          colors={["#060F1F", "#0B2240", "#0E3A6B", "#1565C0", "#5AC8FA"]}
-          locations={[0, 0.2, 0.45, 0.72, 1]}
+          colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
+          locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFill}
           start={{ x: 0.3, y: 0 }}
           end={{ x: 0.7, y: 1 }}

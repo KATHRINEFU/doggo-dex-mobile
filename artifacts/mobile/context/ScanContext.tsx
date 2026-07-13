@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import React, { createContext, useContext, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { ConfettiAnimation } from "@/components/ConfettiAnimation";
 import { DetectionResultModal } from "@/components/DetectionResultModal";
 import { useCollection } from "@/context/CollectionContext";
@@ -42,6 +42,11 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function openScan() {
+    if (Platform.OS === "web") {
+      // Alert callbacks don't fire on web — go straight to gallery
+      pickAndDetect(false);
+      return;
+    }
     Alert.alert("Scan a Dog", "How would you like to identify a breed?", [
       { text: "📷  Take Photo", onPress: () => pickAndDetect(true) },
       { text: "🖼️  Choose from Library", onPress: () => pickAndDetect(false) },
