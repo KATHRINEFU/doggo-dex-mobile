@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import React, { createContext, useContext, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
 import { ConfettiAnimation } from "@/components/ConfettiAnimation";
 import { DetectionResultModal } from "@/components/DetectionResultModal";
@@ -27,6 +27,26 @@ export function useScan() {
   return useContext(ScanContext);
 }
 
+// Detect HEIC by magic bytes — "ftyp" at byte offset 4.
+// Works in both RN and web environments (atob is available in both).
+function isHeicBase64(b64: string): boolean {
+  try {
+    // Each base64 char = 6 bits; 12 chars = 9 bytes (more than enough for offset 4-8)
+    const bytes = atob(b64.slice(0, 12));
+    return bytes.slice(4, 8) === "ftyp";
+  } catch {
+    return false;
+  }
+}
+
+const ERROR_RESULT: DetectBreedResult = {
+  isDog: false,
+  breedId: "",
+  breedName: "",
+  confidence: 0,
+  description: "",
+};
+
 export function ScanProvider({ children }: { children: React.ReactNode }) {
   const { addDog, isCollected } = useCollection();
   const { data: allBreeds } = useGetDogBreeds();
@@ -41,9 +61,17 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [xpMessage, setXpMessage] = useState("");
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Show an error inside the result modal — works on all platforms.
+  const showError = useCallback((message: string, uri = "") => {
+    setResult({ ...ERROR_RESULT, description: message });
+    setMatchedBreed(null);
+    setImageUri(uri);
+    setModalVisible(true);
+  }, []);
+
   function openScan() {
     if (Platform.OS === "web") {
-      // Alert callbacks don't fire on web — go straight to gallery
+      // Alert callbacks don't fire reliably on web — go straight to gallery.
       pickAndDetect(false);
       return;
     }
@@ -55,37 +83,49 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function pickAndDetect(fromCamera: boolean) {
-    let asset: ImagePicker.ImagePickerAsset | null = null;
+    let pickedUri = "";
     try {
-      let picked: ImagePicker.ImagePickerResult;
+      let asset: ImagePicker.ImagePickerAsset | null = null;
+
       if (fromCamera) {
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-        if (!granted) { Alert.alert("Permission needed", "Camera access is required to scan dogs."); return; }
-        picked = await ImagePicker.launchCameraAsync({
+        if (!granted) {
+          showError("Camera access is required to scan dogs. Please enable it in Settings.");
+          return;
+        }
+        const picked = await ImagePicker.launchCameraAsync({
           mediaTypes: "Images" as any,
           quality: 0.85,
           base64: true,
           allowsEditing: true,
           aspect: [1, 1],
         });
+        if (picked.canceled || !picked.assets?.[0]) return;
+        asset = picked.assets[0];
       } else {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!granted) { Alert.alert("Permission needed", "Photo library access is required."); return; }
-        picked = await ImagePicker.launchImageLibraryAsync({
+        if (!granted) {
+          showError("Photo library access is required. Please enable it in Settings.");
+          return;
+        }
+        const picked = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: "Images" as any,
           quality: 0.85,
           base64: true,
           allowsEditing: true,
           aspect: [1, 1],
         });
+        if (picked.canceled || !picked.assets?.[0]) return;
+        asset = picked.assets[0];
       }
 
-      if (picked.canceled || !picked.assets?.[0]) return;
-      asset = picked.assets[0];
-      setImageUri(asset.uri);
+      pickedUri = asset.uri;
+      setImageUri(pickedUri);
       setDetecting(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
+      try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+
+      // --- Build base64 JPEG ---
       let base64Data: string;
       try {
         const manip = await ImageManipulator.manipulateAsync(
@@ -96,18 +136,55 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         if (!manip.base64) throw new Error("no base64");
         base64Data = manip.base64;
       } catch {
-        if (asset.base64) {
-          base64Data = asset.base64;
-        } else {
-          Alert.alert("Image error", "Could not read image. Try again.");
+        // ImageManipulator failed (common for HEIC on web).
+        if (!asset.base64) {
+          showError("Could not read this image. Please try a different photo.", pickedUri);
           setDetecting(false);
           return;
         }
+        // Detect HEIC before sending — the server rejects it with 422 anyway,
+        // but catching it here gives a faster, friendlier experience.
+        if (isHeicBase64(asset.base64)) {
+          showError(
+            "HEIC photos aren't supported here. On iOS go to Settings → Camera → Formats and choose \"Most Compatible\" to save as JPEG.",
+            pickedUri,
+          );
+          setDetecting(false);
+          return;
+        }
+        base64Data = asset.base64;
       }
 
-      const res = await detectMutation.mutateAsync({
-        data: { imageBase64: base64Data, mimeType: "image/jpeg" },
-      });
+      // --- Send to API ---
+      let res: DetectBreedResult;
+      try {
+        res = await detectMutation.mutateAsync({
+          data: { imageBase64: base64Data, mimeType: "image/jpeg" },
+        });
+      } catch (apiErr: unknown) {
+        // Extract message from API error response if available.
+        let msg = "Could not analyze the image. Please try again.";
+        if (apiErr && typeof apiErr === "object") {
+          const anyErr = apiErr as Record<string, unknown>;
+          // Axios / fetch error shapes
+          const responseData =
+            (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
+            (anyErr["data"] as unknown);
+          if (
+            responseData &&
+            typeof responseData === "object" &&
+            typeof (responseData as Record<string, unknown>)["message"] === "string"
+          ) {
+            msg = (responseData as Record<string, unknown>)["message"] as string;
+          } else if (typeof anyErr["message"] === "string") {
+            msg = anyErr["message"] as string;
+          }
+        }
+        showError(msg, pickedUri);
+        setDetecting(false);
+        return;
+      }
+
       setResult(res);
 
       const found =
@@ -126,7 +203,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           description: res.description,
           rarity: found.rarity,
         });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
         if (isNew) {
           setXpMessage(`+${xpGained} XP · New breed!`);
           setConfettiActive(true);
@@ -140,19 +217,19 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           setTimeout(() => setXpMessage(""), 2500);
         }
       }
+
       setModalVisible(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Detection failed", msg || "Could not analyze image. Try again.");
+      // Unexpected error — show in modal, not alert.
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      showError(msg, pickedUri);
     } finally {
       setDetecting(false);
     }
   }
 
   return (
-    <ScanContext.Provider
-      value={{ openScan, isScanning: detecting, xpMessage, confettiActive }}
-    >
+    <ScanContext.Provider value={{ openScan, isScanning: detecting, xpMessage, confettiActive }}>
       {children}
       <ConfettiAnimation active={confettiActive} />
       <DetectionResultModal

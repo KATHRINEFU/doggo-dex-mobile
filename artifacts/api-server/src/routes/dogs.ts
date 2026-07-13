@@ -197,11 +197,10 @@ router.post("/dogs/detect", async (req, res) => {
     if (match) mimeType = match[1];
   }
 
-  // Convert any image format (HEIC, WebP, PNG, TIFF, etc.) to JPEG using sharp
-  // This is the single source of truth for format normalisation — no magic byte guessing needed.
+  // Convert any image format (HEIC, WebP, PNG, TIFF, etc.) to JPEG using sharp.
   let jpegBase64 = imageBase64;
+  const inputBuffer = Buffer.from(imageBase64, "base64");
   try {
-    const inputBuffer = Buffer.from(imageBase64, "base64");
     const jpegBuffer = await sharp(inputBuffer)
       .rotate()           // respect EXIF orientation
       .resize({ width: 1024, withoutEnlargement: true })
@@ -210,8 +209,17 @@ router.post("/dogs/detect", async (req, res) => {
     jpegBase64 = jpegBuffer.toString("base64");
     req.log?.info({ inputBytes: inputBuffer.length, outputBytes: jpegBuffer.length }, "sharp conversion OK");
   } catch (sharpErr) {
-    req.log?.warn({ sharpErr }, "sharp conversion failed — using raw base64");
-    // jpegBase64 stays as the original; we still attempt OpenAI and let it give the clearest error
+    req.log?.warn({ sharpErr }, "sharp conversion failed");
+    // Check magic bytes — HEIC has "ftyp" at byte offset 4.
+    // Sending raw HEIC to OpenAI always fails with 400, so return a friendly 422 here.
+    const magic = inputBuffer.slice(4, 8).toString("ascii");
+    if (magic === "ftyp") {
+      return res.status(422).json({
+        error: "heic_not_supported",
+        message: "HEIC photos can't be analyzed directly. On iOS, go to Settings → Camera → Formats and choose 'Most Compatible' to save as JPEG. Or export the photo as JPEG before uploading.",
+      });
+    }
+    // For other formats, pass through and let OpenAI give the clearest error.
   }
 
   try {
