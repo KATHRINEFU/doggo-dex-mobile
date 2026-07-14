@@ -1467,8 +1467,27 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
       ],
     });
 
-    const content = response.choices[0]?.message?.content ?? "";
-    req.log?.info({ content }, "OpenAI response");
+    const msg = response.choices[0]?.message;
+    const refusal = (msg as { refusal?: string | null })?.refusal;
+    let content = msg?.content ?? "";
+    req.log?.info({ content, refusal: refusal ?? null }, "OpenAI response");
+
+    // Model refused (content policy / refusal field set) — treat as no dog found
+    if (refusal || !content.trim()) {
+      return res.json({
+        isDog: false,
+        breedId: "",
+        breedName: "",
+        confidence: 0,
+        description: "No dog detected in this image.",
+      });
+    }
+
+    // Strip markdown code fences if the model wrapped the JSON
+    content = content.trim();
+    if (content.startsWith("```")) {
+      content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    }
 
     let parsed: {
       isDog: boolean;
@@ -1480,9 +1499,13 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
     try {
       parsed = JSON.parse(content);
     } catch {
-      return res.status(500).json({
-        error: "parse_error",
-        message: "Failed to parse AI response",
+      req.log?.warn({ content }, "JSON parse failed — treating as no dog");
+      return res.json({
+        isDog: false,
+        breedId: "",
+        breedName: "",
+        confidence: 0,
+        description: "Couldn't read the AI response. Please try again.",
       });
     }
 
