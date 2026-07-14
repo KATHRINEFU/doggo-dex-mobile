@@ -166,7 +166,7 @@ export default function BreedDetailScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
+        colors={["#C8E8FF", "#E8F5FF", "#FFFFFF"]}
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.3, y: 0 }}
@@ -191,9 +191,9 @@ export default function BreedDetailScreen() {
           </View>
         )}
 
-        {/* Gradient overlay — fades into the blue page background */}
+        {/* Gradient overlay — fades into the light page background */}
         <LinearGradient
-          colors={["transparent", "rgba(44,94,173,0.92)"]}
+          colors={["transparent", "rgba(232,245,255,0.97)"]}
           style={styles.heroGrad}
         />
 
@@ -381,15 +381,15 @@ export default function BreedDetailScreen() {
             style={[
               styles.statusCard,
               {
-                backgroundColor: "rgba(255,255,255,0.15)",
-                borderColor: "rgba(255,255,255,0.3)",
+                backgroundColor: "rgba(255,255,255,0.75)",
+                borderColor: "rgba(75,184,250,0.3)",
                 borderRadius: colors.radius,
               },
             ]}
           >
             <Text style={styles.statusEmoji}>🔒</Text>
             <Text
-              style={[styles.lockedText, { color: "rgba(255,255,255,0.85)" }]}
+              style={[styles.lockedText, { color: colors.mutedForeground }]}
             >
               Not discovered yet — go find one!
             </Text>
@@ -397,7 +397,7 @@ export default function BreedDetailScreen() {
         )}
 
         {/* Description */}
-        <Text style={[styles.description, { color: "rgba(255,255,255,0.95)" }]}>
+        <Text style={[styles.description, { color: colors.foreground }]}>
           {collected
             ? breed.description
             : "Discover this breed to unlock its field notes."}
@@ -449,21 +449,21 @@ export default function BreedDetailScreen() {
                 label="Energy"
                 value={breed.energyLevel}
                 color="#F59E0B"
-                mutedColor="rgba(255,255,255,0.75)"
+                mutedColor={colors.mutedForeground}
               />
               <StatChip
                 emoji="🏠"
                 label="Apartment"
                 value={breed.apartmentFriendly}
                 color="#34D399"
-                mutedColor="rgba(255,255,255,0.75)"
+                mutedColor={colors.mutedForeground}
               />
               <StatChip
                 emoji="🌪️"
                 label="Chaos"
                 value={breed.chaosLevel}
                 color="#F87171"
-                mutedColor="rgba(255,255,255,0.75)"
+                mutedColor={colors.mutedForeground}
               />
             </View>
           </>
@@ -565,18 +565,18 @@ export default function BreedDetailScreen() {
           style={[
             styles.rarityCard,
             {
-              backgroundColor: "rgba(255,255,255,0.15)",
-              borderColor: "rgba(255,255,255,0.3)",
+              backgroundColor: "rgba(255,255,255,0.75)",
+              borderColor: "rgba(75,184,250,0.3)",
               borderRadius: colors.radius,
             },
           ]}
         >
           <View style={[styles.rarityDotBig, { backgroundColor: rarityColor }]} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.rarityTitle, { color: "#FFFFFF" }]}>
+            <Text style={[styles.rarityTitle, { color: rarityColor }]}>
               {RARITY_LABELS[breed.rarity]} Breed
             </Text>
-            <Text style={[styles.rarityDesc, { color: "rgba(255,255,255,0.8)" }]}>
+            <Text style={[styles.rarityDesc, { color: colors.mutedForeground }]}>
               {breed.rarity === "common" &&
                 "Commonly spotted in parks and neighbourhoods."}
               {breed.rarity === "uncommon" &&
