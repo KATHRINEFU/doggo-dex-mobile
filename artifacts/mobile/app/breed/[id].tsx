@@ -9,6 +9,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  FlatList,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -161,7 +162,7 @@ export default function BreedDetailScreen() {
       <View style={styles.hero}>
         {collected ? (
           <Image
-            source={{ uri: breed.imageUrl }}
+            source={{ uri: entry?.photos?.[0] ?? entry?.imageUri ?? breed.imageUrl }}
             style={styles.heroImg}
             contentFit="cover"
           />
@@ -233,94 +234,131 @@ export default function BreedDetailScreen() {
       >
         {/* Status card */}
         {collected && entry ? (
-          <View
-            style={[
-              styles.statusCard,
-              {
-                backgroundColor: `${rarityColor}15`,
-                borderColor: `${rarityColor}40`,
-                borderRadius: colors.radius,
-              },
-            ]}
-          >
-            <Text style={styles.statusEmoji}>✅</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.statusTitle, { color: rarityColor }]}>
-                In Your DogDex
-              </Text>
-              <View style={styles.statsRow}>
-                <View
-                  style={[
-                    styles.statChip,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text
+          <>
+            <View
+              style={[
+                styles.statusCard,
+                {
+                  backgroundColor: `${rarityColor}15`,
+                  borderColor: `${rarityColor}40`,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <Text style={styles.statusEmoji}>✅</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.statusTitle, { color: rarityColor }]}>
+                  In Your DogDex
+                </Text>
+                <View style={styles.statsRow}>
+                  <View
                     style={[
-                      styles.statChipLabel,
-                      { color: colors.mutedForeground },
+                      styles.statChip,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
-                    Discovered
-                  </Text>
-                  <Text
-                    style={[styles.statChipVal, { color: colors.foreground }]}
-                  >
-                    {discoveredDate}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statChip,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.statChipLabel,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Discovered
+                    </Text>
+                    <Text
+                      style={[styles.statChipVal, { color: colors.foreground }]}
+                    >
+                      {discoveredDate}
+                    </Text>
+                  </View>
+                  <View
                     style={[
-                      styles.statChipLabel,
-                      { color: colors.mutedForeground },
+                      styles.statChip,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
-                    Spotted
-                  </Text>
-                  <Text
-                    style={[styles.statChipVal, { color: colors.foreground }]}
-                  >
-                    {entry.timesSpotted}×
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statChip,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.statChipLabel,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Spotted
+                    </Text>
+                    <Text
+                      style={[styles.statChipVal, { color: colors.foreground }]}
+                    >
+                      {entry.timesSpotted}×
+                    </Text>
+                  </View>
+                  <View
                     style={[
-                      styles.statChipLabel,
-                      { color: colors.mutedForeground },
+                      styles.statChip,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
-                    Confidence
-                  </Text>
-                  <Text
-                    style={[styles.statChipVal, { color: colors.foreground }]}
-                  >
-                    {Math.round(entry.confidence * 100)}%
-                  </Text>
+                    <Text
+                      style={[
+                        styles.statChipLabel,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Confidence
+                    </Text>
+                    <Text
+                      style={[styles.statChipVal, { color: colors.foreground }]}
+                    >
+                      {Math.round(entry.confidence * 100)}%
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
+
+            {/* Photo carousel — all scanned photos for this breed, up to 10 */}
+            {(entry.photos?.length ?? 0) > 0 && (
+              <FlatList
+                data={(entry.photos ?? [entry.imageUri]).filter(Boolean)}
+                keyExtractor={(_, i) => String(i)}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.photoRoll}
+                contentContainerStyle={styles.photoRollContent}
+                renderItem={({ item, index }) => (
+                  <View
+                    style={[
+                      styles.photoThumb,
+                      {
+                        borderColor: index === 0 ? rarityColor : colors.border,
+                        borderWidth: index === 0 ? 2 : 1,
+                        borderRadius: colors.radius - 2,
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: item }}
+                      style={styles.photoThumbImg}
+                      contentFit="cover"
+                    />
+                    {index === 0 && (
+                      <View style={[styles.photoThumbBadge, { backgroundColor: rarityColor }]}>
+                        <Text style={styles.photoThumbBadgeText}>★</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              />
+            )}
+          </>
         ) : (
           <View
             style={[
@@ -690,6 +728,39 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
     textTransform: "capitalize",
+  },
+  photoRoll: {
+    marginHorizontal: -20,
+  },
+  photoRollContent: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  photoThumb: {
+    width: 90,
+    height: 90,
+    borderRadius: 10,
+    overflow: "hidden",
+    position: "relative",
+  },
+  photoThumbImg: {
+    width: "100%",
+    height: "100%",
+  },
+  photoThumbBadge: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoThumbBadgeText: {
+    fontSize: 9,
+    color: "#fff",
+    fontFamily: "Inter_700Bold",
   },
   rarityCard: {
     flexDirection: "row",

@@ -39,7 +39,7 @@ export default function CollectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { collectedDogs, isCollected, collectionCount } = useCollection();
+  const { collectedDogs, isCollected, collectionCount, getEntry } = useCollection();
   const { data: allBreeds, isLoading } = useGetDogBreeds();
 
   const [filter, setFilter] = useState<RarityFilter>("all");
@@ -184,17 +184,21 @@ export default function CollectionScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <DogCard
-              id={item.id}
-              name={item.name}
-              imageUrl={item.imageUrl}
-              rarity={item.rarity}
-              group={item.group}
-              collected={isCollected(item.id)}
-              onPress={() => router.push(`/breed/${item.id}` as any)}
-            />
-          )}
+          renderItem={({ item }) => {
+            const entry = getEntry(item.id);
+            return (
+              <DogCard
+                id={item.id}
+                name={item.name}
+                imageUrl={item.imageUrl}
+                userPhotoUri={entry?.photos?.[0] ?? entry?.imageUri}
+                rarity={item.rarity}
+                group={item.group}
+                collected={isCollected(item.id)}
+                onPress={() => router.push(`/breed/${item.id}` as any)}
+              />
+            );
+          }}
         />
       )}
     </View>

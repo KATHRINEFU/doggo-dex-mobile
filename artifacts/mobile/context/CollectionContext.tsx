@@ -4,7 +4,8 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 export interface CollectedDog {
   breedId: string;
   breedName: string;
-  imageUri: string;
+  imageUri: string;      // first / primary photo (backward compat)
+  photos?: string[];     // all scanned photos, newest-first, capped at 10
   collectedAt: string;
   confidence: number;
   description: string;
@@ -103,16 +104,26 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
       setCollectedDogs((prev) => {
         const existing = prev.find((d) => d.breedId === dog.breedId);
         if (existing) {
-          // bump spotted count
+          // Append new photo (cap at 10, newest first) and bump spotted count
+          const newPhotos = dog.imageUri
+            ? [dog.imageUri, ...(existing.photos ?? [existing.imageUri])].slice(0, 10)
+            : (existing.photos ?? [existing.imageUri]);
           const updated = prev.map((d) =>
-            d.breedId === dog.breedId ? { ...d, timesSpotted: d.timesSpotted + 1 } : d
+            d.breedId === dog.breedId
+              ? { ...d, timesSpotted: d.timesSpotted + 1, photos: newPhotos }
+              : d
           );
           AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           return updated;
         }
         isNew = true;
         xpGained = XP_PER_RARITY[dog.rarity] ?? 10;
-        const updated = [...prev, { ...dog, timesSpotted: 1 }];
+        const newEntry: CollectedDog = {
+          ...dog,
+          timesSpotted: 1,
+          photos: dog.imageUri ? [dog.imageUri] : [],
+        };
+        const updated = [...prev, newEntry];
         AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
         return updated;
       });

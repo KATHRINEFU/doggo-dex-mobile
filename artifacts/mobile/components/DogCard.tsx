@@ -8,6 +8,7 @@ interface Props {
   id: string;
   name: string;
   imageUrl: string;
+  userPhotoUri?: string;
   rarity: "common" | "uncommon" | "rare" | "legendary";
   group: string;
   collected: boolean;
@@ -28,7 +29,7 @@ const RARITY_LABELS = {
   legendary: "Legendary",
 };
 
-export function DogCard({ name, imageUrl, rarity, group, collected, onPress }: Props) {
+export function DogCard({ name, imageUrl, userPhotoUri, rarity, group, collected, onPress }: Props) {
   const colors = useColors();
   const scale = useSharedValue(1);
   const rarityColor = RARITY_COLORS[rarity];
@@ -56,7 +57,7 @@ export function DogCard({ name, imageUrl, rarity, group, collected, onPress }: P
       >
         <View style={[styles.imgWrap, { borderRadius: colors.radius - 2 }]}>
           {collected ? (
-            <Image source={{ uri: imageUrl }} style={styles.img} contentFit="cover" transition={200} />
+            <Image source={{ uri: userPhotoUri || imageUrl }} style={styles.img} contentFit="cover" transition={200} />
           ) : (
             <View style={[styles.masked, { backgroundColor: `${rarityColor}12` }]}>
               <Text style={{ fontSize: 28, opacity: 0.35 }}>🐾</Text>
