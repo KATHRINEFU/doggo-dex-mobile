@@ -1,7 +1,7 @@
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -73,96 +73,9 @@ function TabItem({
   );
 }
 
-// ─── Liquid glass (web only) ─────────────────────────────────────────────────
-// Technique from github.com/nikdelvin/liquid-glass:
-//   feTurbulence noise → feDisplacementMap → organic lens-edge distortion.
-//   Applied via SVG filter injected into <body> + ref-based DOM style injection.
-//
-// Two layers:
-//   barRef  — the pill itself gets backdrop-filter (frosted glass blur)
-//   ringRef — absoluteFill overlay gets the displaced white border ring
-//             (white-on-blue is high contrast; the wavy border is the
-//              most visible "liquid" signature of the effect)
-// ─────────────────────────────────────────────────────────────────────────────
-const LG_SVG_ID = "lg-dogdex-svg";
-const LG_FILTER_ID = "lg-dogdex-f";
-
-function useLiquidGlassSvg() {
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    if (document.getElementById(LG_SVG_ID)) return;
-
-    // Low baseFrequency = large smooth blobs → looks like a glass lens, not noise.
-    // scale=26 → strong enough to see on a white border, subtle on the tinted fill.
-    const svg = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "svg"
-    ) as SVGSVGElement;
-    svg.id = LG_SVG_ID;
-    svg.setAttribute("aria-hidden", "true");
-    svg.innerHTML = `<defs>
-      <filter id="${LG_FILTER_ID}" x="-20%" y="-60%" width="140%" height="220%"
-              color-interpolation-filters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.011 0.055"
-          numOctaves="3" seed="9" result="noise"/>
-        <feColorMatrix in="noise" type="saturate" values="0" result="mono"/>
-        <feDisplacementMap in="SourceGraphic" in2="mono" scale="26"
-          xChannelSelector="R" yChannelSelector="G"/>
-      </filter>
-    </defs>`;
-    Object.assign(svg.style, {
-      position: "fixed",
-      width: "0",
-      height: "0",
-      overflow: "hidden",
-      pointerEvents: "none",
-      zIndex: "-1",
-    });
-    document.body.appendChild(svg);
-    return () => svg.remove();
-  }, []);
-}
-
 function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { openScan, isScanning } = useScan();
-  useLiquidGlassSvg();
-
-  // barRef  → backdrop-filter (frosted glass) applied directly to the pill div
-  // ringRef → displaced white border ring floated above content
-  const barRef = useRef<View>(null);
-  const ringRef = useRef<View>(null);
-
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-
-    const bar = barRef.current as unknown as HTMLElement | null;
-    if (bar) {
-      bar.style.backdropFilter = "blur(24px) saturate(190%)";
-      (bar.style as any).webkitBackdropFilter = "blur(24px) saturate(190%)";
-      bar.style.backgroundColor = "rgba(255,255,255,0.20)";
-    }
-
-    const ring = ringRef.current as unknown as HTMLElement | null;
-    if (ring) {
-      ring.style.position = "absolute";
-      ring.style.inset = "0";
-      ring.style.borderRadius = "36px";
-      ring.style.borderWidth = "1.5px";
-      ring.style.borderStyle = "solid";
-      ring.style.borderColor = "rgba(255,255,255,0.88)";
-      ring.style.boxShadow =
-        "inset 0 2px 0 rgba(255,255,255,0.95)," +
-        "inset 0 -1px 0 rgba(80,130,220,0.18)," +
-        "0 6px 28px rgba(75,184,250,0.20)";
-      ring.style.pointerEvents = "none";
-      // SVG displacement makes the white border organically wavy — the
-      // signature "liquid glass" rim glow from nikdelvin/liquid-glass.
-      if (document.getElementById(LG_SVG_ID)) {
-        ring.style.filter = `url(#${LG_FILTER_ID})`;
-      }
-    }
-  });
 
   const ballScale = useSharedValue(1);
 
@@ -209,22 +122,9 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
         </Pressable>
       </Animated.View>
 
-      {/* Floating glass pill
-          Web:    backdrop-filter applied via barRef; ring overlay via ringRef.
-          Native: BlurView tint="extraLight" for the frosted glass. */}
-      <View
-        ref={Platform.OS === "web" ? barRef : undefined}
-        style={styles.bar}
-      >
-        {Platform.OS !== "web" && (
-          <BlurView
-            intensity={72}
-            tint="extraLight"
-            style={StyleSheet.absoluteFillObject}
-          />
-        )}
-
-        {/* Top shimmer — bright white line at glass rim */}
+      {/* Floating glass bar */}
+      <BlurView intensity={72} tint="extraLight" style={styles.bar}>
+        {/* Subtle top highlight on the bar */}
         <View style={styles.barHighlight} />
 
         <View style={styles.barInner}>
@@ -239,7 +139,7 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
             />
           ))}
 
-          {/* Gap under the floating Pokéball */}
+          {/* Spacer under the Pokéball */}
           <View style={{ width: POKEBALL_SIZE + 8 }} />
 
           {RIGHT_TABS.map((t) => (
@@ -253,16 +153,7 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
             />
           ))}
         </View>
-
-        {/* Web: displaced border ring — renders above content, no touch capture */}
-        {Platform.OS === "web" && (
-          <View
-            ref={ringRef}
-            style={StyleSheet.absoluteFillObject}
-            pointerEvents="none"
-          />
-        )}
-      </View>
+      </BlurView>
     </View>
   );
 }
@@ -294,14 +185,9 @@ const styles = StyleSheet.create({
     width: "100%",
     height: BAR_HEIGHT,
     borderRadius: 36,
-    // Web: overflow visible so the ring's filter extension isn't clipped.
-    // Native: overflow hidden clips BlurView to the pill shape.
-    overflow: Platform.OS === "web" ? "visible" : "hidden",
-    // Native border — on web the ringRef overlay draws the border.
-    ...(Platform.OS !== "web" && {
-      borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.75)",
-    }),
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.75)",
     shadowColor: "#4BB8FA",
     shadowOpacity: 0.18,
     shadowRadius: 24,
