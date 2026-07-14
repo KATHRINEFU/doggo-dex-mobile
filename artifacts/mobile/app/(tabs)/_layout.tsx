@@ -57,12 +57,12 @@ function TabItem({
         <Feather
           name={icon}
           size={21}
-          color={active ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
+          color={active ? "#1A3A8F" : "rgba(0,0,0,0.35)"}
         />
         <Text
           style={[
             styles.tabLabel,
-            { color: active ? "#FFFFFF" : "rgba(255,255,255,0.4)" },
+            { color: active ? "#1A3A8F" : "rgba(0,0,0,0.35)" },
           ]}
         >
           {label}
@@ -123,7 +123,7 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
       </Animated.View>
 
       {/* Floating glass bar */}
-      <BlurView intensity={88} tint="dark" style={styles.bar}>
+      <BlurView intensity={72} tint="extraLight" style={styles.bar}>
         {/* Subtle top highlight on the bar */}
         <View style={styles.barHighlight} />
 
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
     height: BAR_HEIGHT,
     borderRadius: 36,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.18)",
-    shadowColor: "#000",
-    shadowOpacity: 0.45,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: -6 },
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.75)",
+    shadowColor: "#4BB8FA",
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: -4 },
     elevation: 20,
   },
   barHighlight: {
@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.28)",
+    height: 1.5,
+    backgroundColor: "rgba(255,255,255,0.95)",
   },
   barInner: {
     flex: 1,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#5AC8FA",
+    backgroundColor: "#1A3A8F",
     marginTop: 1,
   },
 });
