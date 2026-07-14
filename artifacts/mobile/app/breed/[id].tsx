@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
@@ -138,12 +139,18 @@ export default function BreedDetailScreen() {
 
   if (isLoading || !breed) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+      <LinearGradient
+        colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
+        locations={[0, 0.5, 1]}
+        style={styles.loading}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      >
         <Text style={{ fontSize: 48 }}>🐾</Text>
-        <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+        <Text style={[styles.loadingText, { color: "rgba(255,255,255,0.85)" }]}>
           Loading…
         </Text>
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -157,7 +164,14 @@ export default function BreedDetailScreen() {
     : null;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      />
       {/* ── Hero ───────────────────────────────────────────────── */}
       <View style={styles.hero}>
         {collected ? (
@@ -177,8 +191,11 @@ export default function BreedDetailScreen() {
           </View>
         )}
 
-        {/* Gradient overlay */}
-        <View style={styles.heroGrad} />
+        {/* Gradient overlay — fades into the blue page background */}
+        <LinearGradient
+          colors={["transparent", "rgba(44,94,173,0.92)"]}
+          style={styles.heroGrad}
+        />
 
         {/* Back */}
         <TouchableOpacity
@@ -364,15 +381,15 @@ export default function BreedDetailScreen() {
             style={[
               styles.statusCard,
               {
-                backgroundColor: colors.muted,
-                borderColor: colors.border,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                borderColor: "rgba(255,255,255,0.3)",
                 borderRadius: colors.radius,
               },
             ]}
           >
             <Text style={styles.statusEmoji}>🔒</Text>
             <Text
-              style={[styles.lockedText, { color: colors.mutedForeground }]}
+              style={[styles.lockedText, { color: "rgba(255,255,255,0.85)" }]}
             >
               Not discovered yet — go find one!
             </Text>
@@ -380,7 +397,7 @@ export default function BreedDetailScreen() {
         )}
 
         {/* Description */}
-        <Text style={[styles.description, { color: colors.foreground }]}>
+        <Text style={[styles.description, { color: "rgba(255,255,255,0.95)" }]}>
           {collected
             ? breed.description
             : "Discover this breed to unlock its field notes."}
@@ -432,21 +449,21 @@ export default function BreedDetailScreen() {
                 label="Energy"
                 value={breed.energyLevel}
                 color="#F59E0B"
-                mutedColor={colors.mutedForeground}
+                mutedColor="rgba(255,255,255,0.75)"
               />
               <StatChip
                 emoji="🏠"
                 label="Apartment"
                 value={breed.apartmentFriendly}
                 color="#34D399"
-                mutedColor={colors.mutedForeground}
+                mutedColor="rgba(255,255,255,0.75)"
               />
               <StatChip
                 emoji="🌪️"
                 label="Chaos"
                 value={breed.chaosLevel}
                 color="#F87171"
-                mutedColor={colors.mutedForeground}
+                mutedColor="rgba(255,255,255,0.75)"
               />
             </View>
           </>
@@ -548,18 +565,18 @@ export default function BreedDetailScreen() {
           style={[
             styles.rarityCard,
             {
-              backgroundColor: `${rarityColor}12`,
-              borderColor: `${rarityColor}40`,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              borderColor: "rgba(255,255,255,0.3)",
               borderRadius: colors.radius,
             },
           ]}
         >
           <View style={[styles.rarityDotBig, { backgroundColor: rarityColor }]} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.rarityTitle, { color: rarityColor }]}>
+            <Text style={[styles.rarityTitle, { color: "#FFFFFF" }]}>
               {RARITY_LABELS[breed.rarity]} Breed
             </Text>
-            <Text style={[styles.rarityDesc, { color: colors.mutedForeground }]}>
+            <Text style={[styles.rarityDesc, { color: "rgba(255,255,255,0.8)" }]}>
               {breed.rarity === "common" &&
                 "Commonly spotted in parks and neighbourhoods."}
               {breed.rarity === "uncommon" &&
@@ -634,9 +651,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 160,
-    backgroundColor: "transparent",
-    backgroundImage:
-      "linear-gradient(transparent, rgba(61,53,41,0.8))" as never,
   },
   backBtn: { position: "absolute", left: 16 },
   backBtnInner: {
