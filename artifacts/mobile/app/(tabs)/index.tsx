@@ -127,6 +127,7 @@ export default function HomeScreen() {
 
       {/* Top HUD */}
       <View style={[styles.topHud, { paddingTop: insets.top + 8 }]}>
+        <Text style={styles.appTitle}>DogDex</Text>
         <BlurView intensity={48} tint="dark" style={styles.trainerBadge}>
           <View style={styles.trainerAvatar}>
             <Text style={{ fontSize: 17 }}>🧑‍🦱</Text>
@@ -136,14 +137,6 @@ export default function HomeScreen() {
             <Text style={styles.trainerName}>DogDex Trainer</Text>
           </View>
         </BlurView>
-
-        <Text style={styles.appTitle}>DogDex</Text>
-
-        <Pressable onPress={() => router.push("/medals" as any)}>
-          <BlurView intensity={48} tint="dark" style={styles.settingsCircle}>
-            <Feather name="settings" size={16} color="rgba(255,255,255,0.88)" />
-          </BlurView>
-        </Pressable>
       </View>
 
       {/* Dog encounter */}
@@ -227,6 +220,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   trainerBadge: {
+    position: "absolute",
+    left: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -257,6 +252,8 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
   },
   appTitle: {
+    flex: 1,
+    textAlign: "center",
     color: "#FFFFFF",
     fontSize: 24,
     fontFamily: "Georgia",
