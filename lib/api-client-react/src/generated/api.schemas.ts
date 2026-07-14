@@ -40,6 +40,28 @@ export interface DogBreed {
   imageUrl: string;
   group: string;
   rarity: DogBreedRarity;
+  personality: string;
+  humanJob: string;
+  coffeeOrder: string;
+  ancestors: string;
+  funFact: string;
+  popCulture: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  energyLevel: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  apartmentFriendly: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  chaosLevel: number;
+  randomLore: string;
 }
 
 export interface DetectBreedRequest {

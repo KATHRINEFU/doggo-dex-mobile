@@ -21,6 +21,14 @@ export const HealthCheckResponse = zod.object({
  * Returns the complete list of dog breeds with info and images
  * @summary Get all dog breeds
  */
+export const getDogBreedsResponseEnergyLevelMax = 5;
+
+export const getDogBreedsResponseApartmentFriendlyMax = 5;
+
+export const getDogBreedsResponseChaosLevelMax = 5;
+
+
+
 export const GetDogBreedsResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -31,7 +39,17 @@ export const GetDogBreedsResponseItem = zod.object({
   "lifespan": zod.string(),
   "imageUrl": zod.string(),
   "group": zod.string(),
-  "rarity": zod.enum(['common', 'uncommon', 'rare', 'legendary'])
+  "rarity": zod.enum(['common', 'uncommon', 'rare', 'legendary']),
+  "personality": zod.string(),
+  "humanJob": zod.string(),
+  "coffeeOrder": zod.string(),
+  "ancestors": zod.string(),
+  "funFact": zod.string(),
+  "popCulture": zod.string(),
+  "energyLevel": zod.number().min(1).max(getDogBreedsResponseEnergyLevelMax),
+  "apartmentFriendly": zod.number().min(1).max(getDogBreedsResponseApartmentFriendlyMax),
+  "chaosLevel": zod.number().min(1).max(getDogBreedsResponseChaosLevelMax),
+  "randomLore": zod.string()
 })
 export const GetDogBreedsResponse = zod.array(GetDogBreedsResponseItem)
 
@@ -43,6 +61,14 @@ export const GetDogBreedParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getDogBreedResponseEnergyLevelMax = 5;
+
+export const getDogBreedResponseApartmentFriendlyMax = 5;
+
+export const getDogBreedResponseChaosLevelMax = 5;
+
+
+
 export const GetDogBreedResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -53,7 +79,17 @@ export const GetDogBreedResponse = zod.object({
   "lifespan": zod.string(),
   "imageUrl": zod.string(),
   "group": zod.string(),
-  "rarity": zod.enum(['common', 'uncommon', 'rare', 'legendary'])
+  "rarity": zod.enum(['common', 'uncommon', 'rare', 'legendary']),
+  "personality": zod.string(),
+  "humanJob": zod.string(),
+  "coffeeOrder": zod.string(),
+  "ancestors": zod.string(),
+  "funFact": zod.string(),
+  "popCulture": zod.string(),
+  "energyLevel": zod.number().min(1).max(getDogBreedResponseEnergyLevelMax),
+  "apartmentFriendly": zod.number().min(1).max(getDogBreedResponseApartmentFriendlyMax),
+  "chaosLevel": zod.number().min(1).max(getDogBreedResponseChaosLevelMax),
+  "randomLore": zod.string()
 })
 
 

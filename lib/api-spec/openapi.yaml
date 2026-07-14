@@ -135,6 +135,32 @@ components:
         rarity:
           type: string
           enum: [common, uncommon, rare, legendary]
+        personality:
+          type: string
+        humanJob:
+          type: string
+        coffeeOrder:
+          type: string
+        ancestors:
+          type: string
+        funFact:
+          type: string
+        popCulture:
+          type: string
+        energyLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+        apartmentFriendly:
+          type: integer
+          minimum: 1
+          maximum: 5
+        chaosLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+        randomLore:
+          type: string
       required:
         - id
         - name
@@ -146,6 +172,16 @@ components:
         - imageUrl
         - group
         - rarity
+        - personality
+        - humanJob
+        - coffeeOrder
+        - ancestors
+        - funFact
+        - popCulture
+        - energyLevel
+        - apartmentFriendly
+        - chaosLevel
+        - randomLore
 
     DetectBreedRequest:
       type: object
