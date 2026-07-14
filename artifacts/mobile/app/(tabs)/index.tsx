@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
@@ -12,6 +13,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useUser } from "@clerk/expo";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -33,6 +35,7 @@ const DOG_EMOJIS = ["🐕", "🐶", "🐩", "🦮", "🐕‍🦺", "🐾"];
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
   const { collectionCount } = useCollection();
   const { xpMessage, confettiActive } = useScan();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -129,10 +132,22 @@ export default function HomeScreen() {
       <View style={[styles.topHud, { paddingTop: insets.top + 8 }]}>
         <BlurView intensity={48} tint="dark" style={styles.trainerBadge}>
           <View style={styles.trainerAvatar}>
-            <Text style={{ fontSize: 17 }}>🧑‍🦱</Text>
+            {user?.imageUrl ? (
+              <Image
+                source={{ uri: user.imageUrl }}
+                style={{ width: 28, height: 28, borderRadius: 14 }}
+                contentFit="cover"
+              />
+            ) : (
+              <Text style={{ fontSize: 17 }}>🧑‍🦱</Text>
+            )}
           </View>
           <View>
-            <Text style={styles.trainerLevel}>Lv. {trainerLevel} DogDex Trainer</Text>
+            <Text style={styles.trainerLevel}>
+              {user
+                ? `Lv. ${trainerLevel} ${user.firstName || "Trainer"}`
+                : `Lv. ${trainerLevel} DogDex Trainer`}
+            </Text>
           </View>
         </BlurView>
       </View>

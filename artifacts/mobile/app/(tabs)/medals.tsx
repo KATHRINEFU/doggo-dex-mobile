@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useCollection, XP_LEVELS } from "@/context/CollectionContext";
@@ -17,6 +18,7 @@ const RARITY_COLORS: Record<string, string> = {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { medals, collectionCount, xp, xpLevel, streak, collectedDogs } = useCollection();
 
   const nextLevel = XP_LEVELS[XP_LEVELS.indexOf(xpLevel) + 1];
@@ -41,8 +43,19 @@ export default function ProfileScreen() {
       />
 
       <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 70 : 16) }]}>
-        <Text style={styles.title}>Field Journal</Text>
-        <Text style={styles.subtitle}>Your DogDex adventure log</Text>
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Field Journal</Text>
+            <Text style={styles.subtitle}>Your DogDex adventure log</Text>
+          </View>
+          <Pressable
+            style={styles.settingsBtn}
+            onPress={() => router.push("/profile")}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={20} color="rgba(255,255,255,0.85)" />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -146,6 +159,15 @@ const CARD_BORDER = "rgba(255,255,255,0.28)";
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: 20, paddingBottom: 16 },
+  titleRow: { flexDirection: "row", alignItems: "center" },
+  settingsBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   title: { fontFamily: "Georgia", fontSize: 32, color: "#FFFFFF", marginBottom: 2 },
   subtitle: { fontFamily: "Inter_400Regular", fontStyle: "italic", fontSize: 14, color: "rgba(255,255,255,0.72)" },
   content: { padding: 20, gap: 12 },

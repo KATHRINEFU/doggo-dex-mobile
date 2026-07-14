@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { useAuth } from "@clerk/expo";
 import { PokeBall } from "@/components/PokeBall";
 import { useScan } from "@/context/ScanContext";
 
@@ -76,6 +77,8 @@ function TabItem({
 function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { openScan, isScanning } = useScan();
+  const { isSignedIn } = useAuth();
+  const router = useRouter();
 
   const ballScale = useSharedValue(1);
 
@@ -87,6 +90,10 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
     ballScale.value = withSpring(0.85, { damping: 10, stiffness: 400 }, () => {
       ballScale.value = withSpring(1, { damping: 12, stiffness: 280 });
     });
+    if (!isSignedIn) {
+      router.push("/(auth)/sign-in");
+      return;
+    }
     openScan();
   }
 
