@@ -127,14 +127,12 @@ export default function HomeScreen() {
 
       {/* Top HUD */}
       <View style={[styles.topHud, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.appTitle}>DogDex</Text>
         <BlurView intensity={48} tint="dark" style={styles.trainerBadge}>
           <View style={styles.trainerAvatar}>
             <Text style={{ fontSize: 17 }}>🧑‍🦱</Text>
           </View>
           <View>
-            <Text style={styles.trainerLevel}>Lv. {trainerLevel}</Text>
-            <Text style={styles.trainerName}>DogDex Trainer</Text>
+            <Text style={styles.trainerLevel}>Lv. {trainerLevel} DogDex Trainer</Text>
           </View>
         </BlurView>
       </View>
@@ -214,20 +212,18 @@ const styles = StyleSheet.create({
   topHud: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingBottom: 8,
     zIndex: 10,
   },
   trainerBadge: {
-    position: "absolute",
-    left: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderRadius: 24,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     overflow: "hidden",
   },
   trainerAvatar: {
