@@ -28,11 +28,8 @@ export function useScan() {
   return useContext(ScanContext);
 }
 
-// Detect HEIC by magic bytes — "ftyp" at byte offset 4.
-// Works in both RN and web environments (atob is available in both).
 function isHeicBase64(b64: string): boolean {
   try {
-    // Each base64 char = 6 bits; 12 chars = 9 bytes (more than enough for offset 4-8)
     const bytes = atob(b64.slice(0, 12));
     return bytes.slice(4, 8) === "ftyp";
   } catch {
@@ -55,6 +52,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
   const [detecting, setDetecting] = useState(false);
   const [imageUri, setImageUri] = useState("");
+  const [originalUri, setOriginalUri] = useState("");
   const [result, setResult] = useState<DetectBreedResult | null>(null);
   const [matchedBreed, setMatchedBreed] = useState<DogBreed | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -62,7 +60,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [xpMessage, setXpMessage] = useState("");
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Show an error inside the result modal — works on all platforms.
   const showError = useCallback((message: string, uri = "") => {
     setResult({ ...ERROR_RESULT, description: message });
     setMatchedBreed(null);
@@ -70,9 +67,32 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     setModalVisible(true);
   }, []);
 
+  const handleCollect = useCallback(async () => {
+    if (!result || !matchedBreed || !result.breedId) return;
+    const { isNew, xpGained } = await addDog({
+      breedId: result.breedId,
+      breedName: result.breedName,
+      imageUri: originalUri || imageUri,
+      collectedAt: new Date().toISOString(),
+      confidence: result.confidence,
+      description: result.description,
+      rarity: matchedBreed.rarity,
+    });
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+    if (isNew) {
+      setXpMessage(`+${xpGained} XP · New breed!`);
+      setConfettiActive(true);
+      if (confettiTimer.current) clearTimeout(confettiTimer.current);
+      confettiTimer.current = setTimeout(() => {
+        setConfettiActive(false);
+        setXpMessage("");
+      }, 3500);
+    }
+    setModalVisible(false);
+  }, [result, matchedBreed, imageUri, originalUri, addDog]);
+
   function openScan() {
     if (Platform.OS === "web") {
-      // Alert callbacks don't fire reliably on web — go straight to gallery.
       pickAndDetect(false);
       return;
     }
@@ -88,8 +108,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     try {
       let asset: ImagePicker.ImagePickerAsset | null = null;
 
-      // On web, allowsEditing:true prevents asset.base64 from being populated,
-      // so we disable it on web and rely on ImageManipulator for cropping/resizing.
       const editOptions = Platform.OS === "web"
         ? {}
         : { allowsEditing: true as const, aspect: [1, 1] as [number, number] };
@@ -125,15 +143,12 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       }
 
       pickedUri = asset.uri;
+      setOriginalUri(asset.uri);
 
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
 
-      // --- Convert to JPEG first, then show overlay ---
-      // On web, Chrome cannot decode HEIC in <img> or Canvas, so we must attempt
-      // JPEG conversion before opening the overlay. If conversion fails (HEIC on web),
-      // the overlay opens with the 🐕 placeholder — the server handles HEIC via heic-convert.
       let base64Data: string;
-      let displayUri = ""; // empty = show placeholder in overlay
+      let displayUri = "";
       try {
         const manip = await ImageManipulator.manipulateAsync(
           asset.uri,
@@ -144,8 +159,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         base64Data = manip.base64;
         displayUri = `data:image/jpeg;base64,${manip.base64}`;
       } catch {
-        // ImageManipulator failed — likely HEIC on web (Chrome Canvas can't decode HEIC).
-        // Try heic2any to convert in the browser before falling back to placeholder.
         if (Platform.OS === "web") {
           try {
             const heic2any = (await import("heic2any")).default;
@@ -157,24 +170,20 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
               quality: 0.82,
             });
             const jpegBlob = Array.isArray(converted) ? converted[0] : converted;
-            // Read as data URL for overlay display
             displayUri = await new Promise<string>((res, rej) => {
               const fr = new FileReader();
               fr.onload = () => res(fr.result as string);
               fr.onerror = rej;
               fr.readAsDataURL(jpegBlob);
             });
-            // Extract base64 for the API (strip the data:image/jpeg;base64, prefix)
             base64Data = displayUri.split(",")[1] ?? "";
             if (!base64Data) throw new Error("empty base64 after heic2any");
           } catch {
-            // heic2any also failed — send raw bytes to server, show placeholder
             if (!asset.base64) {
               showError("Could not read this image. Please try a different photo.", pickedUri);
               return;
             }
             base64Data = asset.base64;
-            // displayUri stays "" → overlay shows 🐕 placeholder
           }
         } else {
           if (!asset.base64) {
@@ -188,18 +197,15 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       setImageUri(displayUri);
       setDetecting(true);
 
-      // --- Send to API ---
       let res: DetectBreedResult;
       try {
         res = await detectMutation.mutateAsync({
           data: { imageBase64: base64Data, mimeType: "image/jpeg" },
         });
       } catch (apiErr: unknown) {
-        // Extract message from API error response if available.
         let msg = "Could not analyze the image. Please try again.";
         if (apiErr && typeof apiErr === "object") {
           const anyErr = apiErr as Record<string, unknown>;
-          // Axios / fetch error shapes
           const responseData =
             (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
             (anyErr["data"] as unknown);
@@ -226,34 +232,10 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           : null;
       setMatchedBreed(found);
 
-      if (res.isDog && res.confidence >= 0.7 && res.breedId && found) {
-        const { isNew, xpGained } = await addDog({
-          breedId: res.breedId,
-          breedName: res.breedName,
-          imageUri: asset.uri,
-          collectedAt: new Date().toISOString(),
-          confidence: res.confidence,
-          description: res.description,
-          rarity: found.rarity,
-        });
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-        if (isNew) {
-          setXpMessage(`+${xpGained} XP · New breed!`);
-          setConfettiActive(true);
-          if (confettiTimer.current) clearTimeout(confettiTimer.current);
-          confettiTimer.current = setTimeout(() => {
-            setConfettiActive(false);
-            setXpMessage("");
-          }, 3500);
-        } else {
-          setXpMessage("Already in your DogDex!");
-          setTimeout(() => setXpMessage(""), 2500);
-        }
-      }
+      // Breed is NOT auto-collected — user taps "Save to DogDex" in the modal.
 
       setModalVisible(true);
     } catch (err) {
-      // Unexpected error — show in modal, not alert.
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       showError(msg, pickedUri);
     } finally {
@@ -272,7 +254,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         breed={matchedBreed}
         imageUri={imageUri}
         alreadyCollected={result ? isCollected(result.breedId ?? "") : false}
-        onCollect={() => setModalVisible(false)}
+        onCollect={handleCollect}
         onClose={() => setModalVisible(false)}
       />
     </ScanContext.Provider>
