@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   filterPillText: { fontFamily: "Inter_500Medium", fontSize: 12 },
 
   grid: { padding: 14, gap: 12 },
-  row: { gap: 12, justifyContent: "space-between" },
+  row: { gap: 12 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 10 },
   loadingText: { fontFamily: "Inter_400Regular", fontSize: 15, color: "#FFFFFF" },
   emptyTitle: { fontFamily: "Georgia", fontSize: 22, color: "#FFFFFF" },

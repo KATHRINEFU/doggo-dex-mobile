@@ -39,6 +39,7 @@ export function DogCard({ name, imageUrl, userPhotoUri, rarity, group, collected
   return (
     <TouchableOpacity
       activeOpacity={1}
+      style={styles.touchable}
       onPress={onPress}
       onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
       onPressOut={() => { scale.value = withSpring(1, { damping: 15 }); }}
@@ -55,16 +56,29 @@ export function DogCard({ name, imageUrl, userPhotoUri, rarity, group, collected
           animStyle,
         ]}
       >
+        {/* Image area */}
         <View style={[styles.imgWrap, { borderRadius: colors.radius - 2 }]}>
           {collected ? (
-            <Image source={{ uri: userPhotoUri || imageUrl }} style={styles.img} contentFit="cover" transition={200} />
+            <Image
+              source={{ uri: userPhotoUri || imageUrl }}
+              style={styles.img}
+              contentFit="cover"
+              transition={200}
+            />
           ) : (
-            <View style={[styles.masked, { backgroundColor: `${rarityColor}12` }]}>
-              <Text style={{ fontSize: 28, opacity: 0.35 }}>🐾</Text>
-            </View>
+            /* Silhouette: breed image desaturated + greyed overlay */
+            <>
+              <Image
+                source={{ uri: imageUrl }}
+                style={[styles.img, styles.silhouetteImg]}
+                contentFit="cover"
+                transition={200}
+              />
+              <View style={styles.silhouetteOverlay} />
+            </>
           )}
 
-          {/* Rarity dot */}
+          {/* Rarity badge */}
           <View style={[styles.rarityBadge, { backgroundColor: rarityColor }]}>
             <Text style={styles.rarityBadgeText}>{RARITY_LABELS[rarity][0]}</Text>
           </View>
@@ -77,8 +91,12 @@ export function DogCard({ name, imageUrl, userPhotoUri, rarity, group, collected
           )}
         </View>
 
+        {/* Text info */}
         <View style={styles.info}>
-          <Text style={[styles.name, { color: collected ? colors.foreground : `${colors.foreground}44` }]} numberOfLines={2}>
+          <Text
+            style={[styles.name, { color: collected ? colors.foreground : `${colors.foreground}55` }]}
+            numberOfLines={2}
+          >
             {collected ? name : "???"}
           </Text>
           <Text style={[styles.group, { color: colors.mutedForeground }]}>{group}</Text>
@@ -95,8 +113,11 @@ export function DogCard({ name, imageUrl, userPhotoUri, rarity, group, collected
 }
 
 const styles = StyleSheet.create({
+  touchable: {
+    flex: 1,
+  },
   card: {
-    width: 160,
+    flex: 1,
     overflow: "hidden",
     shadowColor: "#8B7355",
     shadowOffset: { width: 0, height: 2 },
@@ -104,17 +125,51 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  imgWrap: { height: 130, overflow: "hidden", position: "relative" },
+  imgWrap: {
+    height: 130,
+    overflow: "hidden",
+    position: "relative",
+  },
   img: { width: "100%", height: "100%" },
-  masked: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
-  rarityBadge: { position: "absolute", top: 8, left: 8, width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  silhouetteImg: {
+    opacity: 0.28,
+  },
+  silhouetteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(160,165,175,0.55)",
+  },
+  rarityBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rarityBadgeText: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#fff" },
-  check: { position: "absolute", bottom: 8, right: 8, width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  check: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   checkText: { fontSize: 10, color: "#fff", fontWeight: "bold" },
   info: { padding: 10, paddingBottom: 6 },
   name: { fontFamily: "Inter_600SemiBold", fontSize: 13, lineHeight: 18, marginBottom: 2 },
   group: { fontFamily: "Inter_400Regular", fontSize: 11 },
-  stripe: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6 },
+  stripe: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   stripeDot: { width: 6, height: 6, borderRadius: 3 },
   stripeText: { fontFamily: "Inter_500Medium", fontSize: 11 },
 });
