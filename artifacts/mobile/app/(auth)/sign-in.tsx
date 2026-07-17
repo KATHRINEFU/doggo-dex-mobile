@@ -74,17 +74,20 @@ export default function SignInScreen() {
   }, [startSSOFlow, router]);
 
   const handleSignIn = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signIn) return;
     setLoading(true);
     setFieldErrors({});
     try {
       const result = await signIn.create({
+        strategy: "password",
         identifier: email,
         password,
       });
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
         router.replace("/(tabs)");
+      } else {
+        setFieldErrors({ general: `Unexpected status: ${result.status}. Please try again.` });
       }
     } catch (err: any) {
       const clerkErrors = err?.errors ?? [];
