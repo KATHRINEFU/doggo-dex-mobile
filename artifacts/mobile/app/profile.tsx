@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -11,7 +10,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import { useClerk, useUser } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,20 +27,59 @@ export default function ProfileScreen() {
   const { collectionCount, xp, streak } = useCollection();
 
   const [editingName, setEditingName] = useState(false);
-  const [firstName, setFirstName] = useState(user?.firstName ?? "");
-  const [lastName, setLastName] = useState(user?.lastName ?? "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const startEditing = () => {
+    setFirstName(user?.firstName ?? "");
+    setLastName(user?.lastName ?? "");
+    setEditingName(true);
+  };
 
   const handleSaveName = async () => {
     if (!user) return;
     setSaving(true);
     try {
-      await user.update({ firstName, lastName });
+      await user.update({ firstName: firstName.trim(), lastName: lastName.trim() });
       setEditingName(false);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      const msg = e?.errors?.[0]?.longMessage ?? "Failed to update name. Please try again.";
+      Alert.alert("Error", msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please allow photo access to change your profile photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingPhoto(true);
+    try {
+      const file = {
+        uri: result.assets[0].uri,
+        type: result.assets[0].mimeType ?? "image/jpeg",
+        name: "profile.jpg",
+      } as unknown as File;
+      await user?.setProfileImage({ file });
+      await user?.reload();
+    } catch (e: any) {
+      const msg = e?.errors?.[0]?.longMessage ?? "Failed to update photo. Please try again.";
+      Alert.alert("Error", msg);
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -77,7 +117,7 @@ export default function ProfileScreen() {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 70 : 16) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.closeBtn} onPress={() => router.back()}>
           <Feather name="x" size={22} color="rgba(255,255,255,0.85)" />
         </Pressable>
@@ -94,15 +134,25 @@ export default function ProfileScreen() {
           contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Avatar */}
+          {/* Avatar — tap to change */}
           <View style={styles.avatarSection}>
-            {user?.imageUrl ? (
-              <Image source={{ uri: user.imageUrl }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={{ fontSize: 40 }}>🧑‍🦱</Text>
+            <Pressable onPress={handleChangePhoto} style={styles.avatarWrapper}>
+              {uploadingPhoto ? (
+                <View style={[styles.avatarPlaceholder, { justifyContent: "center", alignItems: "center" }]}>
+                  <ActivityIndicator color="rgba(255,255,255,0.8)" />
+                </View>
+              ) : user?.imageUrl ? (
+                <Image source={{ uri: user.imageUrl }} style={styles.avatar} contentFit="cover" />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={{ fontSize: 40 }}>🧑‍🦱</Text>
+                </View>
+              )}
+              {/* Camera badge */}
+              <View style={styles.cameraBadge}>
+                <Feather name="camera" size={12} color="#fff" />
               </View>
-            )}
+            </Pressable>
             <Text style={styles.displayName}>{displayName}</Text>
             <View style={styles.levelBadge}>
               <Text style={styles.levelText}>Lv. {trainerLevel} DogDex Trainer</Text>
@@ -112,7 +162,7 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Stats mini-row */}
+          {/* Stats */}
           <View style={styles.statsRow}>
             {[
               { emoji: "🐕", value: String(collectionCount), label: "Breeds" },
@@ -132,7 +182,7 @@ export default function ProfileScreen() {
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Display Name</Text>
               {!editingName && (
-                <Pressable onPress={() => { setFirstName(user?.firstName ?? ""); setLastName(user?.lastName ?? ""); setEditingName(true); }}>
+                <Pressable onPress={startEditing} hitSlop={8}>
                   <Feather name="edit-2" size={16} color="rgba(255,255,255,0.6)" />
                 </Pressable>
               )}
@@ -164,11 +214,17 @@ export default function ProfileScreen() {
                 </View>
               </>
             ) : (
-              <Text style={styles.fieldValue}>
-                {displayName}
-              </Text>
+              <Text style={styles.fieldValue}>{displayName}</Text>
             )}
           </View>
+
+          {/* Username (read-only display) */}
+          {user?.username ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Username</Text>
+              <Text style={styles.fieldValue}>@{user.username}</Text>
+            </View>
+          ) : null}
 
           {/* Sign out */}
           <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
@@ -187,108 +243,89 @@ const CARD_BORDER = "rgba(255,255,255,0.28)";
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row", alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingHorizontal: 20, paddingBottom: 8,
   },
   closeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: "#fff" },
   scroll: { padding: 20, gap: 14 },
 
-  avatarSection: { alignItems: "center", gap: 8, paddingVertical: 12 },
-  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: "rgba(255,255,255,0.6)" },
+  avatarSection: { alignItems: "center", gap: 8, paddingVertical: 8 },
+  avatarWrapper: { position: "relative" },
+  avatar: {
+    width: 96, height: 96, borderRadius: 48,
+    borderWidth: 3, borderColor: "rgba(255,255,255,0.6)",
+  },
   avatarPlaceholder: {
     width: 96, height: 96, borderRadius: 48,
     backgroundColor: "rgba(255,255,255,0.2)",
     borderWidth: 3, borderColor: "rgba(255,255,255,0.4)",
     alignItems: "center", justifyContent: "center",
   },
+  cameraBadge: {
+    position: "absolute", bottom: 2, right: 2,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: "#2C5EAD",
+    borderWidth: 2, borderColor: "#fff",
+    alignItems: "center", justifyContent: "center",
+  },
   displayName: { fontFamily: "Inter_700Bold", fontSize: 22, color: "#fff" },
   levelBadge: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
+    backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 5,
   },
   levelText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "rgba(255,255,255,0.9)" },
   email: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.6)" },
 
   statsRow: { flexDirection: "row", gap: 10 },
   statCard: {
-    flex: 1,
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: "center",
-    gap: 3,
+    flex: 1, backgroundColor: CARD_BG, borderWidth: 1,
+    borderColor: CARD_BORDER, borderRadius: 14, padding: 14,
+    alignItems: "center", gap: 3,
   },
   statEmoji: { fontSize: 22 },
   statValue: { fontFamily: "Inter_700Bold", fontSize: 18, color: "#fff" },
   statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.6)" },
 
   card: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    borderRadius: 20,
-    padding: 18,
-    gap: 10,
+    backgroundColor: CARD_BG, borderWidth: 1,
+    borderColor: CARD_BORDER, borderRadius: 20, padding: 18, gap: 10,
   },
   cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  cardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 12, letterSpacing: 1, color: "rgba(255,255,255,0.65)", textTransform: "uppercase" },
+  cardTitle: {
+    fontFamily: "Inter_600SemiBold", fontSize: 12, letterSpacing: 1,
+    color: "rgba(255,255,255,0.65)", textTransform: "uppercase",
+  },
   fieldValue: { fontFamily: "Inter_500Medium", fontSize: 16, color: "#fff" },
 
   input: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    color: "#fff",
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 11,
+    color: "#fff", fontFamily: "Inter_400Regular", fontSize: 15,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
   },
   editBtns: { flexDirection: "row", gap: 10, marginTop: 4 },
   cancelBtn: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
+    flex: 1, backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 10, paddingVertical: 12, alignItems: "center",
   },
   cancelBtnText: { fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.75)", fontSize: 14 },
   saveBtn: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
+    flex: 1, backgroundColor: "#fff",
+    borderRadius: 10, paddingVertical: 12, alignItems: "center",
   },
   saveBtnText: { fontFamily: "Inter_700Bold", color: "#2C5EAD", fontSize: 14 },
 
   signOutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "rgba(255,107,107,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255,107,107,0.3)",
-    borderRadius: 16,
-    paddingVertical: 16,
-    marginTop: 4,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, backgroundColor: "rgba(255,107,107,0.12)",
+    borderWidth: 1, borderColor: "rgba(255,107,107,0.3)",
+    borderRadius: 16, paddingVertical: 16, marginTop: 4,
   },
   signOutText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#FF6B6B" },
 });

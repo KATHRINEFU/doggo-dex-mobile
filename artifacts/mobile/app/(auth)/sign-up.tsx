@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,13 +11,16 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { useSSO, useSignUp } from "@clerk/expo";
+import * as ImagePicker from "expo-image-picker";
+import { useSSO, useSignUp, useUser } from "@clerk/expo";
 import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -28,17 +32,64 @@ function useWarmUpBrowser() {
   }, []);
 }
 
+async function uploadPhoto(user: ReturnType<typeof useUser>["user"], uri: string) {
+  if (!user) return;
+  try {
+    const file = { uri, type: "image/jpeg", name: "profile.jpg" } as unknown as File;
+    await user.setProfileImage({ file });
+  } catch (e) {
+    console.error("Photo upload failed:", e);
+  }
+}
+
 export default function SignUpScreen() {
   useWarmUpBrowser();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
-  const { signUp, errors, fetchStatus } = useSignUp();
+  const { signUp, setActive, isLoaded } = useSignUp();
+  const { user } = useUser();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [readyToNavigate, setReadyToNavigate] = useState(false);
+  const pendingPhotoRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (readyToNavigate && user) {
+      const doIt = async () => {
+        if (pendingPhotoRef.current) {
+          await uploadPhoto(user, pendingPhotoRef.current);
+          pendingPhotoRef.current = null;
+        }
+        router.replace("/(tabs)");
+      };
+      doIt();
+    }
+  }, [readyToNavigate, user]);
+
+  const pickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please allow photo access to set a profile photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   const handleGoogle = useCallback(async () => {
     try {
@@ -48,12 +99,13 @@ export default function SignUpScreen() {
       });
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
-        router.replace("/(tabs)");
+        if (photoUri) pendingPhotoRef.current = photoUri;
+        setReadyToNavigate(true);
       }
     } catch (err) {
       console.error("Google SSO error:", JSON.stringify(err));
     }
-  }, [startSSOFlow, router]);
+  }, [startSSOFlow, photoUri]);
 
   const handleApple = useCallback(async () => {
     try {
@@ -63,38 +115,65 @@ export default function SignUpScreen() {
       });
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
-        router.replace("/(tabs)");
+        if (photoUri) pendingPhotoRef.current = photoUri;
+        setReadyToNavigate(true);
       }
     } catch (err) {
       console.error("Apple SSO error:", JSON.stringify(err));
     }
-  }, [startSSOFlow, router]);
+  }, [startSSOFlow, photoUri]);
 
   const handleSignUp = async () => {
-    const { error } = await signUp.password({ emailAddress: email, password });
-    if (error) return;
-    await signUp.verifications.sendEmailCode();
-  };
-
-  const handleVerify = async () => {
-    await signUp.verifications.verifyEmailCode({ code: verifyCode });
-    if (signUp.status === "complete") {
-      await signUp.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl("/");
-          if (!url.startsWith("http")) {
-            router.replace("/(tabs)");
-          }
-        },
+    if (!isLoaded) return;
+    const errs: Record<string, string> = {};
+    if (!username.trim()) errs.username = "Username is required";
+    if (!email.trim()) errs.email = "Email is required";
+    if (!password.trim()) errs.password = "Password is required";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
+    setLoading(true);
+    try {
+      await signUp.create({
+        emailAddress: email,
+        password,
+        username: username.trim().toLowerCase(),
       });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+    } catch (err: any) {
+      const clerkErrors = err?.errors ?? [];
+      const newErrs: Record<string, string> = {};
+      for (const e of clerkErrors) {
+        if (e.meta?.paramName === "email_address") newErrs.email = e.longMessage ?? e.message;
+        else if (e.meta?.paramName === "password") newErrs.password = e.longMessage ?? e.message;
+        else if (e.meta?.paramName === "username") newErrs.username = e.longMessage ?? e.message;
+        else newErrs.general = e.longMessage ?? e.message;
+      }
+      if (!Object.keys(newErrs).length) newErrs.general = "Something went wrong. Please try again.";
+      setFieldErrors(newErrs);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (
-    signUp.status === "missing_requirements" &&
-    signUp.unverifiedFields.includes("email_address") &&
-    signUp.missingFields.length === 0
-  ) {
+  const handleVerify = async () => {
+    if (!isLoaded) return;
+    setLoading(true);
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code: verifyCode });
+      if (result.status === "complete") {
+        await setActive!({ session: result.createdSessionId });
+        if (photoUri) pendingPhotoRef.current = photoUri;
+        setReadyToNavigate(true);
+      }
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage ?? "Invalid code. Please try again.";
+      setFieldErrors({ code: msg });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (signUp?.status === "missing_requirements" && signUp?.unverifiedFields?.includes("email_address")) {
     return (
       <View style={styles.root}>
         <LinearGradient colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]} style={StyleSheet.absoluteFill} />
@@ -110,15 +189,14 @@ export default function SignUpScreen() {
             onChangeText={setVerifyCode}
             keyboardType="number-pad"
           />
-          {errors?.fields?.code && (
-            <Text style={styles.error}>{errors.fields.code.message}</Text>
-          )}
-          <Pressable style={styles.primaryBtn} onPress={handleVerify} disabled={fetchStatus === "fetching"}>
-            {fetchStatus === "fetching"
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.primaryBtnText}>Verify & Start</Text>}
+          {fieldErrors.code && <Text style={styles.error}>{fieldErrors.code}</Text>}
+          <Pressable style={styles.primaryBtn} onPress={handleVerify} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify & Start</Text>}
           </Pressable>
-          <Pressable onPress={() => signUp.verifications.sendEmailCode()} style={{ marginTop: 12, alignItems: "center" }}>
+          <Pressable
+            onPress={() => signUp.prepareEmailAddressVerification({ strategy: "email_code" })}
+            style={{ marginTop: 12, alignItems: "center" }}
+          >
             <Text style={{ color: "#2C5EAD", fontFamily: "Inter_600SemiBold" }}>Resend code</Text>
           </Pressable>
         </View>
@@ -140,17 +218,31 @@ export default function SignUpScreen() {
             <Feather name="x" size={22} color="rgba(255,255,255,0.85)" />
           </Pressable>
 
-          <Text style={styles.logo}>🐾</Text>
+          {/* Profile photo picker */}
+          <Pressable onPress={pickPhoto} style={styles.photoPicker}>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} contentFit="cover" />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Feather name="camera" size={28} color="rgba(255,255,255,0.7)" />
+              </View>
+            )}
+            <View style={styles.photoEditBadge}>
+              <Feather name="plus" size={12} color="#fff" />
+            </View>
+          </Pressable>
+          <Text style={styles.photoHint}>Add profile photo (optional)</Text>
+
           <Text style={styles.title}>Start your{"\n"}DogDex journey!</Text>
           <Text style={styles.subtitle}>Create your trainer account to collect all 100 breeds</Text>
 
           <Pressable style={styles.socialBtn} onPress={handleGoogle}>
-            <Text style={styles.socialIcon}>G</Text>
+            <Text style={styles.googleG}>G</Text>
             <Text style={styles.socialText}>Continue with Google</Text>
           </Pressable>
 
           <Pressable style={[styles.socialBtn, styles.appleBtn]} onPress={handleApple}>
-            <Text style={[styles.socialIcon, { color: "#fff" }]}>􀣺</Text>
+            <FontAwesome name="apple" size={20} color="#fff" style={{ width: 24, textAlign: "center" }} />
             <Text style={[styles.socialText, { color: "#fff" }]}>Continue with Apple</Text>
           </Pressable>
 
@@ -161,6 +253,19 @@ export default function SignUpScreen() {
           </View>
 
           <View style={styles.card}>
+            <Text style={styles.inputLabel}>Username <Text style={{ color: "#E53E3E" }}>*</Text></Text>
+            <TextInput
+              style={styles.input}
+              placeholder="trainer_name"
+              placeholderTextColor="rgba(0,0,0,0.3)"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="username-new"
+            />
+            {fieldErrors.username && <Text style={styles.error}>{fieldErrors.username}</Text>}
+
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
@@ -172,9 +277,7 @@ export default function SignUpScreen() {
               keyboardType="email-address"
               autoComplete="email"
             />
-            {errors?.fields?.emailAddress && (
-              <Text style={styles.error}>{errors.fields.emailAddress.message}</Text>
-            )}
+            {fieldErrors.email && <Text style={styles.error}>{fieldErrors.email}</Text>}
 
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.passwordRow}>
@@ -191,18 +294,15 @@ export default function SignUpScreen() {
                 <Feather name={showPassword ? "eye-off" : "eye"} size={18} color="rgba(0,0,0,0.4)" />
               </Pressable>
             </View>
-            {errors?.fields?.password && (
-              <Text style={styles.error}>{errors.fields.password.message}</Text>
-            )}
+            {fieldErrors.password && <Text style={styles.error}>{fieldErrors.password}</Text>}
+            {fieldErrors.general && <Text style={styles.error}>{fieldErrors.general}</Text>}
 
             <Pressable
-              style={[styles.primaryBtn, (!email || !password || fetchStatus === "fetching") && styles.btnDisabled]}
+              style={[styles.primaryBtn, (!username || !email || !password || loading) && styles.btnDisabled]}
               onPress={handleSignUp}
-              disabled={!email || !password || fetchStatus === "fetching"}
+              disabled={!username || !email || !password || loading}
             >
-              {fetchStatus === "fetching"
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.primaryBtnText}>Create Account</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Create Account</Text>}
             </Pressable>
 
             <View nativeID="clerk-captcha" />
@@ -223,24 +323,36 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#2C5EAD" },
   scroll: { paddingHorizontal: 24, alignItems: "center" },
-  backBtn: { alignSelf: "flex-end", padding: 8, marginBottom: 8 },
-  logo: { fontSize: 64, marginBottom: 12 },
+  backBtn: { alignSelf: "flex-end", padding: 8, marginBottom: 4 },
+
+  photoPicker: { position: "relative", marginBottom: 6, marginTop: 4 },
+  photoPreview: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, borderColor: "rgba(255,255,255,0.7)" },
+  photoPlaceholder: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.5)", borderStyle: "dashed",
+    alignItems: "center", justifyContent: "center",
+  },
+  photoEditBadge: {
+    position: "absolute", bottom: 2, right: 2,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: "#2C5EAD",
+    borderWidth: 2, borderColor: "#fff",
+    alignItems: "center", justifyContent: "center",
+  },
+  photoHint: { fontSize: 12, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginBottom: 16 },
+
   title: { fontSize: 30, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center", marginBottom: 6 },
-  subtitle: { fontSize: 14, color: "rgba(255,255,255,0.78)", textAlign: "center", marginBottom: 28, fontFamily: "Inter_400Regular" },
+  subtitle: { fontSize: 14, color: "rgba(255,255,255,0.78)", textAlign: "center", marginBottom: 24, fontFamily: "Inter_400Regular" },
 
   socialBtn: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    gap: 12,
+    width: "100%", flexDirection: "row", alignItems: "center",
+    backgroundColor: "#fff", borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 20,
+    marginBottom: 12, gap: 12,
   },
   appleBtn: { backgroundColor: "#000" },
-  socialIcon: { fontSize: 18, fontWeight: "700", color: "#333", width: 24, textAlign: "center" },
+  googleG: { fontSize: 18, fontWeight: "700", color: "#333", width: 24, textAlign: "center" },
   socialText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#1a1a1a" },
 
   dividerRow: { flexDirection: "row", alignItems: "center", width: "100%", marginVertical: 16, gap: 10 },
@@ -248,38 +360,24 @@ const styles = StyleSheet.create({
   dividerText: { color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular", fontSize: 13 },
 
   card: {
-    width: "100%",
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    width: "100%", backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 20, padding: 20,
+    shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
   inputLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#1A3A8F", marginBottom: 6, marginTop: 4, letterSpacing: 0.5 },
   input: {
-    backgroundColor: "rgba(0,0,0,0.05)",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: "#111",
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.07)",
+    backgroundColor: "rgba(0,0,0,0.05)", borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, fontFamily: "Inter_400Regular", color: "#111",
+    marginBottom: 12, borderWidth: 1, borderColor: "rgba(0,0,0,0.07)",
   },
   passwordRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   eyeBtn: { padding: 8 },
 
   primaryBtn: {
-    backgroundColor: "#2C5EAD",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 4,
+    backgroundColor: "#2C5EAD", borderRadius: 12,
+    paddingVertical: 15, alignItems: "center", marginTop: 4,
   },
   btnDisabled: { opacity: 0.45 },
   primaryBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },

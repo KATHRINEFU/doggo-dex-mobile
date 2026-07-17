@@ -17,6 +17,7 @@ import { useSSO, useSignIn } from "@clerk/expo";
 import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -33,12 +34,14 @@ export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
-  const { signIn, errors, fetchStatus } = useSignIn();
+  const { signIn, setActive, isLoaded } = useSignIn();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleGoogle = useCallback(async () => {
     try {
@@ -71,37 +74,58 @@ export default function SignInScreen() {
   }, [startSSOFlow, router]);
 
   const handleSignIn = async () => {
-    const { error } = await signIn.password({ emailAddress: email, password });
-    if (error) return;
-
-    if (signIn.status === "complete") {
-      await signIn.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl("/");
-          if (url.startsWith("http")) {
-            // web fallback
-          } else {
-            router.replace("/(tabs)");
-          }
-        },
+    if (!isLoaded) return;
+    setLoading(true);
+    setFieldErrors({});
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
       });
+      if (result.status === "complete") {
+        await setActive!({ session: result.createdSessionId });
+        router.replace("/(tabs)");
+      }
+    } catch (err: any) {
+      const clerkErrors = err?.errors ?? [];
+      const newErrs: Record<string, string> = {};
+      for (const e of clerkErrors) {
+        const param = e.meta?.paramName;
+        if (param === "identifier") newErrs.email = e.longMessage ?? e.message;
+        else if (param === "password") newErrs.password = e.longMessage ?? e.message;
+        else newErrs.general = e.longMessage ?? e.message;
+      }
+      if (!Object.keys(newErrs).length) newErrs.general = "Incorrect email or password.";
+      setFieldErrors(newErrs);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVerify = async () => {
-    await signIn.mfa.verifyEmailCode({ code: mfaCode });
-    if (signIn.status === "complete") {
-      await signIn.finalize({
-        navigate: () => router.replace("/(tabs)"),
+    if (!isLoaded || !signIn) return;
+    setLoading(true);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "email_code",
+        code: mfaCode,
       });
+      if (result.status === "complete") {
+        await setActive!({ session: result.createdSessionId });
+        router.replace("/(tabs)");
+      }
+    } catch (err: any) {
+      setFieldErrors({ code: err?.errors?.[0]?.longMessage ?? "Invalid code." });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (signIn.status === "needs_client_trust") {
+  if (signIn?.status === "needs_first_factor") {
     return (
       <View style={styles.root}>
         <LinearGradient colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.card, { marginTop: insets.top + 80 }]}>
+        <View style={[styles.card, { marginTop: insets.top + 80, marginHorizontal: 24 }]}>
           <Text style={styles.heading}>Check your email</Text>
           <Text style={styles.sub}>We sent a verification code to {email}</Text>
           <TextInput
@@ -112,14 +136,9 @@ export default function SignInScreen() {
             onChangeText={setMfaCode}
             keyboardType="number-pad"
           />
-          {errors?.fields?.code && (
-            <Text style={styles.error}>{errors.fields.code.message}</Text>
-          )}
-          <Pressable style={styles.primaryBtn} onPress={handleVerify}>
-            <Text style={styles.primaryBtnText}>Verify</Text>
-          </Pressable>
-          <Pressable onPress={() => signIn.mfa.sendEmailCode()}>
-            <Text style={styles.link}>Resend code</Text>
+          {fieldErrors.code && <Text style={styles.error}>{fieldErrors.code}</Text>}
+          <Pressable style={styles.primaryBtn} onPress={handleVerify} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify</Text>}
           </Pressable>
         </View>
       </View>
@@ -135,7 +154,6 @@ export default function SignInScreen() {
           contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Feather name="x" size={22} color="rgba(255,255,255,0.85)" />
           </Pressable>
@@ -144,14 +162,13 @@ export default function SignInScreen() {
           <Text style={styles.title}>Welcome back,{"\n"}Trainer!</Text>
           <Text style={styles.subtitle}>Sign in to continue your DogDex journey</Text>
 
-          {/* Social buttons */}
           <Pressable style={styles.socialBtn} onPress={handleGoogle}>
-            <Text style={styles.socialIcon}>G</Text>
+            <Text style={styles.googleG}>G</Text>
             <Text style={styles.socialText}>Continue with Google</Text>
           </Pressable>
 
           <Pressable style={[styles.socialBtn, styles.appleBtn]} onPress={handleApple}>
-            <Text style={[styles.socialIcon, { color: "#fff" }]}>􀣺</Text>
+            <FontAwesome name="apple" size={20} color="#fff" style={{ width: 24, textAlign: "center" }} />
             <Text style={[styles.socialText, { color: "#fff" }]}>Continue with Apple</Text>
           </Pressable>
 
@@ -161,7 +178,6 @@ export default function SignInScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Email / Password */}
           <View style={styles.card}>
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
@@ -174,9 +190,7 @@ export default function SignInScreen() {
               keyboardType="email-address"
               autoComplete="email"
             />
-            {errors?.fields?.identifier && (
-              <Text style={styles.error}>{errors.fields.identifier.message}</Text>
-            )}
+            {fieldErrors.email && <Text style={styles.error}>{fieldErrors.email}</Text>}
 
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.passwordRow}>
@@ -193,18 +207,15 @@ export default function SignInScreen() {
                 <Feather name={showPassword ? "eye-off" : "eye"} size={18} color="rgba(0,0,0,0.4)" />
               </Pressable>
             </View>
-            {errors?.fields?.password && (
-              <Text style={styles.error}>{errors.fields.password.message}</Text>
-            )}
+            {fieldErrors.password && <Text style={styles.error}>{fieldErrors.password}</Text>}
+            {fieldErrors.general && <Text style={styles.error}>{fieldErrors.general}</Text>}
 
             <Pressable
-              style={[styles.primaryBtn, (!email || !password || fetchStatus === "fetching") && styles.btnDisabled]}
+              style={[styles.primaryBtn, (!email || !password || loading) && styles.btnDisabled]}
               onPress={handleSignIn}
-              disabled={!email || !password || fetchStatus === "fetching"}
+              disabled={!email || !password || loading}
             >
-              {fetchStatus === "fetching"
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.primaryBtnText}>Sign In</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Sign In</Text>}
             </Pressable>
           </View>
 
@@ -229,18 +240,13 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: "rgba(255,255,255,0.78)", textAlign: "center", marginBottom: 28, fontFamily: "Inter_400Regular" },
 
   socialBtn: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    gap: 12,
+    width: "100%", flexDirection: "row", alignItems: "center",
+    backgroundColor: "#fff", borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 20,
+    marginBottom: 12, gap: 12,
   },
   appleBtn: { backgroundColor: "#000" },
-  socialIcon: { fontSize: 18, fontWeight: "700", color: "#333", width: 24, textAlign: "center" },
+  googleG: { fontSize: 18, fontWeight: "700", color: "#333", width: 24, textAlign: "center" },
   socialText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#1a1a1a" },
 
   dividerRow: { flexDirection: "row", alignItems: "center", width: "100%", marginVertical: 16, gap: 10 },
@@ -248,38 +254,24 @@ const styles = StyleSheet.create({
   dividerText: { color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular", fontSize: 13 },
 
   card: {
-    width: "100%",
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    width: "100%", backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 20, padding: 20,
+    shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
   inputLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#1A3A8F", marginBottom: 6, marginTop: 4, letterSpacing: 0.5 },
   input: {
-    backgroundColor: "rgba(0,0,0,0.05)",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: "#111",
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.07)",
+    backgroundColor: "rgba(0,0,0,0.05)", borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, fontFamily: "Inter_400Regular", color: "#111",
+    marginBottom: 12, borderWidth: 1, borderColor: "rgba(0,0,0,0.07)",
   },
   passwordRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
   eyeBtn: { padding: 8 },
 
   primaryBtn: {
-    backgroundColor: "#2C5EAD",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 4,
+    backgroundColor: "#2C5EAD", borderRadius: 12,
+    paddingVertical: 15, alignItems: "center", marginTop: 4,
   },
   btnDisabled: { opacity: 0.45 },
   primaryBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },

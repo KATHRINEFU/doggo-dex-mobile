@@ -1,6 +1,7 @@
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import type { Medal } from "@/context/CollectionContext";
 
 interface Props {
@@ -39,11 +40,26 @@ export function MedalCard({ medal, currentCount }: Props) {
   const gradColors = TIER_GRADIENTS[medal.id] ?? ["#5AC8FA", "#007AFF"];
   const emoji = EMOJI_MAP[medal.id] ?? "🏅";
 
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `I just earned the "${medal.name}" badge on DogDex! 🐾 I've discovered ${medal.required} dog breeds. Can you beat me?`,
+        title: "DogDex Badge",
+      });
+    } catch {}
+  };
+
   return (
     <View style={[styles.card, medal.unlocked && styles.cardUnlocked]}>
-      {/* Glow behind unlocked badges */}
       {medal.unlocked && (
         <View style={[styles.glow, { backgroundColor: gradColors[0] + "30" }]} />
+      )}
+
+      {/* Share button — top-right, unlocked badges only */}
+      {medal.unlocked && (
+        <Pressable style={styles.shareBtn} onPress={handleShare} hitSlop={8}>
+          <Feather name="share-2" size={14} color="rgba(255,255,255,0.65)" />
+        </Pressable>
       )}
 
       {/* Icon */}
@@ -79,7 +95,6 @@ export function MedalCard({ medal, currentCount }: Props) {
 
         <Text style={styles.desc}>{medal.description}</Text>
 
-        {/* Progress bar */}
         <View style={styles.track}>
           {medal.unlocked ? (
             <LinearGradient
@@ -89,12 +104,7 @@ export function MedalCard({ medal, currentCount }: Props) {
               end={{ x: 1, y: 0 }}
             />
           ) : (
-            <View
-              style={[
-                styles.fillPartial,
-                { width: `${progress * 100}%` },
-              ]}
-            />
+            <View style={[styles.fillPartial, { width: `${progress * 100}%` }]} />
           )}
         </View>
 
@@ -108,87 +118,66 @@ export function MedalCard({ medal, currentCount }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    flexDirection: "row", alignItems: "center",
+    gap: 14, padding: 14, borderRadius: 20,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.18)",
     backgroundColor: "rgba(15, 50, 120, 0.72)",
-    marginBottom: 10,
-    overflow: "hidden",
+    marginBottom: 10, overflow: "hidden",
+    position: "relative",
   },
   cardUnlocked: {
     borderColor: "rgba(255,255,255,0.30)",
     backgroundColor: "rgba(20, 60, 140, 0.80)",
   },
   glow: {
-    position: "absolute",
-    top: -20,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    position: "absolute", top: -20, left: -20,
+    width: 100, height: 100, borderRadius: 50,
+  },
+  shareBtn: {
+    position: "absolute", top: 10, right: 10,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
+    zIndex: 1,
   },
 
   iconOuter: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    overflow: "hidden",
-    flexShrink: 0,
+    width: 54, height: 54, borderRadius: 27,
+    overflow: "hidden", flexShrink: 0,
   },
   iconGradient: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+    width: "100%", height: "100%",
+    alignItems: "center", justifyContent: "center",
   },
   iconLocked: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+    width: "100%", height: "100%",
+    alignItems: "center", justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.25)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.4)",
     borderRadius: 27,
   },
   iconEmoji: { fontSize: 26 },
 
-  body: { flex: 1, gap: 4 },
+  body: { flex: 1, gap: 4, paddingRight: 20 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#FFFFFF", flex: 1 },
   nameLocked: { color: "rgba(255,255,255,0.45)" },
 
   earnedPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 10, borderWidth: 1,
   },
   earnedText: { fontFamily: "Inter_600SemiBold", fontSize: 10 },
 
   desc: { fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,255,0.55)" },
 
   track: {
-    height: 5,
-    borderRadius: 3,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    marginTop: 2,
+    height: 5, borderRadius: 3, overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.15)", marginTop: 2,
   },
   fillFull: { height: "100%", borderRadius: 3, width: "100%" },
-  fillPartial: {
-    height: "100%",
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.4)",
-  },
+  fillPartial: { height: "100%", borderRadius: 3, backgroundColor: "rgba(255,255,255,0.4)" },
 
-  countLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: "rgba(255,255,255,0.45)",
-  },
+  countLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.45)" },
 });
