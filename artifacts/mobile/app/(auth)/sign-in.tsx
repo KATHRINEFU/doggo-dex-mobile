@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -39,7 +40,6 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [mfaCode, setMfaCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -74,79 +74,63 @@ export default function SignInScreen() {
   }, [startSSOFlow, router]);
 
   const handleSignIn = async () => {
-    if (!isLoaded || !signIn) return;
+    if (!isLoaded) {
+      Alert.alert("Still loading", "Auth SDK is initializing, please wait a moment.");
+      return;
+    }
+    if (!signIn) {
+      Alert.alert("Error", "Sign-in unavailable. Please restart the app.");
+      return;
+    }
+
     setLoading(true);
     setFieldErrors({});
+
     try {
       const result = await signIn.create({
         strategy: "password",
-        identifier: email,
+        identifier: email.trim(),
         password,
       });
+
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
         router.replace("/(tabs)");
       } else {
-        setFieldErrors({ general: `Unexpected status: ${result.status}. Please try again.` });
+        // Surface any unexpected status so user isn't left hanging
+        Alert.alert(
+          "Extra step needed",
+          `Status: ${result.status}. Please contact support if this persists.`
+        );
       }
     } catch (err: any) {
-      const clerkErrors = err?.errors ?? [];
-      const newErrs: Record<string, string> = {};
-      for (const e of clerkErrors) {
-        const param = e.meta?.paramName;
-        if (param === "identifier") newErrs.email = e.longMessage ?? e.message;
-        else if (param === "password") newErrs.password = e.longMessage ?? e.message;
-        else newErrs.general = e.longMessage ?? e.message;
+      const clerkErrors: any[] = err?.errors ?? [];
+      if (clerkErrors.length > 0) {
+        const newErrs: Record<string, string> = {};
+        for (const e of clerkErrors) {
+          const code: string = e.code ?? "";
+          const param: string = e.meta?.paramName ?? "";
+          if (param === "identifier" || code.includes("identifier") || code === "form_identifier_not_found") {
+            newErrs.email = e.longMessage ?? e.message;
+          } else if (param === "password" || code.includes("password")) {
+            newErrs.password = e.longMessage ?? e.message;
+          } else {
+            newErrs.general = e.longMessage ?? e.message;
+          }
+        }
+        if (!Object.keys(newErrs).length) {
+          newErrs.general = err?.message ?? "Sign-in failed. Please try again.";
+        }
+        setFieldErrors(newErrs);
+      } else {
+        // Non-Clerk error — show it so it's never silent
+        const msg = err?.message ?? JSON.stringify(err);
+        setFieldErrors({ general: msg || "An unexpected error occurred." });
       }
-      if (!Object.keys(newErrs).length) newErrs.general = "Incorrect email or password.";
-      setFieldErrors(newErrs);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleVerify = async () => {
-    if (!isLoaded || !signIn) return;
-    setLoading(true);
-    try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "email_code",
-        code: mfaCode,
-      });
-      if (result.status === "complete") {
-        await setActive!({ session: result.createdSessionId });
-        router.replace("/(tabs)");
-      }
-    } catch (err: any) {
-      setFieldErrors({ code: err?.errors?.[0]?.longMessage ?? "Invalid code." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (signIn?.status === "needs_first_factor") {
-    return (
-      <View style={styles.root}>
-        <LinearGradient colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.card, { marginTop: insets.top + 80, marginHorizontal: 24 }]}>
-          <Text style={styles.heading}>Check your email</Text>
-          <Text style={styles.sub}>We sent a verification code to {email}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Verification code"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            value={mfaCode}
-            onChangeText={setMfaCode}
-            keyboardType="number-pad"
-          />
-          {fieldErrors.code && <Text style={styles.error}>{fieldErrors.code}</Text>}
-          <Pressable style={styles.primaryBtn} onPress={handleVerify} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Verify</Text>}
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.root}>
@@ -188,12 +172,12 @@ export default function SignInScreen() {
               placeholder="trainer@dogdex.com"
               placeholderTextColor="rgba(0,0,0,0.3)"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => { setEmail(t); setFieldErrors({}); }}
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
             />
-            {fieldErrors.email && <Text style={styles.error}>{fieldErrors.email}</Text>}
+            {fieldErrors.email ? <Text style={styles.error}>{fieldErrors.email}</Text> : null}
 
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.passwordRow}>
@@ -202,24 +186,36 @@ export default function SignInScreen() {
                 placeholder="••••••••"
                 placeholderTextColor="rgba(0,0,0,0.3)"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(t) => { setPassword(t); setFieldErrors({}); }}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
               />
-              <Pressable style={styles.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
+              <Pressable style={styles.eyeBtn} onPress={() => setShowPassword(v => !v)}>
                 <Feather name={showPassword ? "eye-off" : "eye"} size={18} color="rgba(0,0,0,0.4)" />
               </Pressable>
             </View>
-            {fieldErrors.password && <Text style={styles.error}>{fieldErrors.password}</Text>}
-            {fieldErrors.general && <Text style={styles.error}>{fieldErrors.general}</Text>}
+            {fieldErrors.password ? <Text style={styles.error}>{fieldErrors.password}</Text> : null}
+            {fieldErrors.general ? <Text style={styles.error}>{fieldErrors.general}</Text> : null}
+
+            {/* Required by Clerk bot-protection on web */}
+            <View nativeID="clerk-captcha" />
 
             <Pressable
-              style={[styles.primaryBtn, (!email || !password || loading) && styles.btnDisabled]}
+              style={[styles.primaryBtn, loading && styles.btnDisabled]}
               onPress={handleSignIn}
-              disabled={!email || !password || loading}
+              disabled={loading}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Sign In</Text>}
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.primaryBtnText}>
+                    {!isLoaded ? "Loading…" : "Sign In"}
+                  </Text>
+              }
             </Pressable>
+
+            {!isLoaded && (
+              <Text style={styles.loadingNote}>Auth SDK is still initializing…</Text>
+            )}
           </View>
 
           <View style={styles.footerRow}>
@@ -274,13 +270,15 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     backgroundColor: "#2C5EAD", borderRadius: 12,
-    paddingVertical: 15, alignItems: "center", marginTop: 4,
+    paddingVertical: 15, alignItems: "center", marginTop: 8,
   },
-  btnDisabled: { opacity: 0.45 },
+  btnDisabled: { opacity: 0.55 },
   primaryBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
+  loadingNote: {
+    textAlign: "center", fontSize: 11, color: "rgba(0,0,0,0.4)",
+    fontFamily: "Inter_400Regular", marginTop: 6,
+  },
 
-  heading: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#111", marginBottom: 6 },
-  sub: { fontSize: 13, color: "rgba(0,0,0,0.5)", marginBottom: 20, fontFamily: "Inter_400Regular" },
   error: { color: "#EF4444", fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 8 },
 
   footerRow: { flexDirection: "row", marginTop: 20, alignItems: "center" },

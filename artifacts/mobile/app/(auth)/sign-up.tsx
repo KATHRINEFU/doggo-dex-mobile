@@ -156,17 +156,22 @@ export default function SignUpScreen() {
   };
 
   const handleVerify = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) return;
     setLoading(true);
+    setFieldErrors({});
     try {
       const result = await signUp.attemptEmailAddressVerification({ code: verifyCode });
       if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
         if (photoUri) pendingPhotoRef.current = photoUri;
         setReadyToNavigate(true);
+      } else {
+        // Surface non-complete statuses so user isn't silently stuck
+        const missing = result.missingFields?.join(", ") ?? result.status;
+        setFieldErrors({ code: `Additional step needed: ${missing}. Please try again or use Google/Apple sign-in.` });
       }
     } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage ?? "Invalid code. Please try again.";
+      const msg = err?.errors?.[0]?.longMessage ?? err?.message ?? "Invalid code. Please try again.";
       setFieldErrors({ code: msg });
     } finally {
       setLoading(false);
