@@ -10,6 +10,7 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import Constants from "expo-constants";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -20,16 +21,27 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CollectionProvider } from "@/context/CollectionContext";
 import { ScanProvider } from "@/context/ScanContext";
 
-const _apiBase = `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
-console.log("[DogDex] API base URL:", _apiBase);
+const extra = Constants.expoConfig?.extra ?? {};
+
+// Clerk key: read from app.config.js extra (which injects process.env.CLERK_PUBLISHABLE_KEY at dev-server startup)
+const publishableKey: string =
+  extra.clerkPublishableKey ||
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+  "";
+
+// Domain: prefer app.config.js extra, fall back to EXPO_PUBLIC_ variant
+const domain: string =
+  extra.domain ||
+  process.env.EXPO_PUBLIC_DOMAIN ||
+  "";
+
+const _apiBase = domain ? `https://${domain}` : "";
+console.log("[DogDex] API base URL:", _apiBase, "| Clerk key present:", !!publishableKey);
 setBaseUrl(_apiBase);
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
-
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
-const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 function RootLayoutNav() {
   return (
@@ -58,8 +70,12 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
 
+  if (!publishableKey) {
+    console.error("[DogDex] CLERK_PUBLISHABLE_KEY is not set — auth will not work.");
+  }
+
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache} proxyUrl={proxyUrl}>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <SafeAreaProvider>
           <ErrorBoundary>
