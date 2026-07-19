@@ -109,16 +109,22 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Background */}
-      {showCamera ? (
-        <CameraView style={StyleSheet.absoluteFill} facing="back" />
-      ) : (
-        <LinearGradient
-          colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-          start={{ x: 0.3, y: 0 }}
-          end={{ x: 0.7, y: 1 }}
+      {/* Background — gradient always renders; CameraView overlays it when permitted */}
+      <LinearGradient
+        colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.3, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+      />
+      {Platform.OS !== "web" && (
+        <CameraView
+          style={[StyleSheet.absoluteFill, { opacity: showCamera ? 1 : 0 }]}
+          facing="back"
+          onCameraReady={() => console.log("[Camera] ready")}
+          onMountError={(err) => {
+            console.warn("[Camera] mount error:", err.message);
+          }}
         />
       )}
 
@@ -163,20 +169,22 @@ export default function HomeScreen() {
           </View>
           <View style={styles.shadowPuddle} />
         </Animated.View>
+      </View>
 
-        {!showCamera && Platform.OS !== "web" && (
+      {/* Camera prompt — positioned over encounterArea but NOT inside pointerEvents="none" */}
+      {!showCamera && Platform.OS !== "web" && (
+        <View style={styles.cameraPromptWrap} pointerEvents="box-none">
           <Pressable
             style={styles.cameraPrompt}
             onPress={requestCameraPermission}
-            pointerEvents="auto"
           >
             <BlurView intensity={58} tint="dark" style={styles.cameraPromptBlur}>
               <Feather name="camera" size={14} color="rgba(255,255,255,0.9)" />
               <Text style={styles.cameraPromptText}>Enable camera for AR</Text>
             </BlurView>
           </Pressable>
-        )}
-      </View>
+        </View>
+      )}
 
       {/* XP popup — driven by ScanContext */}
       {xpMessage ? (
@@ -312,6 +320,13 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 34,
     backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  cameraPromptWrap: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
   },
   cameraPrompt: { marginTop: 28, borderRadius: 20, overflow: "hidden" },
   cameraPromptBlur: {

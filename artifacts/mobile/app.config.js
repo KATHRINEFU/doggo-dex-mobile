@@ -48,6 +48,13 @@ module.exports = {
           cameraPermission: "DogDex uses your camera to take photos of dogs.",
         },
       ],
+      [
+        "expo-camera",
+        {
+          cameraPermission: "DogDex uses your camera for the AR background and to scan dog breeds.",
+          microphonePermission: false,
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
