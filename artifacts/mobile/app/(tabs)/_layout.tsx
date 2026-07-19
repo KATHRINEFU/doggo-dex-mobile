@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
 export default function TabLayout() {
   return (
     <Tabs
-      tabBar={(props) => <PoGoTabBar {...props} />}
+      tabBar={(props: any) => <PoGoTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         lazy: false,

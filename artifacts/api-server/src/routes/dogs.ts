@@ -1422,7 +1422,7 @@ router.post("/dogs/detect", async (req, res) => {
           format: "JPEG",
           quality: 0.88,
         });
-        jpegBase64 = Buffer.from(outputBuffer as ArrayBuffer).toString("base64");
+        jpegBase64 = (outputBuffer as Buffer).toString("base64");
         req.log?.info({ outputBytes: jpegBase64.length }, "heic-convert conversion OK");
       } catch (heicErr) {
         req.log?.error({ heicErr }, "heic-convert also failed");

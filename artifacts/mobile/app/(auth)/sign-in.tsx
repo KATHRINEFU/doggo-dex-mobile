@@ -14,7 +14,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { useSSO, useSignIn } from "@clerk/expo";
+import { useSSO } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo/legacy";
 import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
