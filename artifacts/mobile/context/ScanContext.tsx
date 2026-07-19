@@ -119,7 +119,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         const picked = await ImagePicker.launchCameraAsync({
-          mediaTypes: "Images" as any,
+          mediaTypes: "images",
           quality: 0.85,
           base64: true,
           ...editOptions,
@@ -133,7 +133,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         const picked = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: "Images" as any,
+          mediaTypes: "images",
           quality: 0.85,
           base64: true,
           ...editOptions,

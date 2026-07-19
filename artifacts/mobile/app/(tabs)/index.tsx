@@ -4,8 +4,9 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Platform,
   Pressable,
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const { collectionCount } = useCollection();
   const { xpMessage, confettiActive } = useScan();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [cameraError, setCameraError] = useState(false);
   const { data: allBreeds } = useGetDogBreeds();
 
   const totalBreeds = allBreeds?.length ?? 100;
