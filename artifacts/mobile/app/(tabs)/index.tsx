@@ -158,6 +158,12 @@ export default function HomeScreen() {
             </Text>
           </View>
         </BlurView>
+
+        <Image
+          source={require("@/assets/images/logo.png")}
+          style={styles.logoImage}
+          contentFit="contain"
+        />
       </View>
 
       {/* Dog encounter */}
@@ -237,10 +243,15 @@ const styles = StyleSheet.create({
   topHud: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 8,
     zIndex: 10,
+  },
+  logoImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   trainerBadge: {
     flexDirection: "row",
