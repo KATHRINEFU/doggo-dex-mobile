@@ -1,10 +1,15 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
+  Dimensions,
   FlatList,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,63 +17,108 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "@/hooks/useColors";
 import { useCollection } from "@/context/CollectionContext";
 import { DogCard } from "@/components/DogCard";
 import { useGetDogBreeds } from "@workspace/api-client-react";
 
+const { width: SCREEN_W } = Dimensions.get("window");
+
+/* ── Filter types ─────────────────────────────────────────── */
 type RarityFilter = "all" | "common" | "uncommon" | "rare" | "legendary";
+type CollectionFilter = "all" | "collected" | "uncollected";
 type SortType = "default" | "newest" | "name";
 
-const RARITY_LABELS: Record<RarityFilter, string> = {
-  all: "All",
-  common: "Common",
-  uncommon: "Uncommon",
-  rare: "Rare",
-  legendary: "Legendary",
+const RARITY_META: Record<
+  Exclude<RarityFilter, "all">,
+  { label: string; color: string; icon: React.ComponentProps<typeof Ionicons>["name"] }
+> = {
+  common:    { label: "Common",    color: "#34D399", icon: "paw-outline" },
+  uncommon:  { label: "Uncommon",  color: "#60A5FA", icon: "sparkles-outline" },
+  rare:      { label: "Rare",      color: "#A78BFA", icon: "diamond-outline" },
+  legendary: { label: "Legendary", color: "#FBBF24", icon: "trophy-outline" },
 };
 
-const RARITY_COLORS: Record<string, string> = {
-  common: "#34D399",
-  uncommon: "#60A5FA",
-  rare: "#A78BFA",
-  legendary: "#FBBF24",
-};
+const RARITY_ORDER: Exclude<RarityFilter, "all">[] = ["common", "uncommon", "rare", "legendary"];
 
+/* ── Main screen ──────────────────────────────────────────── */
 export default function CollectionScreen() {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { collectedDogs, isCollected, collectionCount, getEntry } = useCollection();
   const { data: allBreeds, isLoading } = useGetDogBreeds();
 
-  const [filter, setFilter] = useState<RarityFilter>("all");
+  /* State */
+  const [rarity, setRarity] = useState<RarityFilter>("all");
+  const [collectionStatus, setCollectionStatus] = useState<CollectionFilter>("all");
   const [sort, setSort] = useState<SortType>("default");
   const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    if (!allBreeds) return [];
-    let list = filter === "all" ? allBreeds : allBreeds.filter((b) => b.rarity === filter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((b) => isCollected(b.id) && b.name.toLowerCase().includes(q));
-    }
-    if (sort === "newest") {
-      const map = Object.fromEntries(collectedDogs.map((d) => [d.breedId, d.collectedAt]));
-      list = [...list].sort((a, b) => {
-        const aD = map[a.id] ?? ""; const bD = map[b.id] ?? "";
-        if (!aD && !bD) return 0; if (!aD) return 1; if (!bD) return -1;
-        return bD.localeCompare(aD);
-      });
-    } else if (sort === "name") {
-      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    }
-    return list;
-  }, [allBreeds, filter, sort, search, isCollected, collectedDogs]);
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const total = allBreeds?.length ?? 100;
   const progress = Math.min(collectionCount / total, 1);
-  const sortIcon = sort === "newest" ? "clock" : sort === "name" ? "type" : "sliders";
+
+  /* Rarity stats for the header */
+  const rarityStats = useMemo(() => {
+    if (!allBreeds) return [];
+    return RARITY_ORDER.map((r) => {
+      const totalR = allBreeds.filter((b) => b.rarity === r).length;
+      const collectedR = collectedDogs.filter(
+        (d) => allBreeds.find((b) => b.id === d.breedId)?.rarity === r
+      ).length;
+      return { rarity: r, ...RARITY_META[r], collected: collectedR, total: totalR };
+    });
+  }, [allBreeds, collectedDogs]);
+
+  /* Filtered list */
+  const filtered = useMemo(() => {
+    if (!allBreeds) return [];
+    let list = [...allBreeds];
+
+    /* Rarity filter */
+    if (rarity !== "all") {
+      list = list.filter((b) => b.rarity === rarity);
+    }
+
+    /* Collection status filter */
+    if (collectionStatus === "collected") {
+      list = list.filter((b) => isCollected(b.id));
+    } else if (collectionStatus === "uncollected") {
+      list = list.filter((b) => !isCollected(b.id));
+    }
+
+    /* Search */
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((b) => b.name.toLowerCase().includes(q));
+    }
+
+    /* Sort */
+    if (sort === "newest") {
+      const map = Object.fromEntries(collectedDogs.map((d) => [d.breedId, d.collectedAt]));
+      list.sort((a, b) => {
+        const aD = map[a.id] ?? "";
+        const bD = map[b.id] ?? "";
+        if (!aD && !bD) return 0;
+        if (!aD) return 1;
+        if (!bD) return -1;
+        return bD.localeCompare(aD);
+      });
+    } else if (sort === "name") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return list;
+  }, [allBreeds, rarity, collectionStatus, sort, search, isCollected, collectedDogs]);
+
+  /* Active filter pill label */
+  const activeFilterLabel =
+    rarity === "all"
+      ? collectionStatus === "all"
+        ? "All"
+        : collectionStatus === "collected"
+        ? "Collected"
+        : "Uncollected"
+      : RARITY_META[rarity].label;
 
   return (
     <View style={styles.root}>
@@ -80,210 +130,392 @@ export default function CollectionScreen() {
         end={{ x: 0.7, y: 1 }}
       />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "web" ? 70 : 16) }]}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Collection</Text>
-          <View style={styles.countPill}>
-            <Text style={styles.countPillText}>{collectionCount}/{total}</Text>
-          </View>
-        </View>
-
-        <View style={[styles.progressTrack, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
-          <LinearGradient
-            colors={["#FFFFFF", "rgba(255,255,255,0.8)"]}
-            style={[styles.progressFill, { width: `${progress * 100}%` }]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          />
-        </View>
-
-        <View style={styles.rarityStats}>
-          {(["common", "uncommon", "rare", "legendary"] as const).map((r) => {
-            const total2 = allBreeds?.filter((b) => b.rarity === r).length ?? 0;
-            const collected2 = collectedDogs.filter((d) => allBreeds?.find((b) => b.id === d.breedId)?.rarity === r).length;
-            return (
-              <View key={r} style={styles.rarityStat}>
-                <View style={[styles.rarityDot, { backgroundColor: RARITY_COLORS[r] }]} />
-                <Text style={styles.rarityStatText}>{collected2}/{total2}</Text>
+      <FlatList
+        data={filtered}
+        numColumns={2}
+        keyExtractor={(item) => item.id}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={{
+          paddingTop: insets.top + (Platform.OS === "web" ? 70 : 16),
+          paddingBottom: insets.bottom + 120,
+          paddingHorizontal: 16,
+        }}
+        ListHeaderComponent={
+          <>
+            {/* ── Top nav ─────────────────────────────── */}
+            <View style={styles.topNav}>
+              <View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.brandTitle}>DogDex</Text>
+                  <Text style={styles.brandPaw}>🐾</Text>
+                </View>
+                <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
               </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Search + sort */}
-      <View style={styles.toolbar}>
-        <View style={styles.searchBox}>
-          <Feather name="search" size={15} color="rgba(255,255,255,0.5)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search collected breeds…"
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity
-          style={styles.sortBtn}
-          onPress={() => setSort((s) => s === "default" ? "newest" : s === "newest" ? "name" : "default")}
-        >
-          <Feather name={sortIcon} size={16} color="rgba(255,255,255,0.8)" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Rarity filter pills */}
-      <View style={styles.filterBar}>
-        {(["all", "common", "uncommon", "rare", "legendary"] as RarityFilter[]).map((f) => {
-          const isActive = f === filter;
-          const dotColor = f === "all" ? "#5AC8FA" : RARITY_COLORS[f];
-          return (
-            <TouchableOpacity
-              key={f}
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor: isActive ? `${dotColor}28` : "rgba(255,255,255,0.12)",
-                  borderColor: isActive ? dotColor : "rgba(255,255,255,0.3)",
-                },
-              ]}
-              onPress={() => setFilter(f)}
-            >
-              {f !== "all" && <View style={[styles.rarityDot, { backgroundColor: dotColor }]} />}
-              <Text style={[styles.filterPillText, { color: isActive ? dotColor : "rgba(255,255,255,0.92)" }]}>
-                {RARITY_LABELS[f]}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {isLoading ? (
-        <View style={styles.centered}>
-          <Text style={{ fontSize: 36 }}>🐕</Text>
-          <Text style={styles.loadingText}>Loading breeds…</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filtered}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 100 }]}
-          ListEmptyComponent={
-            <View style={styles.centered}>
-              <Text style={{ fontSize: 48 }}>🔍</Text>
-              <Text style={styles.emptyTitle}>No breeds found</Text>
-              <Text style={styles.emptySub}>
-                {search ? "Try a different search." : "Tap the Pokéball to start your collection!"}
-              </Text>
+              <Pressable style={styles.searchIconBtn} onPress={() => {}}>
+                <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
+                  <Feather name="search" size={18} color="#2C5EAD" />
+                </BlurView>
+              </Pressable>
             </View>
-          }
-          renderItem={({ item }) => {
-            const entry = getEntry(item.id);
-            return (
-              <DogCard
-                id={item.id}
-                name={item.name}
-                imageUrl={item.imageUrl}
-                userPhotoUri={entry?.photos?.[0] ?? entry?.imageUri}
-                rarity={item.rarity}
-                group={item.group}
-                collected={isCollected(item.id)}
-                onPress={() => router.push(`/breed/${item.id}` as any)}
-              />
-            );
-          }}
-        />
-      )}
+
+            {/* ── Progress bar ──────────────────────────── */}
+            <View style={styles.progressWrap}>
+              <View style={styles.progressTrack}>
+                <LinearGradient
+                  colors={["#A3D5FF", "#5AC8FA"]}
+                  style={[styles.progressFill, { width: `${progress * 100}%` }]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
+              </View>
+              <View style={styles.progressPill}>
+                <Text style={styles.progressPillText}>{collectionCount} / {total}</Text>
+              </View>
+            </View>
+
+            {/* ── Rarity stats row ──────────────────────── */}
+            <View style={styles.rarityStatsRow}>
+              {rarityStats.map((s) => (
+                <View key={s.rarity} style={styles.rarityStat}>
+                  <View style={[styles.rarityDot, { backgroundColor: s.color }]} />
+                  <View>
+                    <Text style={styles.rarityLabel}>{s.label}</Text>
+                    <Text style={styles.rarityCount}>
+                      {s.collected}/{s.total}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* ── Divider ─────────────────────────────── */}
+            <View style={styles.divider} />
+
+            {/* ── Filter bar ────────────────────────────── */}
+            <View style={styles.filterBar}>
+              {/* Status pills: All / Collected / Uncollected */}
+              <View style={styles.statusPills}>
+                {(["all", "collected", "uncollected"] as CollectionFilter[]).map((st) => {
+                  const active = collectionStatus === st;
+                  return (
+                    <Pressable
+                      key={st}
+                      style={[styles.statusPill, active && styles.statusPillActive]}
+                      onPress={() => setCollectionStatus(st)}
+                    >
+                      <Text style={[styles.statusPillText, active && styles.statusPillTextActive]}>
+                        {st === "all" ? "All" : st === "collected" ? "Collected" : "Uncollected"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Rarity icon buttons */}
+              <View style={styles.rarityIcons}>
+                {RARITY_ORDER.map((r) => {
+                  const meta = RARITY_META[r];
+                  const isActive = rarity === r;
+                  return (
+                    <Pressable
+                      key={r}
+                      style={[
+                        styles.rarityIconBtn,
+                        isActive && { backgroundColor: `${meta.color}20`, borderColor: meta.color },
+                      ]}
+                      onPress={() => setRarity(isActive ? "all" : r)}
+                    >
+                      <Ionicons
+                        name={meta.icon}
+                        size={18}
+                        color={isActive ? meta.color : "#94A3B8"}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Sort dropdown */}
+              <View style={styles.sortWrap}>
+                <Pressable
+                  style={styles.sortBtn}
+                  onPress={() => setShowSortMenu((v) => !v)}
+                >
+                  <Text style={styles.sortLabel}>
+                    {sort === "default" ? "Recent" : sort === "newest" ? "Newest" : "Name"}
+                  </Text>
+                  <Feather name="chevron-down" size={14} color="#475569" />
+                </Pressable>
+                {showSortMenu && (
+                  <View style={styles.sortMenu}>
+                    {(["default", "newest", "name"] as SortType[]).map((s) => (
+                      <Pressable
+                        key={s}
+                        style={[styles.sortItem, sort === s && styles.sortItemActive]}
+                        onPress={() => {
+                          setSort(s);
+                          setShowSortMenu(false);
+                        }}
+                      >
+                        <Text style={[styles.sortItemText, sort === s && styles.sortItemTextActive]}>
+                          {s === "default" ? "Recent" : s === "newest" ? "Newest first" : "Name A→Z"}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          <View style={styles.centered}>
+            <Text style={{ fontSize: 48 }}>🔍</Text>
+            <Text style={styles.emptyTitle}>No breeds found</Text>
+            <Text style={styles.emptySub}>
+              {search ? "Try a different search." : "Tap the Pokéball to start your collection!"}
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const entry = getEntry(item.id);
+          return (
+            <DogCard
+              id={item.id}
+              name={item.name}
+              imageUrl={item.imageUrl}
+              userPhotoUri={entry?.photos?.[0] ?? entry?.imageUri}
+              rarity={item.rarity}
+              group={item.group}
+              collected={isCollected(item.id)}
+              onPress={() => router.push(`/breed/${item.id}` as any)}
+            />
+          );
+        }}
+      />
     </View>
   );
 }
 
+/* ── Styles ────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 14, gap: 10 },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { fontFamily: "Georgia", fontSize: 32, color: "#FFFFFF" },
-  countPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.22)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  countPillText: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#FFFFFF" },
-  progressTrack: { height: 7, borderRadius: 4, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 4 },
-  rarityStats: { flexDirection: "row", gap: 14 },
-  rarityStat: { flexDirection: "row", alignItems: "center", gap: 5 },
-  rarityDot: { width: 8, height: 8, borderRadius: 4 },
-  rarityStatText: { fontFamily: "Inter_500Medium", fontSize: 12, color: "rgba(255,255,255,0.8)" },
+  root: { flex: 1, backgroundColor: "#F8FAFC" },
 
-  toolbar: {
+  /* Top nav */
+  topNav: {
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "transparent",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.12)",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 16,
   },
-  searchBox: {
+  brandTitle: {
+    fontFamily: "Georgia",
+    fontSize: 28,
+    color: "#1E3A5F",
+    letterSpacing: -0.5,
+  },
+  brandPaw: { fontSize: 22, marginTop: 2 },
+  brandSubtitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  searchIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  searchIconBlur: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  searchInput: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, padding: 0, color: "#FFFFFF" },
-  sortBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 20,
   },
 
+  /* Progress */
+  progressWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
+  progressTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.5)",
+    overflow: "hidden",
+  },
+  progressFill: { height: "100%", borderRadius: 4 },
+  progressPill: {
+    backgroundColor: "#3B82F6",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  progressPillText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: "#fff",
+  },
+
+  /* Rarity stats */
+  rarityStatsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  rarityStat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  rarityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  rarityLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
+    color: "#94A3B8",
+  },
+  rarityCount: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    color: "#334155",
+  },
+
+  /* Divider */
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.06)",
+    marginBottom: 12,
+  },
+
+  /* Filter bar */
   filterBar: {
     flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-    backgroundColor: "transparent",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.12)",
-    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
   },
-  filterPill: {
+
+  /* Status pills */
+  statusPills: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  statusPillActive: {
+    backgroundColor: "#3B82F6",
+    borderColor: "#3B82F6",
+  },
+  statusPillText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#64748B",
+  },
+  statusPillTextActive: {
+    color: "#fff",
+  },
+
+  /* Rarity icon buttons */
+  rarityIcons: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  rarityIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+
+  /* Sort dropdown */
+  sortWrap: {
+    marginLeft: "auto",
+    position: "relative",
+  },
+  sortBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.6)",
   },
-  filterPillText: { fontFamily: "Inter_500Medium", fontSize: 12 },
+  sortLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#475569",
+  },
+  sortMenu: {
+    position: "absolute",
+    right: 0,
+    top: 34,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    zIndex: 50,
+    minWidth: 130,
+  },
+  sortItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  sortItemActive: {
+    backgroundColor: "#EFF6FF",
+  },
+  sortItemText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#475569",
+  },
+  sortItemTextActive: {
+    color: "#3B82F6",
+  },
 
-  grid: { padding: 14, gap: 12 },
-  row: { gap: 12 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 10 },
-  loadingText: { fontFamily: "Inter_400Regular", fontSize: 15, color: "#FFFFFF" },
-  emptyTitle: { fontFamily: "Georgia", fontSize: 22, color: "#FFFFFF" },
-  emptySub: { fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", paddingHorizontal: 32, color: "rgba(255,255,255,0.75)" },
+  /* Grid */
+  row: { gap: 12, justifyContent: "space-between" },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 60,
+    gap: 10,
+  },
+  emptyTitle: {
+    fontFamily: "Georgia",
+    fontSize: 20,
+    color: "#1E3A5F",
+  },
+  emptySub: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    textAlign: "center",
+    paddingHorizontal: 32,
+    color: "#64748B",
+  },
 });
