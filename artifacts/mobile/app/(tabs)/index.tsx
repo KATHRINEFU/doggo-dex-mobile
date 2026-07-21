@@ -213,7 +213,7 @@ export default function HomeScreen() {
               </View>
               {dailyDogLoading ? (
                 <View style={styles.dailySpinner}>
-                  <Feather name="loader" size={18} color="#94A3B8" />
+                  <Feather name="refresh-cw" size={18} color="#94A3B8" />
                 </View>
               ) : (
                 <View style={styles.dailyArrow}>

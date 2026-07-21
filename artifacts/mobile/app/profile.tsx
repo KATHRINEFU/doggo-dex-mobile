@@ -166,8 +166,8 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             {[
               { icon: "hash", value: String(collectionCount), label: "Breeds" },
-              { icon: "zap", value: String(xp), label: "XP" },
-              { icon: "flame", value: String(streak), label: "Streak" },
+              { icon: "battery", value: String(xp), label: "XP" },
+              { icon: "sun", value: String(streak), label: "Streak" },
             ].map((s) => (
               <View key={s.label} style={styles.statCard}>
                 <Feather name={s.icon as any} size={18} color="#94A3B8" />

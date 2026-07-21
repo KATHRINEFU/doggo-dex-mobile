@@ -73,7 +73,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={[styles.streakBadge, { borderColor: streak > 0 ? "rgba(251,146,60,0.5)" : "rgba(255,255,255,0.25)" }]}>
-              <Feather name={"flame" as any} size={18} color={streak > 0 ? "#FB923C" : "rgba(255,255,255,0.5)"} />
+              <Feather name={"sun" as any} size={18} color={streak > 0 ? "#FB923C" : "rgba(255,255,255,0.5)"} />
               <Text style={[styles.streakNum, { color: streak > 0 ? "#FB923C" : "rgba(255,255,255,0.5)" }]}>{streak}</Text>
               <Text style={styles.streakLabel}>day streak</Text>
             </View>

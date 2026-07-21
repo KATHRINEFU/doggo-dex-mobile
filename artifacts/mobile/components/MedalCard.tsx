@@ -31,8 +31,8 @@ const ICON_MAP: Record<string, string> = {
   b60: "home",
   b70: "star",
   b80: "award",
-  b90: "flame",
-  b100: "trophy",
+  b90: "sun",
+  b100: "star",
 };
 
 export function MedalCard({ medal, currentCount }: Props) {

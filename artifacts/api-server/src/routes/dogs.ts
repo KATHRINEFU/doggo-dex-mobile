@@ -29,7 +29,7 @@ const TFLITE_SCRIPT = path.join(__dirname, "ml/tflite_infer.py");
 const TFLITE_WORKER = path.join(__dirname, "ml/tflite_worker.py");
 
 // Confidence thresholds for TFLite → GPT fallback
-const TFLITE_CONFIDENCE_THRESHOLD = 0.5;
+const TFLITE_CONFIDENCE_THRESHOLD = 0.35;
 
 interface TFLiteResult {
   top1: {
@@ -1571,6 +1571,7 @@ router.post("/dogs/daily", async (req, res) => {
 /* ── POST /dogs/detect — image-based breed detection ───────────── */
 
 router.post("/dogs/detect", async (req, res) => {
+  const startTime = Date.now();
   let { imageBase64, mimeType = "image/jpeg" } = req.body as {
     imageBase64: string;
     mimeType?: string;
@@ -1592,6 +1593,7 @@ router.post("/dogs/detect", async (req, res) => {
   // Convert any image format (HEIC, WebP, PNG, TIFF, etc.) to JPEG using sharp.
   let jpegBase64 = imageBase64;
   const inputBuffer = Buffer.from(imageBase64, "base64");
+  const t0 = Date.now();
   try {
     const jpegBuffer = await sharp(inputBuffer)
       .rotate()           // respect EXIF orientation
@@ -1599,9 +1601,9 @@ router.post("/dogs/detect", async (req, res) => {
       .jpeg({ quality: 88 })
       .toBuffer();
     jpegBase64 = jpegBuffer.toString("base64");
-    req.log?.info({ inputBytes: inputBuffer.length, outputBytes: jpegBuffer.length }, "sharp conversion OK");
+    req.log?.info({ inputBytes: inputBuffer.length, outputBytes: jpegBuffer.length, ms: Date.now() - t0 }, "sharp conversion OK");
   } catch (sharpErr) {
-    req.log?.warn({ sharpErr }, "sharp conversion failed — trying heic-convert fallback");
+    req.log?.warn({ sharpErr, ms: Date.now() - t0 }, "sharp conversion failed — trying heic-convert fallback");
     // HEIC files have "ftyp" at byte offset 4. sharp/libvips hits a security limit on
     // complex HEIC (many iref entries). heic-convert uses a separate WASM libheif build
     // that handles these files.
@@ -1615,9 +1617,9 @@ router.post("/dogs/detect", async (req, res) => {
           quality: 0.88,
         });
         jpegBase64 = (outputBuffer as Buffer).toString("base64");
-        req.log?.info({ outputBytes: jpegBase64.length }, "heic-convert conversion OK");
+        req.log?.info({ outputBytes: jpegBase64.length, ms: Date.now() - t0 }, "heic-convert conversion OK");
       } catch (heicErr) {
-        req.log?.error({ heicErr }, "heic-convert also failed");
+        req.log?.error({ heicErr, ms: Date.now() - t0 }, "heic-convert also failed");
         return res.status(422).json({
           error: "heic_conversion_failed",
           message: "Could not convert this HEIC photo. Please try again with a JPEG or PNG.",
@@ -1631,15 +1633,17 @@ router.post("/dogs/detect", async (req, res) => {
   // Stage 1: Try on-device TFLite model first (fast, no API cost)
   // ============================================================
   let tfliteResult: TFLiteResult | null = null;
+  const t1 = Date.now();
   try {
     tfliteResult = await runTFLiteInference(jpegBase64);
     req.log?.info({
+      ms: Date.now() - t1,
       tfliteConfidence: tfliteResult?.top1.confidence ?? null,
       tfliteBreedId: tfliteResult?.top1.dogdex_id ?? null,
       tfliteIsDog: tfliteResult?.is_dog ?? null,
     }, "TFLite inference result");
   } catch (tfliteErr) {
-    req.log?.warn({ tfliteErr }, "TFLite inference threw — will fallback to GPT");
+    req.log?.warn({ tfliteErr, ms: Date.now() - t1 }, "TFLite inference threw — will fallback to GPT");
   }
 
   // If TFLite is confident and maps to a DogDex breed, return immediately
@@ -1651,6 +1655,8 @@ router.post("/dogs/detect", async (req, res) => {
   ) {
     const breed = DOG_BREEDS.find((b) => b.id === tfliteResult!.top1.dogdex_id);
     if (breed) {
+      const totalMs = Date.now() - startTime;
+      req.log?.info({ totalMs, source: "tflite" }, "detect complete");
       return res.json({
         isDog: true,
         breedId: breed.id,
@@ -1674,24 +1680,28 @@ router.post("/dogs/detect", async (req, res) => {
   req.log?.info({ useFallback }, "GPT-5 fallback decision");
 
   if (useFallback) {
+    const t2 = Date.now();
+    const abortCtrl = new AbortController();
+    const timeoutId = setTimeout(() => abortCtrl.abort(), 6000); // 6s max for GPT fallback
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-5",
-        max_completion_tokens: 512,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${jpegBase64}`,
-                  detail: "low",
+      const response = await openai.chat.completions.create(
+        {
+          model: "gpt-5",
+          max_completion_tokens: 512,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${jpegBase64}`,
+                    detail: "low",
+                  },
                 },
-              },
-              {
-                type: "text",
-                text: `You are a dog breed expert. Analyze this image and respond with JSON only (no markdown).
+                {
+                  type: "text",
+                  text: `You are a dog breed expert. Analyze this image and respond with JSON only (no markdown).
 
 If there is NO dog in the image, respond with exactly:
 {"isDog": false, "breedName": "", "confidence": 0, "description": "No dog detected in this image."}
@@ -1704,12 +1714,15 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
             ],
           },
         ],
-      });
+      },
+      { signal: abortCtrl.signal },
+      );
 
+      clearTimeout(timeoutId);
       const msg = response.choices[0]?.message;
       const refusal = (msg as { refusal?: string | null })?.refusal;
       let content = msg?.content ?? "";
-      req.log?.info({ content, refusal: refusal ?? null }, "OpenAI response");
+      req.log?.info({ content, refusal: refusal ?? null, gptMs: Date.now() - t2 }, "OpenAI response");
 
       if (refusal || !content.trim()) {
         return res.json({
@@ -1766,6 +1779,8 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
         );
       });
 
+      const totalMs = Date.now() - startTime;
+      req.log?.info({ totalMs, source: "gpt" }, "detect complete");
       return res.json({
         isDog: true,
         breedId: matched?.id ?? "",
@@ -1775,15 +1790,31 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
         source: "gpt",
       });
     } catch (err) {
-      req.log?.error({ err }, "OpenAI API error");
-      return res.status(500).json({
-        error: "ai_error",
-        message: "Failed to analyze image",
+      clearTimeout(timeoutId);
+      if ((err as Error).name === "AbortError") {
+        req.log?.warn({ gptMs: Date.now() - t2 }, "GPT fallback timed out");
+        return res.json({
+          isDog: false,
+          breedId: "",
+          breedName: "",
+          confidence: 0,
+          description: "Analysis timed out. The photo was too unclear to identify.",
+        });
+      }
+      req.log?.error({ err, gptMs: Date.now() - t2 }, "OpenAI API error");
+      return res.json({
+        isDog: false,
+        breedId: "",
+        breedName: "",
+        confidence: 0,
+        description: "AI analysis failed. Please try again.",
       });
     }
   }
 
   // TFLite said no dog, and no fallback wanted — return no dog
+  const totalMs = Date.now() - startTime;
+  req.log?.info({ totalMs, source: "none" }, "detect complete");
   return res.json({
     isDog: false,
     breedId: "",

@@ -206,7 +206,7 @@ export function DetectionResultModal({
               {breed && (
                 <View style={styles.ratingChipsRow}>
                   <StatChip
-                    icon="zap"
+                    icon="battery"
                     label="Energy"
                     value={breed.energyLevel}
                     color="#F59E0B"

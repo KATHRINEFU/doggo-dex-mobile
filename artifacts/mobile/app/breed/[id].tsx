@@ -146,7 +146,7 @@ export default function BreedDetailScreen() {
         start={{ x: 0.3, y: 0 }}
         end={{ x: 0.7, y: 1 }}
       >
-        <Feather name="loader" size={48} color="rgba(255,255,255,0.5)" />
+        <Feather name="refresh-cw" size={48} color="rgba(255,255,255,0.5)" />
         <Text style={[styles.loadingText, { color: "rgba(255,255,255,0.85)" }]}>
           Loading…
         </Text>
@@ -445,7 +445,7 @@ export default function BreedDetailScreen() {
             <SectionHeading label="RATINGS" color={rarityColor} />
             <View style={styles.ratingChipsRow}>
               <StatChip
-                icon="zap"
+                icon="battery"
                 label="Energy"
                 value={breed.energyLevel}
                 color="#F59E0B"

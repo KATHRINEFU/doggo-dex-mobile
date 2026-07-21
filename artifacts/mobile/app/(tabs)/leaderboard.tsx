@@ -126,7 +126,7 @@ export default function LeaderboardScreen() {
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Feather name="award" size={48} color="#FBBF24" />
+            <Feather name="star" size={48} color="#FBBF24" />
             <Text style={styles.emptyTitle}>
               {isLoading ? "Loading..." : "No rankings yet"}
             </Text>

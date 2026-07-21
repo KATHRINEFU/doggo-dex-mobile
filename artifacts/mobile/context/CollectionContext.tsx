@@ -47,8 +47,8 @@ const BADGES: Omit<Medal, "unlocked">[] = [
   { id: "b60", name: "Kennel Master", description: "Collected 60 breeds", required: 60, icon: "home" },
   { id: "b70", name: "Show Champion", description: "Collected 70 breeds", required: 70, icon: "star" },
   { id: "b80", name: "Legend Collector", description: "Collected 80 breeds", required: 80, icon: "medal" },
-  { id: "b90", name: "Almost There!", description: "Collected 90 breeds", required: 90, icon: "flame" },
-  { id: "b100", name: "DogDex Master", description: "Collected all 100 breeds", required: 100, icon: "trophy" },
+  { id: "b90", name: "Almost There!", description: "Collected 90 breeds", required: 90, icon: "sun" },
+  { id: "b100", name: "DogDex Master", description: "Collected all 100 breeds", required: 100, icon: "star" },
 ];
 
 interface CollectionContextValue {

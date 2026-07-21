@@ -126,6 +126,13 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
   async function pickAndDetect(fromCamera: boolean) {
     let pickedUri = "";
+    const clientStart = Date.now();
+    let phase: string | null = null;
+    const logTiming = (label: string) => {
+      const ms = Date.now() - clientStart;
+      // eslint-disable-next-line no-console
+      console.log(`[DogDex] ${label}: ${ms}ms`);
+    };
     try {
       let asset: ImagePicker.ImagePickerAsset | null = null;
 
@@ -133,12 +140,14 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         ? {}
         : { allowsEditing: true as const, aspect: [1, 1] as [number, number] };
 
+      phase = "permission";
       if (fromCamera) {
         const { granted } = await ImagePicker.requestCameraPermissionsAsync();
         if (!granted) {
           showError("Camera access is required to scan dogs. Please enable it in Settings.");
           return;
         }
+        phase = "camera";
         const picked = await ImagePicker.launchCameraAsync({
           mediaTypes: "images",
           quality: 0.85,
@@ -153,6 +162,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           showError("Photo library access is required. Please enable it in Settings.");
           return;
         }
+        phase = "picker";
         const picked = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: "images",
           quality: 0.85,
@@ -164,6 +174,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       }
 
       pickedUri = asset.uri;
+      logTiming(`${phase} done`);
       setOriginalUri(asset.uri);
 
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
@@ -171,6 +182,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       let base64Data: string;
       let displayUri = "";
       try {
+        phase = "manip";
         const manip = await ImageManipulator.manipulateAsync(
           asset.uri,
           [{ resize: { width: 1024 } }],
@@ -182,6 +194,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       } catch {
         if (Platform.OS === "web") {
           try {
+            phase = "heic";
             const heic2any = (await import("heic2any")).default;
             const resp = await fetch(asset.uri);
             const heicBlob = await resp.blob();
@@ -215,14 +228,17 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      logTiming(`${phase} done`);
       setImageUri(displayUri);
       setDetecting(true);
 
       let res: DetectBreedResult;
       try {
+        phase = "detect";
         res = await detectMutation.mutateAsync({
           data: { imageBase64: base64Data, mimeType: "image/jpeg" },
         });
+        logTiming("detect done");
       } catch (apiErr: unknown) {
         let msg = "Could not analyze the image. Please try again.";
         if (apiErr && typeof apiErr === "object") {
@@ -252,6 +268,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           ? (allBreeds.find((b) => b.id === res.breedId) ?? null)
           : null;
       setMatchedBreed(found);
+      logTiming("result ready");
 
       // Breed is NOT auto-collected — user taps "Save to DogDex" in the modal.
 
