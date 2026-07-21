@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 
 interface Props {
   visible: boolean;
@@ -140,7 +141,7 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
               />
             ) : (
               <View style={[styles.image, styles.imagePlaceholder]}>
-                <Text style={{ fontSize: 48 }}>🐕</Text>
+                <Feather name="camera" size={36} color="rgba(90,200,250,0.6)" />
               </View>
             )}
 

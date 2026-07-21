@@ -1,4 +1,5 @@
 import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
+
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -10,6 +11,7 @@ export const usersTable = pgTable("users", {
   collectionCount: integer("collection_count").notNull().default(0),
   xp: integer("xp").notNull().default(0),
   avatarUrl: text("avatar_url"),
+  dailyDogAt: timestamp("daily_dog_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

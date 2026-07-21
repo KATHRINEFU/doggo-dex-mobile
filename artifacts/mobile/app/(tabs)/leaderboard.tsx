@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/expo";
 import { useGetLeaderboard } from "@workspace/api-client-react";
@@ -32,7 +33,7 @@ function LeaderboardRow({
       ]}
     >
       <Text style={[styles.rank, { color: medalColor }]}>
-        {item.rank <= 3 ? ["🥇", "🥈", "🥉"][item.rank - 1] : `#${item.rank}`}
+        {item.rank <= 3 ? ["1st", "2nd", "3rd"][item.rank - 1] : `#${item.rank}`}
       </Text>
 
       <View style={styles.avatarWrap}>
@@ -125,7 +126,7 @@ export default function LeaderboardScreen() {
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Text style={{ fontSize: 48 }}>🏆</Text>
+            <Feather name="award" size={48} color="#FBBF24" />
             <Text style={styles.emptyTitle}>
               {isLoading ? "Loading..." : "No rankings yet"}
             </Text>

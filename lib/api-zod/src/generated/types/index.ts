@@ -7,6 +7,9 @@
  */
 
 export * from './collectRequest';
+export * from './dailyDogRequest';
+export * from './dailyDogResult';
+export * from './dailyDogResultRarity';
 export * from './detectBreedRequest';
 export * from './detectBreedResult';
 export * from './detectBreedResultSource';

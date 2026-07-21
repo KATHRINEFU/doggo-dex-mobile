@@ -107,6 +107,33 @@ export interface SyncUserRequest {
   avatarUrl?: string;
 }
 
+export interface DailyDogRequest {
+  /** Optional list of already-collected breedIds so the server can avoid duplicates */
+  collectedIds?: string[];
+}
+
+export type DailyDogResultRarity = typeof DailyDogResultRarity[keyof typeof DailyDogResultRarity];
+
+
+export const DailyDogResultRarity = {
+  common: 'common',
+  uncommon: 'uncommon',
+  rare: 'rare',
+  legendary: 'legendary',
+} as const;
+
+export interface DailyDogResult {
+  breedId: string;
+  breedName: string;
+  confidence: number;
+  description: string;
+  isDog: boolean;
+  source: string;
+  rarity: DailyDogResultRarity;
+  imageUrl: string;
+  nextReset: string;
+}
+
 export interface CollectRequest {
   /**
      * @minimum 0

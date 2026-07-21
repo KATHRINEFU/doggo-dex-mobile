@@ -146,7 +146,7 @@ export default function SignInScreen() {
             <Feather name="x" size={22} color="rgba(255,255,255,0.85)" />
           </Pressable>
 
-          <Text style={styles.logo}>🐾</Text>
+          <Feather name="maximize" size={48} color="rgba(255,255,255,0.9)" />
           <Text style={styles.title}>Welcome back,{"\n"}Trainer!</Text>
           <Text style={styles.subtitle}>Sign in to continue your DogDex journey</Text>
 

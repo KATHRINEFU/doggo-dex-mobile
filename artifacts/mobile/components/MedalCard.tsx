@@ -22,28 +22,28 @@ const TIER_GRADIENTS: Record<string, [string, string]> = {
   b100: ["#FFD700", "#FFA500"],
 };
 
-const EMOJI_MAP: Record<string, string> = {
-  b10: "🐾",
-  b20: "🔍",
-  b30: "🐺",
-  b40: "🎙️",
-  b50: "🎀",
-  b60: "🏠",
-  b70: "⭐",
-  b80: "🏅",
-  b90: "🔥",
-  b100: "🏆",
+const ICON_MAP: Record<string, string> = {
+  b10: "maximize",
+  b20: "search",
+  b30: "heart",
+  b40: "mic",
+  b50: "gift",
+  b60: "home",
+  b70: "star",
+  b80: "award",
+  b90: "flame",
+  b100: "trophy",
 };
 
 export function MedalCard({ medal, currentCount }: Props) {
   const progress = Math.min(currentCount / medal.required, 1);
   const gradColors = TIER_GRADIENTS[medal.id] ?? ["#5AC8FA", "#007AFF"];
-  const emoji = EMOJI_MAP[medal.id] ?? "🏅";
+  const icon = ICON_MAP[medal.id] ?? "award";
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `I just earned the "${medal.name}" badge on DogDex! 🐾 I've discovered ${medal.required} dog breeds. Can you beat me?`,
+        message: `I just earned the "${medal.name}" badge on DogDex! I've discovered ${medal.required} dog breeds. Can you beat me?`,
         title: "DogDex Badge",
       });
     } catch {}
@@ -71,11 +71,11 @@ export function MedalCard({ medal, currentCount }: Props) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.iconEmoji}>{emoji}</Text>
+            <Feather name={icon as any} size={26} color="#F59E0B" />
           </LinearGradient>
         ) : (
           <View style={styles.iconLocked}>
-            <Text style={[styles.iconEmoji, { opacity: 0.35 }]}>{emoji}</Text>
+            <Feather name={icon as any} size={26} color="#94A3B8" style={{ opacity: 0.35 }} />
           </View>
         )}
       </View>
@@ -88,7 +88,7 @@ export function MedalCard({ medal, currentCount }: Props) {
           </Text>
           {medal.unlocked && (
             <View style={[styles.earnedPill, { backgroundColor: gradColors[0] + "30", borderColor: gradColors[0] + "60" }]}>
-              <Text style={[styles.earnedText, { color: gradColors[0] }]}>Earned ✓</Text>
+              <Text style={[styles.earnedText, { color: gradColors[0] }]}>Earned</Text>
             </View>
           )}
         </View>
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(255,255,255,0.4)",
     borderRadius: 27,
   },
-  iconEmoji: { fontSize: 26 },
+  iconHolder: { alignItems: "center", justifyContent: "center" },
 
   body: { flex: 1, gap: 4, paddingRight: 20 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },

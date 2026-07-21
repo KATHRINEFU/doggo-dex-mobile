@@ -73,7 +73,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={[styles.streakBadge, { borderColor: streak > 0 ? "rgba(251,146,60,0.5)" : "rgba(255,255,255,0.25)" }]}>
-              <Text style={{ fontSize: 18 }}>🔥</Text>
+              <Feather name={"flame" as any} size={18} color={streak > 0 ? "#FB923C" : "rgba(255,255,255,0.5)"} />
               <Text style={[styles.streakNum, { color: streak > 0 ? "#FB923C" : "rgba(255,255,255,0.5)" }]}>{streak}</Text>
               <Text style={styles.streakLabel}>day streak</Text>
             </View>
@@ -94,9 +94,9 @@ export default function ProfileScreen() {
         {/* Stats row */}
         <View style={styles.statsRow}>
           {[
-            { icon: "🐕", value: String(collectionCount), label: "Breeds found" },
-            { icon: "🏅", value: String(unlockedMedals), label: "Badges earned" },
-            { icon: "📍", value: rarityBreakdown[0].count > 0 ? "Yes!" : "Not yet", label: "Legendary found" },
+            { icon: "hash", value: String(collectionCount), label: "Breeds found" },
+            { icon: "award", value: String(unlockedMedals), label: "Badges earned" },
+            { icon: "map-pin", value: rarityBreakdown[0].count > 0 ? "Yes!" : "Not yet", label: "Legendary found" },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
               <Text style={styles.statIcon}>{s.icon}</Text>
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
                 i < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.2)" },
               ]}
             >
-              <Text style={{ fontSize: 14 }}>🌿</Text>
+              <Feather name="info" size={14} color="rgba(255,255,255,0.7)" />
               <Text style={styles.tipText}>{tip}</Text>
             </View>
           ))}

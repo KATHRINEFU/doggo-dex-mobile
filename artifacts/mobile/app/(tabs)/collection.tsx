@@ -147,7 +147,7 @@ export default function CollectionScreen() {
               <View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Text style={styles.brandTitle}>DogDex</Text>
-                  <Text style={styles.brandPaw}>🐾</Text>
+                  <Feather name="maximize" size={18} color="#2C5EAD" />
                 </View>
                 <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
               </View>
@@ -270,7 +270,7 @@ export default function CollectionScreen() {
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Text style={{ fontSize: 48 }}>🔍</Text>
+            <Feather name="search" size={48} color="#94A3B8" />
             <Text style={styles.emptyTitle}>No breeds found</Text>
             <Text style={styles.emptySub}>
               {search ? "Try a different search." : "Tap the Pokéball to start your collection!"}

@@ -72,6 +72,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dogs/daily:
+    post:
+      operationId: claimDailyDog
+      tags: [dogs]
+      summary: Claim today's Daily Dog
+      description: Returns a guaranteed random uncollected dog breed once per UTC day. Resets at midnight UTC.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DailyDogRequest"
+      responses:
+        "200":
+          description: Daily breed claimed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyDogResult"
+        "429":
+          description: Already claimed today
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dogs/detect:
     post:
       operationId: detectDogBreed
@@ -346,6 +383,49 @@ components:
       required:
         - username
         - country
+
+    DailyDogRequest:
+      type: object
+      properties:
+        collectedIds:
+          type: array
+          items:
+            type: string
+          description: Optional list of already-collected breedIds so the server can avoid duplicates
+
+    DailyDogResult:
+      type: object
+      properties:
+        breedId:
+          type: string
+        breedName:
+          type: string
+        confidence:
+          type: number
+        description:
+          type: string
+        isDog:
+          type: boolean
+        source:
+          type: string
+        rarity:
+          type: string
+          enum: [common, uncommon, rare, legendary]
+        imageUrl:
+          type: string
+        nextReset:
+          type: string
+          format: date-time
+      required:
+        - breedId
+        - breedName
+        - confidence
+        - description
+        - isDog
+        - source
+        - rarity
+        - imageUrl
+        - nextReset
 
     CollectRequest:
       type: object

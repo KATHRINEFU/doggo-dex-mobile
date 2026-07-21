@@ -51,14 +51,14 @@ function RatingBar({ value, color }: { value: number; color: string }) {
 }
 
 function DexCard({
-  emoji,
+  icon,
   label,
   value,
   accent,
   mutedColor,
   fgColor,
 }: {
-  emoji: string;
+  icon: string;
   label: string;
   value: string;
   accent: string;
@@ -81,7 +81,7 @@ function DexCard({
         ]}
         pointerEvents="none"
       />
-      <Text style={dexCardStyles.emoji}>{emoji}</Text>
+      <Feather name={icon as any} size={22} color={accent} style={{ marginBottom: 4 }} />
       <Text style={[dexCardStyles.label, { color: mutedColor }]}>{label}</Text>
       <Text style={[dexCardStyles.value, { color: fgColor }]}>{value}</Text>
     </LiquidGlass>
@@ -89,7 +89,7 @@ function DexCard({
 }
 
 function LoreBlock({
-  emoji,
+  icon,
   title,
   text,
   accent,
@@ -98,7 +98,7 @@ function LoreBlock({
   fgColor,
   radius,
 }: {
-  emoji: string;
+  icon: string;
   title: string;
   text: string;
   accent: string;
@@ -115,7 +115,7 @@ function LoreBlock({
       ]}
     >
       <View style={loreStyles.header}>
-        <Text style={loreStyles.emoji}>{emoji}</Text>
+        <Feather name={icon as any} size={18} color={accent} />
         <Text style={[loreStyles.title, { color: accent }]}>{title}</Text>
       </View>
       <Text style={[loreStyles.text, { color: fgColor }]}>{text}</Text>
@@ -146,7 +146,7 @@ export default function BreedDetailScreen() {
         start={{ x: 0.3, y: 0 }}
         end={{ x: 0.7, y: 1 }}
       >
-        <Text style={{ fontSize: 48 }}>🐾</Text>
+        <Feather name="loader" size={48} color="rgba(255,255,255,0.5)" />
         <Text style={[styles.loadingText, { color: "rgba(255,255,255,0.85)" }]}>
           Loading…
         </Text>
@@ -262,7 +262,7 @@ export default function BreedDetailScreen() {
                 },
               ]}
             >
-              <Text style={styles.statusEmoji}>✅</Text>
+              <Feather name="check-circle" size={20} color={rarityColor} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.statusTitle, { color: rarityColor }]}>
                   In Your DogDex
@@ -368,7 +368,7 @@ export default function BreedDetailScreen() {
                     />
                     {index === 0 && (
                       <View style={[styles.photoThumbBadge, { backgroundColor: rarityColor }]}>
-                        <Text style={styles.photoThumbBadgeText}>★</Text>
+                        <Feather name="star" size={12} color="#FBBF24" />
                       </View>
                     )}
                   </View>
@@ -387,7 +387,7 @@ export default function BreedDetailScreen() {
               },
             ]}
           >
-            <Text style={styles.statusEmoji}>🔒</Text>
+            <Feather name="lock" size={20} color={colors.mutedForeground} />
             <Text
               style={[styles.lockedText, { color: colors.mutedForeground }]}
             >
@@ -409,7 +409,7 @@ export default function BreedDetailScreen() {
             <SectionHeading label="DEX ENTRIES" color={rarityColor} />
             <View style={styles.dexRow}>
               <DexCard
-                emoji="🧠"
+                icon="smile"
                 label="Personality"
                 value={breed.personality}
                 accent={rarityColor}
@@ -418,7 +418,7 @@ export default function BreedDetailScreen() {
                 fgColor={colors.foreground}
               />
               <DexCard
-                emoji="💼"
+                icon="briefcase"
                 label="Human Job"
                 value={breed.humanJob}
                 accent={rarityColor}
@@ -427,7 +427,7 @@ export default function BreedDetailScreen() {
                 fgColor={colors.foreground}
               />
               <DexCard
-                emoji="☕"
+                icon="coffee"
                 label="Coffee Order"
                 value={breed.coffeeOrder}
                 accent={rarityColor}
@@ -445,21 +445,21 @@ export default function BreedDetailScreen() {
             <SectionHeading label="RATINGS" color={rarityColor} />
             <View style={styles.ratingChipsRow}>
               <StatChip
-                emoji="⚡"
+                icon="zap"
                 label="Energy"
                 value={breed.energyLevel}
                 color="#F59E0B"
                 mutedColor={colors.mutedForeground}
               />
               <StatChip
-                emoji="🏠"
+                icon="home"
                 label="Apartment"
                 value={breed.apartmentFriendly}
                 color="#34D399"
                 mutedColor={colors.mutedForeground}
               />
               <StatChip
-                emoji="🌪️"
+                icon="wind"
                 label="Chaos"
                 value={breed.chaosLevel}
                 color="#F87171"
@@ -518,7 +518,7 @@ export default function BreedDetailScreen() {
           <>
             <SectionHeading label="FIELD LORE" color={rarityColor} />
             <LoreBlock
-              emoji="⭐"
+              icon="star"
               title="Fun Fact"
               text={breed.funFact}
               accent={rarityColor}
@@ -528,7 +528,7 @@ export default function BreedDetailScreen() {
               radius={colors.radius}
             />
             <LoreBlock
-              emoji="🎬"
+              icon="film"
               title="Pop Culture"
               text={breed.popCulture}
               accent="#60A5FA"
@@ -538,7 +538,7 @@ export default function BreedDetailScreen() {
               radius={colors.radius}
             />
             <LoreBlock
-              emoji="🧬"
+              icon="git-branch"
               title="Ancestors"
               text={breed.ancestors}
               accent="#A78BFA"
@@ -548,7 +548,7 @@ export default function BreedDetailScreen() {
               radius={colors.radius}
             />
             <LoreBlock
-              emoji="📜"
+              icon="book-open"
               title="Ancient Lore"
               text={breed.randomLore}
               accent="#F59E0B"
@@ -606,13 +606,13 @@ function SectionHeading({ label, color }: { label: string; color: string }) {
 }
 
 function StatChip({
-  emoji,
+  icon,
   label,
   value,
   color,
   mutedColor,
 }: {
-  emoji: string;
+  icon: string;
   label: string;
   value: number;
   color: string;
@@ -620,7 +620,7 @@ function StatChip({
 }) {
   return (
     <View style={[chipStyles.chip, { backgroundColor: `${color}12` }]}>
-      <Text style={chipStyles.emoji}>{emoji}</Text>
+      <Feather name={icon as any} size={16} color={color} style={chipStyles.icon} />
       <Text style={[chipStyles.label, { color: mutedColor }]}>{label}</Text>
       <RatingBar value={value} color={color} />
     </View>
@@ -822,8 +822,7 @@ const dexCardStyles = StyleSheet.create({
     minHeight: 90,
     justifyContent: "center",
   },
-  emoji: { fontSize: 22 },
-  label: {
+  icon: { marginBottom: 4 },  label: {
     fontFamily: "Inter_500Medium",
     fontSize: 9,
     textTransform: "uppercase",
@@ -846,7 +845,7 @@ const chipStyles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  emoji: { fontSize: 18 },
+  icon: { marginBottom: 2 },
   label: {
     fontFamily: "Inter_500Medium",
     fontSize: 9,
@@ -864,7 +863,7 @@ const rrStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  emoji: { fontSize: 18, width: 24, textAlign: "center" },
+  icon: { width: 24, alignItems: "center" },
   label: {
     fontFamily: "Inter_500Medium",
     fontSize: 13,
@@ -901,7 +900,7 @@ const loreStyles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  emoji: { fontSize: 18 },
+  icon: { marginBottom: 2 },
   title: {
     fontFamily: "Inter_700Bold",
     fontSize: 12,

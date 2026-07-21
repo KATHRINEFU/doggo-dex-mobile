@@ -129,7 +129,7 @@ export function DetectionResultModal({
 
           {!result.isDog ? (
             <View style={styles.noDogContainer}>
-              <Text style={{ fontSize: 56 }}>🔍</Text>
+              <Feather name="search" size={48} color={colors.mutedForeground} />
               <Text style={[styles.noDogTitle, { color: colors.foreground }]}>No Dog Found</Text>
               <Text style={[styles.noDogSub, { color: colors.mutedForeground }]}>
                 {result.description}
@@ -147,7 +147,7 @@ export function DetectionResultModal({
                 )}
                 {isNewBreed && (
                   <View style={[styles.newBadge, { backgroundColor: rarityColor }]}>
-                    <Text style={styles.newBadgeText}>✨ First Discovery!</Text>
+                    <Text style={styles.newBadgeText}>First Discovery!</Text>
                   </View>
                 )}
               </View>
@@ -176,7 +176,7 @@ export function DetectionResultModal({
               {breed && (
                 <View style={styles.dexRow}>
                   <GlassDexCard
-                    emoji="🧠"
+                    icon="smile"
                     label="Personality"
                     value={breed.personality}
                     accentColor={rarityColor}
@@ -184,7 +184,7 @@ export function DetectionResultModal({
                     fgColor={colors.foreground}
                   />
                   <GlassDexCard
-                    emoji="💼"
+                    icon="briefcase"
                     label="If human…"
                     value={breed.humanJob}
                     accentColor={rarityColor}
@@ -192,7 +192,7 @@ export function DetectionResultModal({
                     fgColor={colors.foreground}
                   />
                   <GlassDexCard
-                    emoji="☕"
+                    icon="coffee"
                     label="Coffee Order"
                     value={breed.coffeeOrder}
                     accentColor={rarityColor}
@@ -206,21 +206,21 @@ export function DetectionResultModal({
               {breed && (
                 <View style={styles.ratingChipsRow}>
                   <StatChip
-                    emoji="⚡"
+                    icon="zap"
                     label="Energy"
                     value={breed.energyLevel}
                     color="#F59E0B"
                     mutedColor={colors.mutedForeground}
                   />
                   <StatChip
-                    emoji="🏠"
+                    icon="home"
                     label="Apartment"
                     value={breed.apartmentFriendly}
                     color="#34D399"
                     mutedColor={colors.mutedForeground}
                   />
                   <StatChip
-                    emoji="🌪️"
+                    icon="wind"
                     label="Chaos"
                     value={breed.chaosLevel}
                     color="#F87171"
@@ -240,7 +240,7 @@ export function DetectionResultModal({
                     },
                   ]}
                 >
-                  <Text style={styles.funFactEmoji}>⭐</Text>
+                  <Feather name="star" size={18} color={rarityColor} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.funFactLabel, { color: rarityColor }]}>Fun Fact</Text>
                     <Text style={[styles.funFactText, { color: colors.foreground }]}>
@@ -258,7 +258,7 @@ export function DetectionResultModal({
                     { backgroundColor: colors.muted, borderRadius: 14 },
                   ]}
                 >
-                  <Text style={{ fontSize: 20 }}>❓</Text>
+                  <Feather name="help-circle" size={20} color={colors.mutedForeground} />
                   <Text style={[styles.bannerText, { color: colors.foreground }]}>
                     Breed not in our database yet
                   </Text>
@@ -275,7 +275,7 @@ export function DetectionResultModal({
                     },
                   ]}
                 >
-                  <Text style={{ fontSize: 20 }}>✅</Text>
+                  <Feather name="check-circle" size={20} color={RARITY_COLORS[breed?.rarity ?? ""] ?? colors.primary} />
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[
@@ -313,14 +313,14 @@ export function DetectionResultModal({
 /* ── Helpers ─────────────────────────────────────────────────── */
 
 function GlassDexCard({
-  emoji,
+  icon,
   label,
   value,
   accentColor,
   mutedColor,
   fgColor,
 }: {
-  emoji: string;
+  icon: string;
   label: string;
   value: string;
   accentColor: string;
@@ -343,7 +343,7 @@ function GlassDexCard({
         ]}
         pointerEvents="none"
       />
-      <Text style={glassCard.emoji}>{emoji}</Text>
+      <Feather name={icon as any} size={20} color={accentColor} style={{ marginBottom: 6 }} />
       <Text style={[glassCard.label, { color: mutedColor }]}>{label}</Text>
       <Text style={[glassCard.value, { color: fgColor }]}>{value}</Text>
     </LiquidGlass>
@@ -351,13 +351,13 @@ function GlassDexCard({
 }
 
 function StatChip({
-  emoji,
+  icon,
   label,
   value,
   color,
   mutedColor,
 }: {
-  emoji: string;
+  icon: string;
   label: string;
   value: number;
   color: string;
@@ -365,7 +365,7 @@ function StatChip({
 }) {
   return (
     <View style={[chipStyles.chip, { backgroundColor: `${color}12` }]}>
-      <Text style={chipStyles.emoji}>{emoji}</Text>
+      <Feather name={icon as any} size={16} color={color} style={chipStyles.icon} />
       <Text style={[chipStyles.label, { color: mutedColor }]}>{label}</Text>
       <RatingPips value={value} color={color} />
     </View>
@@ -511,7 +511,7 @@ const glassCard = StyleSheet.create({
     minHeight: 80,
     justifyContent: "center",
   },
-  emoji: { fontSize: 20 },
+  icon: { marginBottom: 4 },
   label: {
     fontFamily: "Inter_500Medium",
     fontSize: 9,
@@ -535,7 +535,7 @@ const chipStyles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
   },
-  emoji: { fontSize: 16 },
+  icon: { marginBottom: 2 },
   label: {
     fontFamily: "Inter_500Medium",
     fontSize: 9,

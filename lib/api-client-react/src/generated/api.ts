@@ -21,6 +21,8 @@ import type {
 
 import type {
   CollectRequest,
+  DailyDogRequest,
+  DailyDogResult,
   DetectBreedRequest,
   DetectBreedResult,
   DogBreed,
@@ -276,6 +278,78 @@ export function useGetDogBreed<TData = Awaited<ReturnType<typeof getDogBreed>>, 
 
 
 
+
+export const getClaimDailyDogUrl = () => {
+
+
+
+
+  return `/api/dogs/daily`
+}
+
+/**
+ * Returns a guaranteed random uncollected dog breed once per UTC day. Resets at midnight UTC.
+ * @summary Claim today's Daily Dog
+ */
+export const claimDailyDog = async (dailyDogRequest?: DailyDogRequest, options?: RequestInit): Promise<DailyDogResult> => {
+
+  return customFetch<DailyDogResult>(getClaimDailyDogUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dailyDogRequest,)
+  }
+);}
+
+
+
+
+export const getClaimDailyDogMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimDailyDog>>, TError,{data?: BodyType<DailyDogRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimDailyDog>>, TError,{data?: BodyType<DailyDogRequest>}, TContext> => {
+
+const mutationKey = ['claimDailyDog'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimDailyDog>>, {data?: BodyType<DailyDogRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  claimDailyDog(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimDailyDogMutationResult = NonNullable<Awaited<ReturnType<typeof claimDailyDog>>>
+    export type ClaimDailyDogMutationBody = BodyType<DailyDogRequest> | undefined
+    export type ClaimDailyDogMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Claim today's Daily Dog
+ */
+export const useClaimDailyDog = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimDailyDog>>, TError,{data?: BodyType<DailyDogRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimDailyDog>>,
+        TError,
+        {data?: BodyType<DailyDogRequest>},
+        TContext
+      > => {
+      return useMutation(getClaimDailyDogMutationOptions(options));
+    }
 
 export const getDetectDogBreedUrl = () => {
 

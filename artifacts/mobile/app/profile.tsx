@@ -145,7 +145,7 @@ export default function ProfileScreen() {
                 <Image source={{ uri: user.imageUrl }} style={styles.avatar} contentFit="cover" />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={{ fontSize: 40 }}>🧑‍🦱</Text>
+                  <Feather name="user" size={40} color="#94A3B8" />
                 </View>
               )}
               {/* Camera badge */}
@@ -165,12 +165,12 @@ export default function ProfileScreen() {
           {/* Stats */}
           <View style={styles.statsRow}>
             {[
-              { emoji: "🐕", value: String(collectionCount), label: "Breeds" },
-              { emoji: "⚡", value: String(xp), label: "XP" },
-              { emoji: "🔥", value: String(streak), label: "Streak" },
+              { icon: "hash", value: String(collectionCount), label: "Breeds" },
+              { icon: "zap", value: String(xp), label: "XP" },
+              { icon: "flame", value: String(streak), label: "Streak" },
             ].map((s) => (
               <View key={s.label} style={styles.statCard}>
-                <Text style={styles.statEmoji}>{s.emoji}</Text>
+                <Feather name={s.icon as any} size={18} color="#94A3B8" />
                 <Text style={styles.statValue}>{s.value}</Text>
                 <Text style={styles.statLabel}>{s.label}</Text>
               </View>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER, borderRadius: 14, padding: 14,
     alignItems: "center", gap: 3,
   },
-  statEmoji: { fontSize: 22 },
+  statIcon: { marginBottom: 2 },
   statValue: { fontFamily: "Inter_700Bold", fontSize: 18, color: "#fff" },
   statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.6)" },
 

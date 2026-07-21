@@ -31,14 +31,14 @@ import { useGetDogBreeds } from "@workspace/api-client-react";
 
 const { width: W } = Dimensions.get("window");
 
-const DOG_EMOJIS = ["🐕", "🐶", "🐩", "🦮", "🐕‍🦺", "🐾"];
+const DOG_EMOJIS: string[] = [];
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { collectionCount } = useCollection();
-  const { xpMessage, confettiActive } = useScan();
+  const { xpMessage, confettiActive, claimDaily, dailyDogLoading } = useScan();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraError, setCameraError] = useState(false);
   const { data: allBreeds } = useGetDogBreeds();
@@ -147,7 +147,7 @@ export default function HomeScreen() {
                 contentFit="cover"
               />
             ) : (
-              <Text style={{ fontSize: 17 }}>🧑‍🦱</Text>
+              <Feather name="user" size={17} color="#fff" />
             )}
           </View>
           <View>
@@ -199,6 +199,32 @@ export default function HomeScreen() {
         </Animated.View>
       ) : null}
 
+      {/* Daily Dog card */}
+      <View style={[styles.dailyArea, { paddingBottom: 6 }]}>
+        <Pressable onPress={claimDaily} disabled={dailyDogLoading}>
+          <LiquidGlass style={styles.dailyCard} borderRadius={20} intensity={88}>
+            <View style={styles.dailyRow}>
+              <View style={styles.dailyIconWrap}>
+                <Feather name="gift" size={22} color="#F59E0B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dailyLabel}>DAILY DOG</Text>
+                <Text style={styles.dailySub}>Tap for a free breed today</Text>
+              </View>
+              {dailyDogLoading ? (
+                <View style={styles.dailySpinner}>
+                  <Feather name="loader" size={18} color="#94A3B8" />
+                </View>
+              ) : (
+                <View style={styles.dailyArrow}>
+                  <Feather name="chevron-right" size={18} color="#94A3B8" />
+                </View>
+              )}
+            </View>
+          </LiquidGlass>
+        </Pressable>
+      </View>
+
       {/* Bottom collection card */}
       <View style={[styles.bottomArea, { paddingBottom: insets.bottom + 106 }]}>
         <LiquidGlass style={styles.card} borderRadius={28} intensity={92}>
@@ -221,7 +247,7 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.pawCircle}>
-              <Text style={{ fontSize: 28 }}>🐾</Text>
+              <Feather name="maximize" size={28} color="rgba(90,200,250,0.8)" />
             </View>
           </View>
 
@@ -373,6 +399,52 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "Inter_700Bold",
     fontSize: 14,
+  },
+
+  dailyArea: {
+    paddingHorizontal: 14,
+    zIndex: 10,
+  },
+  dailyCard: {
+    padding: 14,
+    gap: 10,
+  },
+  dailyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dailyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(245,158,11,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dailyLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    color: "#F59E0B",
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  dailySub: {
+    fontSize: 12,
+    color: "#64748B",
+    fontFamily: "Inter_400Regular",
+  },
+  dailyArrow: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dailySpinner: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   bottomArea: {
