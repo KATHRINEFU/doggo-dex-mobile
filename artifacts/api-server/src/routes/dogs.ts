@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 import path from "path";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -14,7 +15,8 @@ const openai = new OpenAI({
 // TFLite model path
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const TFLITE_SCRIPT = path.join(__dirname, "../ml/tflite_infer.py");
+const TFLITE_SCRIPT = path.join(__dirname, "ml/tflite_infer.py");
+const TFLITE_WORKER = path.join(__dirname, "ml/tflite_worker.py");
 
 // Confidence thresholds for TFLite → GPT fallback
 const TFLITE_CONFIDENCE_THRESHOLD = 0.5;
@@ -37,51 +39,81 @@ interface TFLiteResult {
   error?: string;
 }
 
+/* -------------------------------------------------------------------------- */
+// Persistent TFLite worker — model loads once, inferences are near-instant
+/* -------------------------------------------------------------------------- */
+
+import { createInterface } from "node:readline";
+
+class TFLiteWorker {
+  private child: ReturnType<typeof spawn> | null = null;
+  private queue: Array<{
+    resolve: (r: TFLiteResult | null) => void;
+  }> = [];
+
+  constructor() {
+    this._spawn();
+  }
+
+  private _spawn() {
+    this.child = spawn("python3", [TFLITE_WORKER], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    const rl = createInterface({ input: this.child.stdout! });
+    rl.on("line", (line) => {
+      try {
+        const parsed = JSON.parse(line) as TFLiteResult;
+        const item = this.queue.shift();
+        if (item) item.resolve(parsed);
+      } catch {
+        const item = this.queue.shift();
+        if (item) item.resolve(null);
+      }
+    });
+
+    this.child.stderr!.on("data", (d: Buffer) => {
+      const msg = d.toString().trim();
+      if (msg) {
+        logger.info({ msg }, "TFLite worker stderr");
+      }
+    });
+
+    this.child.on("error", (err) => {
+      logger.error({ err }, "TFLite worker spawn error");
+      this._drainQueue(null);
+      this._spawn();
+    });
+
+    this.child.on("close", (code) => {
+      logger.warn({ code }, "TFLite worker exited");
+      this._drainQueue(null);
+      this._spawn();
+    });
+  }
+
+  private _drainQueue(result: TFLiteResult | null) {
+    while (this.queue.length > 0) {
+      const { resolve } = this.queue.shift()!;
+      resolve(result);
+    }
+  }
+
+  infer(imageBase64: string): Promise<TFLiteResult | null> {
+    return new Promise((resolve) => {
+      this.queue.push({ resolve });
+      this.child!.stdin!.write(JSON.stringify({ image: imageBase64 }) + "\n");
+    });
+  }
+}
+
+const tfliteWorker = new TFLiteWorker();
+
 /**
- * Run TFLite inference via Python subprocess.
- * Returns null if TFLite is unavailable or fails.
+ * Run TFLite inference via the persistent worker.
  */
 function runTFLiteInference(imageBase64: string): Promise<TFLiteResult | null> {
-  return new Promise((resolve) => {
-    const child = spawn("python3", [TFLITE_SCRIPT], {
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: 15000, // 15s max
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (d) => { stdout += d; });
-    child.stderr.on("data", (d) => { stderr += d; });
-
-    child.on("error", () => {
-      resolve(null);
-    });
-
-    child.on("close", (code) => {
-      if (code !== 0 || !stdout.trim()) {
-        resolve(null);
-        return;
-      }
-      try {
-        const result = JSON.parse(stdout.trim()) as TFLiteResult;
-        if (result.error) {
-          resolve(null);
-          return;
-        }
-        resolve(result);
-      } catch {
-        resolve(null);
-      }
-    });
-
-    // Send base64 image to stdin — guard against EPIPE if child crashes early
-    child.stdin.on("error", () => {
-      // child already dead, close event will resolve(null)
-    });
-    child.stdin.write(imageBase64);
-    child.stdin.end();
-  });
+  return tfliteWorker.infer(imageBase64);
 }
 
 const IMGS = {
