@@ -137,7 +137,8 @@ export function DogCard({ id, name, imageUrl, userPhotoUri, rarity, group, colle
 const styles = StyleSheet.create({
   touchable: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 6,
+    marginBottom: 12,
   },
   card: {
     flex: 1,
