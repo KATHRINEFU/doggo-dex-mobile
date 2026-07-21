@@ -7,7 +7,7 @@ import { ConfettiAnimation } from "@/components/ConfettiAnimation";
 import { DetectionResultModal } from "@/components/DetectionResultModal";
 import { ScanningOverlay } from "@/components/ScanningOverlay";
 import { useCollection } from "@/context/CollectionContext";
-import { useDetectDogBreed, useGetDogBreeds } from "@workspace/api-client-react";
+import { useDetectDogBreed, useGetDogBreeds, useRecordCollection } from "@workspace/api-client-react";
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
 
 interface ScanContextValue {
@@ -49,6 +49,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const { addDog, isCollected } = useCollection();
   const { data: allBreeds } = useGetDogBreeds();
   const detectMutation = useDetectDogBreed();
+  const recordCollection = useRecordCollection();
 
   const [detecting, setDetecting] = useState(false);
   const [imageUri, setImageUri] = useState("");
@@ -87,9 +88,15 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         setConfettiActive(false);
         setXpMessage("");
       }, 3500);
+      // Sync to leaderboard backend
+      try {
+        await recordCollection.mutateAsync({ data: { xpDelta: xpGained } });
+      } catch (e) {
+        console.error("Leaderboard sync failed:", e);
+      }
     }
     setModalVisible(false);
-  }, [result, matchedBreed, imageUri, originalUri, addDog]);
+  }, [result, matchedBreed, imageUri, originalUri, addDog, recordCollection]);
 
   function openScan() {
     if (Platform.OS === "web") {

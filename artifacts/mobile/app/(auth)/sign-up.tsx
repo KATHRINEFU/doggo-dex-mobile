@@ -22,6 +22,8 @@ import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
+import { CountryPickerModal, type CountryOption } from "@/components/CountryPicker";
+import { useSyncUser } from "@workspace/api-client-react";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -60,7 +62,12 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [readyToNavigate, setReadyToNavigate] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [countryCode, setCountryCode] = useState("US");
+  const [countryName, setCountryName] = useState("United States");
   const pendingPhotoRef = useRef<string | null>(null);
+
+  const syncUserMutation = useSyncUser();
 
   useEffect(() => {
     if (readyToNavigate && user) {
@@ -68,6 +75,19 @@ export default function SignUpScreen() {
         if (pendingPhotoRef.current) {
           await uploadPhoto(user, pendingPhotoRef.current);
           pendingPhotoRef.current = null;
+        }
+        // Sync user profile to backend with country
+        try {
+          await syncUserMutation.mutateAsync({
+            data: {
+              username: username || user.username || "Trainer",
+              country: countryName,
+              countryFlag: countryCode,
+              avatarUrl: photoUri || undefined,
+            },
+          });
+        } catch (e) {
+          console.error("Sync user failed:", e);
         }
         router.replace("/(tabs)");
       };
@@ -271,6 +291,26 @@ export default function SignUpScreen() {
               autoComplete="username-new"
             />
             {fieldErrors.username && <Text style={styles.error}>{fieldErrors.username}</Text>}
+
+            <Text style={styles.inputLabel}>Country</Text>
+            <Pressable
+              style={[styles.input, { flexDirection: "row", alignItems: "center", gap: 8 }]}
+              onPress={() => setShowCountryPicker(true)}
+            >
+              <CountryPickerModal
+                visible={showCountryPicker}
+                selected={countryCode}
+                onSelect={(option: CountryOption) => {
+                  setCountryCode(option.code);
+                  setCountryName(option.name);
+                }}
+                onClose={() => setShowCountryPicker(false)}
+              />
+              <Text style={{ fontSize: 15, fontFamily: "Inter_400Regular", color: "#111" }}>
+                {countryName}
+              </Text>
+              <Feather name="chevron-down" size={16} color="rgba(0,0,0,0.4)" style={{ marginLeft: "auto" }} />
+            </Pressable>
 
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput

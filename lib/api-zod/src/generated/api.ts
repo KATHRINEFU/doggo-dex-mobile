@@ -114,3 +114,73 @@ export const DetectDogBreedResponse = zod.object({
 })
 
 
+/**
+ * Creates or updates the user's profile with country and username
+ * @summary Sync user profile after registration
+ */
+export const syncUserBodyUsernameMax = 50;
+
+export const syncUserBodyCountryMax = 100;
+
+export const syncUserBodyCountryFlagMax = 10;
+
+
+
+export const SyncUserBody = zod.object({
+  "username": zod.string().max(syncUserBodyUsernameMax),
+  "country": zod.string().max(syncUserBodyCountryMax),
+  "countryFlag": zod.string().max(syncUserBodyCountryFlagMax).optional(),
+  "avatarUrl": zod.string().url().optional()
+})
+
+export const SyncUserResponse = zod.object({
+  "success": zod.boolean().optional()
+})
+
+
+/**
+ * Increments the user's collection count and XP
+ * @summary Record a new dog collection
+ */
+export const recordCollectionBodyXpDeltaDefault = 10;
+export const recordCollectionBodyXpDeltaMin = 0;
+export const recordCollectionBodyXpDeltaMax = 1000;
+
+
+
+export const RecordCollectionBody = zod.object({
+  "xpDelta": zod.number().min(recordCollectionBodyXpDeltaMin).max(recordCollectionBodyXpDeltaMax).default(recordCollectionBodyXpDeltaDefault)
+})
+
+export const RecordCollectionResponse = zod.object({
+  "success": zod.boolean().optional()
+})
+
+
+/**
+ * Returns leaderboard rankings. Filter by country or get global rankings.
+ * @summary Get ranked users
+ */
+export const getLeaderboardQueryLimitDefault = 50;
+export const getLeaderboardQueryLimitMax = 100;
+
+
+
+export const GetLeaderboardQueryParams = zod.object({
+  "country": zod.coerce.string().optional().describe('Filter to a specific country (e.g. \"United States\")'),
+  "limit": zod.coerce.number().max(getLeaderboardQueryLimitMax).default(getLeaderboardQueryLimitDefault).describe('Max results to return')
+})
+
+export const GetLeaderboardResponseItem = zod.object({
+  "rank": zod.number(),
+  "clerkId": zod.string(),
+  "username": zod.string(),
+  "country": zod.string(),
+  "countryFlag": zod.string(),
+  "collectionCount": zod.number(),
+  "xp": zod.number(),
+  "avatarUrl": zod.string().nullish()
+})
+export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem)
+
+

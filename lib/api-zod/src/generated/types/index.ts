@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './collectRequest';
 export * from './detectBreedRequest';
 export * from './detectBreedResult';
 export * from './detectBreedResultSource';
@@ -13,4 +14,8 @@ export * from './dogBreed';
 export * from './dogBreedRarity';
 export * from './dogBreedSize';
 export * from './errorResponse';
+export * from './getLeaderboardParams';
 export * from './healthStatus';
+export * from './leaderboardEntry';
+export * from './successResponse';
+export * from './syncUserRequest';

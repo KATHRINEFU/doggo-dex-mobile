@@ -19,7 +19,7 @@ const LEFT_TABS = [
   { name: "collection", icon: "grid" as const, label: "Dex" },
 ];
 const RIGHT_TABS = [
-  { name: "map", icon: "map-pin" as const, label: "Map" },
+  { name: "leaderboard", icon: "award" as const, label: "Rank" },
   { name: "medals", icon: "user" as const, label: "Profile" },
 ];
 
@@ -254,7 +254,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="collection" />
-      <Tabs.Screen name="map" />
+      <Tabs.Screen name="leaderboard" />
       <Tabs.Screen name="medals" />
     </Tabs>
   );

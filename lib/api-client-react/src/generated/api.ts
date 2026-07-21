@@ -20,11 +20,16 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CollectRequest,
   DetectBreedRequest,
   DetectBreedResult,
   DogBreed,
   ErrorResponse,
-  HealthStatus
+  GetLeaderboardParams,
+  HealthStatus,
+  LeaderboardEntry,
+  SuccessResponse,
+  SyncUserRequest
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -343,4 +348,233 @@ export const useDetectDogBreed = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getDetectDogBreedMutationOptions(options));
     }
+
+export const getSyncUserUrl = () => {
+
+
+
+
+  return `/api/users/sync`
+}
+
+/**
+ * Creates or updates the user's profile with country and username
+ * @summary Sync user profile after registration
+ */
+export const syncUser = async (syncUserRequest: SyncUserRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getSyncUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      syncUserRequest,)
+  }
+);}
+
+
+
+
+export const getSyncUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncUser>>, TError,{data: BodyType<SyncUserRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncUser>>, TError,{data: BodyType<SyncUserRequest>}, TContext> => {
+
+const mutationKey = ['syncUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncUser>>, {data: BodyType<SyncUserRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  syncUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncUserMutationResult = NonNullable<Awaited<ReturnType<typeof syncUser>>>
+    export type SyncUserMutationBody = BodyType<SyncUserRequest>
+    export type SyncUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Sync user profile after registration
+ */
+export const useSyncUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncUser>>, TError,{data: BodyType<SyncUserRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncUser>>,
+        TError,
+        {data: BodyType<SyncUserRequest>},
+        TContext
+      > => {
+      return useMutation(getSyncUserMutationOptions(options));
+    }
+
+export const getRecordCollectionUrl = () => {
+
+
+
+
+  return `/api/users/collect`
+}
+
+/**
+ * Increments the user's collection count and XP
+ * @summary Record a new dog collection
+ */
+export const recordCollection = async (collectRequest: CollectRequest, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getRecordCollectionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      collectRequest,)
+  }
+);}
+
+
+
+
+export const getRecordCollectionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordCollection>>, TError,{data: BodyType<CollectRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordCollection>>, TError,{data: BodyType<CollectRequest>}, TContext> => {
+
+const mutationKey = ['recordCollection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordCollection>>, {data: BodyType<CollectRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  recordCollection(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordCollectionMutationResult = NonNullable<Awaited<ReturnType<typeof recordCollection>>>
+    export type RecordCollectionMutationBody = BodyType<CollectRequest>
+    export type RecordCollectionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record a new dog collection
+ */
+export const useRecordCollection = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordCollection>>, TError,{data: BodyType<CollectRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordCollection>>,
+        TError,
+        {data: BodyType<CollectRequest>},
+        TContext
+      > => {
+      return useMutation(getRecordCollectionMutationOptions(options));
+    }
+
+export const getGetLeaderboardUrl = (params?: GetLeaderboardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/leaderboard?${stringifiedParams}` : `/api/leaderboard`
+}
+
+/**
+ * Returns leaderboard rankings. Filter by country or get global rankings.
+ * @summary Get ranked users
+ */
+export const getLeaderboard = async (params?: GetLeaderboardParams, options?: RequestInit): Promise<LeaderboardEntry[]> => {
+
+  return customFetch<LeaderboardEntry[]>(getGetLeaderboardUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeaderboardQueryKey = (params?: GetLeaderboardParams,) => {
+    return [
+    `/api/leaderboard`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetLeaderboardQueryOptions = <TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<ErrorResponse>>(params?: GetLeaderboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeaderboardQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeaderboard>>> = ({ signal }) => getLeaderboard(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeaderboardQueryResult = NonNullable<Awaited<ReturnType<typeof getLeaderboard>>>
+export type GetLeaderboardQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get ranked users
+ */
+
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetLeaderboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeaderboardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

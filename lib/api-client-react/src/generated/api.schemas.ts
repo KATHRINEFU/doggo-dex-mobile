@@ -97,8 +97,53 @@ export interface DetectBreedResult {
   source?: DetectBreedResultSource;
 }
 
+export interface SyncUserRequest {
+  /** @maxLength 50 */
+  username: string;
+  /** @maxLength 100 */
+  country: string;
+  /** @maxLength 10 */
+  countryFlag?: string;
+  avatarUrl?: string;
+}
+
+export interface CollectRequest {
+  /**
+     * @minimum 0
+     * @maximum 1000
+     */
+  xpDelta?: number;
+}
+
+export interface SuccessResponse {
+  success?: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  clerkId: string;
+  username: string;
+  country: string;
+  countryFlag: string;
+  collectionCount: number;
+  xp: number;
+  avatarUrl?: string | null;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;
 }
+
+export type GetLeaderboardParams = {
+/**
+ * Filter to a specific country (e.g. "United States")
+ */
+country?: string;
+/**
+ * Max results to return
+ * @maximum 100
+ */
+limit?: number;
+};
 

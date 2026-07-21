@@ -12,6 +12,10 @@ tags:
     description: Health operations
   - name: dogs
     description: Dog breed operations
+  - name: users
+    description: User profile and leaderboard
+  - name: leaderboard
+    description: Rankings by collection
 paths:
   /healthz:
     get:
@@ -95,6 +99,105 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Detection error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/sync:
+    post:
+      operationId: syncUser
+      tags: [users]
+      summary: Sync user profile after registration
+      description: Creates or updates the user's profile with country and username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncUserRequest"
+      responses:
+        "200":
+          description: User synced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/collect:
+    post:
+      operationId: recordCollection
+      tags: [users]
+      summary: Record a new dog collection
+      description: Increments the user's collection count and XP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectRequest"
+      responses:
+        "200":
+          description: Collection recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get ranked users
+      description: Returns leaderboard rankings. Filter by country or get global rankings.
+      parameters:
+        - name: country
+          in: query
+          schema:
+            type: string
+          description: Filter to a specific country (e.g. "United States")
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Max results to return
+      responses:
+        "200":
+          description: Leaderboard rankings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+        "500":
+          description: Database error
           content:
             application/json:
               schema:
@@ -224,6 +327,69 @@ components:
         - confidence
         - description
         - isDog
+
+    SyncUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          maxLength: 50
+        country:
+          type: string
+          maxLength: 100
+        countryFlag:
+          type: string
+          maxLength: 10
+        avatarUrl:
+          type: string
+          format: uri
+      required:
+        - username
+        - country
+
+    CollectRequest:
+      type: object
+      properties:
+        xpDelta:
+          type: integer
+          default: 10
+          minimum: 0
+          maximum: 1000
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        clerkId:
+          type: string
+        username:
+          type: string
+        country:
+          type: string
+        countryFlag:
+          type: string
+        collectionCount:
+          type: integer
+        xp:
+          type: integer
+        avatarUrl:
+          type: string
+          nullable: true
+      required:
+        - rank
+        - clerkId
+        - username
+        - country
+        - countryFlag
+        - collectionCount
+        - xp
 
     ErrorResponse:
       type: object
