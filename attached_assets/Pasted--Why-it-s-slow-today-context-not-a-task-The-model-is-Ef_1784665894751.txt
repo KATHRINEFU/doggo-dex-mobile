@@ -1,0 +1,69 @@
+
+  Why it's slow today (context, not a task)
+
+  The model is EfficientNetV2-S @ 384×384, float32, running single-threaded on a server CPU. Moving on-device + onto the ANE is what fixes it — not a model
+  change.
+
+  Target stack
+
+  - react-native-fast-tflite (JSI-based) for inference. It supports a Core ML delegate on iOS — this is the key to ANE acceleration.
+  - Model + labels bundled as app assets (no network).
+
+  Model I/O contract — get this exact
+
+  Confirmed from the training notebook (train_dog_breed_classifier.ipynb):
+
+  - Input tensor: shape [1, 384, 384, 3], dtype float32.
+  - Pixel range: [0, 255] — do NOT normalize. EfficientNetV2 has its own Rescaling/Normalization baked into the graph. Do not divide by 255, and do not apply
+  ImageNet mean/std. Feed raw 0–255 values.
+  - Channel order: RGB (drop alpha if the decoder gives RGBA).
+  - Resize: stretch to exactly 384×384 (bilinear). Training used tf.image.resize with no aspect-ratio preservation, so match that — stretch, don't center-crop.
+  - Output tensor: shape [1, 120], float32, already softmax probabilities.
+  - Labels: labels.json maps string index → breed name, e.g. {"0": "Chihuahua", ..., "119": "African Hunting Dog"}. argmax of the output → look up that index →
+  breed. The output value at argmax is the confidence.
+
+  Which model file to bundle
+
+  There's a tradeoff — flag this to me if unsure:
+  - Recommended for ANE: a float16 model (~43 MB). The Core ML delegate offloads float ops to the ANE. Float16 is ANE-native and roughly half the size of
+  float32. This likely requires re-exporting from the notebook (the notebook currently emits float32 + int8, not float16). I can add a float16 export cell — see
+  note at the end.
+  - The existing int8 model (~22 MB) is smallest, but INT8 tends to run on CPU/XNNPACK rather than the Core ML delegate, so it won't hit the ANE. Still faster
+  than today (no network, multi-threaded), but may not clear <1s as reliably.
+  - The existing float32 model (~78–85 MB) works with the Core ML delegate but bloats the app bundle.
+  
+  Start with float16 + Core ML delegate.
+
+  Implementation steps
+
+  1. Add assets: bundle dog_breed_classifier_fp16.tflite (or whichever we pick) and labels.json in the app. Load labels.json at startup into an index→name map.
+  2. Install react-native-fast-tflite; pod install; rebuild the iOS app (native dependency — Expo Go won't work, need a dev build / prebuild).
+  3. Load the model with the Core ML delegate:
+  const model = await loadTensorflowModel(
+    require('./assets/ml/dog_breed_classifier_fp16.tflite'),
+    'core-ml'            // <-- ANE path
+  );
+  3. Load it once and keep it warm (don't reload per prediction).
+  4. Preprocess the photo → Float32Array:
+    - Resize to 384×384 with expo-image-manipulator (resize: { width: 384, height: 384 }).
+    - Decode the JPEG/PNG to raw pixels. expo-image-manipulator gives base64/URI, not raw pixels — you need a decode step. Use jpeg-js (jpeg.decode(bytes, { 
+  useTArray: true }) → RGBA Uint8Array) or @shopify/react-native-skia to read pixels.
+    - Build a Float32Array(384*384*3): copy R,G,B for each pixel (skip alpha), values kept in 0–255 as-is.
+  5. Run inference: const output = await model.run([inputFloat32Array]); → read output[0] (length 120).
+  6. Postprocess: argmax over the 120 probs → confidence = that value → breed = labels map lookup. Return breed + confidence to the UI.
+  7. Rip out the POST /api/dogs/detect call and the base64 upload path. (Keep the server code around until parity is verified, then delete.)
+
+  Verification (don't skip)
+
+  - Confirm the delegate actually applied — log the model's delegate/compute info on load. If Core ML didn't attach, it silently fell back to CPU. Some
+  EfficientNetV2 ops may partially fall back; check for warnings and, if perf is bad, note which ops.
+  - Parity test: run one known test image through both the old server path and the new on-device path — the top-1 breed must match, and confidence should be
+  within a few %. A mismatch almost always means a preprocessing bug (normalized when you shouldn't have, BGR vs RGB, or aspect-ratio distortion).
+  - Measure warm inference latency (exclude first call — first run includes model compile/allocate).
+
+  Gotchas to watch
+
+  - Don't normalize pixels. Most tutorials divide by 255 or apply mean/std — this model must NOT. Wrong scaling = confident wrong predictions.
+  - RGBA→RGB: jpeg-js returns 4 channels; the model wants 3.
+  - First inference is slow (Core ML graph compile). Warm the model at app launch with a dummy 384×384 input.
+  - Expo: this needs a custom dev build (native module), not Expo Go.

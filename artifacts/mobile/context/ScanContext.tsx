@@ -13,6 +13,7 @@ import {
   useRecordCollection,
 } from "@workspace/api-client-react";
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
+import { detectBreedOnDevice } from "@/lib/BreedModel";
 
 interface ScanContextValue {
   openScan: () => void;
@@ -173,9 +174,11 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       let displayUri = "";
       try {
         phase = "manip";
+        // Native: resize to 384x384 (model input). Web: 1024 for server API.
+        const targetSize = Platform.OS === "web" ? 1024 : 384;
         const manip = await ImageManipulator.manipulateAsync(
           asset.uri,
-          [{ resize: { width: 1024 } }],
+          [{ resize: { width: targetSize, height: targetSize } }],
           { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true },
         );
         if (!manip.base64) throw new Error("no base64");
@@ -224,31 +227,75 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
       let res: DetectBreedResult;
       try {
-        phase = "detect";
-        res = await detectMutation.mutateAsync({
-          data: { imageBase64: base64Data, mimeType: "image/jpeg" },
-        });
-        logTiming("detect done");
-      } catch (apiErr: unknown) {
-        let msg = "Could not analyze the image. Please try again.";
-        if (apiErr && typeof apiErr === "object") {
-          const anyErr = apiErr as Record<string, unknown>;
-          const responseData =
-            (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
-            (anyErr["data"] as unknown);
-          if (
-            responseData &&
-            typeof responseData === "object" &&
-            typeof (responseData as Record<string, unknown>)["message"] === "string"
-          ) {
-            msg = (responseData as Record<string, unknown>)["message"] as string;
-          } else if (typeof anyErr["message"] === "string") {
-            msg = anyErr["message"] as string;
+        // Native: try on-device TFLite first (instant, no network)
+        if (Platform.OS !== "web") {
+          phase = "device-detect";
+          const deviceRes = await detectBreedOnDevice(base64Data);
+          if (deviceRes && deviceRes.isDog && deviceRes.confidence >= 0.35) {
+            res = deviceRes as unknown as DetectBreedResult;
+            logTiming("detect done (on-device)");
+          } else {
+            throw new Error("on-device low confidence or no dog");
           }
+        } else {
+          // Web: always use server
+          phase = "detect";
+          res = await detectMutation.mutateAsync({
+            data: { imageBase64: base64Data, mimeType: "image/jpeg" },
+          });
+          logTiming("detect done");
         }
-        showError(msg, pickedUri);
-        setDetecting(false);
-        return;
+      } catch (apiErr: unknown) {
+        // If on-device failed on native, fall back to server
+        if (Platform.OS !== "web") {
+          try {
+            phase = "detect";
+            res = await detectMutation.mutateAsync({
+              data: { imageBase64: base64Data, mimeType: "image/jpeg" },
+            });
+            logTiming("detect done (server fallback)");
+          } catch (serverErr: unknown) {
+            let msg = "Could not analyze the image. Please try again.";
+            if (serverErr && typeof serverErr === "object") {
+              const anyErr = serverErr as Record<string, unknown>;
+              const responseData =
+                (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
+                (anyErr["data"] as unknown);
+              if (
+                responseData &&
+                typeof responseData === "object" &&
+                typeof (responseData as Record<string, unknown>)["message"] === "string"
+              ) {
+                msg = (responseData as Record<string, unknown>)["message"] as string;
+              } else if (typeof anyErr["message"] === "string") {
+                msg = anyErr["message"] as string;
+              }
+            }
+            showError(msg, pickedUri);
+            setDetecting(false);
+            return;
+          }
+        } else {
+          let msg = "Could not analyze the image. Please try again.";
+          if (apiErr && typeof apiErr === "object") {
+            const anyErr = apiErr as Record<string, unknown>;
+            const responseData =
+              (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
+              (anyErr["data"] as unknown);
+            if (
+              responseData &&
+              typeof responseData === "object" &&
+              typeof (responseData as Record<string, unknown>)["message"] === "string"
+            ) {
+              msg = (responseData as Record<string, unknown>)["message"] as string;
+            } else if (typeof anyErr["message"] === "string") {
+              msg = anyErr["message"] as string;
+            }
+          }
+          showError(msg, pickedUri);
+          setDetecting(false);
+          return;
+        }
       }
 
       setResult(res);

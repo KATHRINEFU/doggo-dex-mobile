@@ -62,6 +62,9 @@
   "dependencies": {
     "expo-camera": "^17.0.10",
     "expo-image-manipulator": "^14.0.8",
-    "heic2any": "^0.0.4"
+    "heic2any": "^0.0.4",
+    "jpeg-js": "^0.4.4",
+    "react-native-fast-tflite": "^3.0.1",
+    "react-native-nitro-modules": "^0.36.1"
   }
 }
