@@ -11,18 +11,14 @@ import {
   useDetectDogBreed,
   useGetDogBreeds,
   useRecordCollection,
-  useClaimDailyDog,
 } from "@workspace/api-client-react";
-import type { DetectBreedResult, DogBreed, DailyDogResult } from "@workspace/api-client-react";
+import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
 
 interface ScanContextValue {
   openScan: () => void;
   isScanning: boolean;
   xpMessage: string;
   confettiActive: boolean;
-  claimDaily: () => Promise<void>;
-  dailyDogLoading: boolean;
-  dailyDogError: string | null;
 }
 
 const ScanContext = createContext<ScanContextValue>({
@@ -30,9 +26,6 @@ const ScanContext = createContext<ScanContextValue>({
   isScanning: false,
   xpMessage: "",
   confettiActive: false,
-  claimDaily: async () => {},
-  dailyDogLoading: false,
-  dailyDogError: null,
 });
 
 export function useScan() {
@@ -61,7 +54,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const { data: allBreeds } = useGetDogBreeds();
   const detectMutation = useDetectDogBreed();
   const recordCollection = useRecordCollection();
-  const dailyDogMutation = useClaimDailyDog();
 
   const [detecting, setDetecting] = useState(false);
   const [imageUri, setImageUri] = useState("");
@@ -72,8 +64,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [confettiActive, setConfettiActive] = useState(false);
   const [xpMessage, setXpMessage] = useState("");
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [dailyDogError, setDailyDogError] = useState<string | null>(null);
 
   const showError = useCallback((message: string, uri = "") => {
     setResult({ ...ERROR_RESULT, description: message });
@@ -281,53 +271,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const claimDaily = useCallback(async () => {
-    setDailyDogError(null);
-    setDetecting(true);
-    try {
-      const collectedIds = [] as string[]; // server already knows via DB, but send empty for now
-      const dailyRes: DailyDogResult = await dailyDogMutation.mutateAsync({
-        data: { collectedIds },
-      });
-
-      // Build a DetectBreedResult-compatible object for the modal
-      const detectResult: DetectBreedResult = {
-        breedId: dailyRes.breedId,
-        breedName: dailyRes.breedName,
-        confidence: dailyRes.confidence,
-        description: dailyRes.description,
-        isDog: dailyRes.isDog,
-      } as DetectBreedResult;
-      setResult(detectResult);
-
-      const found = allBreeds?.find((b) => b.id === dailyRes.breedId) ?? null;
-      setMatchedBreed(found);
-      setImageUri(dailyRes.imageUrl);
-      setModalVisible(true);
-    } catch (apiErr: unknown) {
-      let msg = "Could not claim your Daily Dog. Please try again.";
-      if (apiErr && typeof apiErr === "object") {
-        const anyErr = apiErr as Record<string, unknown>;
-        const responseData =
-          (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
-          (anyErr["data"] as unknown);
-        if (
-          responseData &&
-          typeof responseData === "object" &&
-          typeof (responseData as Record<string, unknown>)["message"] === "string"
-        ) {
-          msg = (responseData as Record<string, unknown>)["message"] as string;
-        } else if (typeof anyErr["message"] === "string") {
-          msg = anyErr["message"] as string;
-        }
-      }
-      setDailyDogError(msg);
-      Alert.alert("Daily Dog", msg, [{ text: "OK" }]);
-    } finally {
-      setDetecting(false);
-    }
-  }, [dailyDogMutation, allBreeds]);
-
   return (
     <ScanContext.Provider
       value={{
@@ -335,9 +278,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         isScanning: detecting,
         xpMessage,
         confettiActive,
-        claimDaily,
-        dailyDogLoading: dailyDogMutation.isPending,
-        dailyDogError,
       }}
     >
       {children}

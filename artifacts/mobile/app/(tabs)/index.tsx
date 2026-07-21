@@ -38,7 +38,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { collectionCount } = useCollection();
-  const { xpMessage, confettiActive, claimDaily, dailyDogLoading } = useScan();
+  const { xpMessage, confettiActive } = useScan();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraError, setCameraError] = useState(false);
   const { data: allBreeds } = useGetDogBreeds();
@@ -198,32 +198,6 @@ export default function HomeScreen() {
           <Text style={styles.xpText}>{xpMessage}</Text>
         </Animated.View>
       ) : null}
-
-      {/* Daily Dog card */}
-      <View style={[styles.dailyArea, { paddingBottom: 6 }]}>
-        <Pressable onPress={claimDaily} disabled={dailyDogLoading}>
-          <LiquidGlass style={styles.dailyCard} borderRadius={20} intensity={88}>
-            <View style={styles.dailyRow}>
-              <View style={styles.dailyIconWrap}>
-                <Feather name="gift" size={22} color="#F59E0B" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.dailyLabel}>DAILY DOG</Text>
-                <Text style={styles.dailySub}>Tap for a free breed today</Text>
-              </View>
-              {dailyDogLoading ? (
-                <View style={styles.dailySpinner}>
-                  <Feather name="refresh-cw" size={18} color="#94A3B8" />
-                </View>
-              ) : (
-                <View style={styles.dailyArrow}>
-                  <Feather name="chevron-right" size={18} color="#94A3B8" />
-                </View>
-              )}
-            </View>
-          </LiquidGlass>
-        </Pressable>
-      </View>
 
       {/* Bottom collection card */}
       <View style={[styles.bottomArea, { paddingBottom: insets.bottom + 106 }]}>
@@ -399,52 +373,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontFamily: "Inter_700Bold",
     fontSize: 14,
-  },
-
-  dailyArea: {
-    paddingHorizontal: 14,
-    zIndex: 10,
-  },
-  dailyCard: {
-    padding: 14,
-    gap: 10,
-  },
-  dailyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dailyIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(245,158,11,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dailyLabel: {
-    fontSize: 10,
-    fontFamily: "Inter_700Bold",
-    color: "#F59E0B",
-    letterSpacing: 1.2,
-    marginBottom: 2,
-  },
-  dailySub: {
-    fontSize: 12,
-    color: "#64748B",
-    fontFamily: "Inter_400Regular",
-  },
-  dailyArrow: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dailySpinner: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   bottomArea: {

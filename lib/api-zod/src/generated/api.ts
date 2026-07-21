@@ -94,27 +94,6 @@ export const GetDogBreedResponse = zod.object({
 
 
 /**
- * Returns a guaranteed random uncollected dog breed once per UTC day. Resets at midnight UTC.
- * @summary Claim today's Daily Dog
- */
-export const ClaimDailyDogBody = zod.object({
-  "collectedIds": zod.array(zod.string()).optional().describe('Optional list of already-collected breedIds so the server can avoid duplicates')
-})
-
-export const ClaimDailyDogResponse = zod.object({
-  "breedId": zod.string(),
-  "breedName": zod.string(),
-  "confidence": zod.number(),
-  "description": zod.string(),
-  "isDog": zod.boolean(),
-  "source": zod.string(),
-  "rarity": zod.enum(['common', 'uncommon', 'rare', 'legendary']),
-  "imageUrl": zod.string(),
-  "nextReset": zod.coerce.date()
-})
-
-
-/**
  * Analyzes a base64-encoded image and returns the detected dog breed
  * @summary Detect dog breed from image
  */
