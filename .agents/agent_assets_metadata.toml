@@ -12,6 +12,60 @@ uri = "file://artifacts/mobile/assets/images/logo.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "1RBYT9CkGFAVsXOVnPCVN"
+uri = "file://attached_assets/generated_images/dog-nose-color.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "0o2Zho92GpqaWHR6M7xem"
+uri = "file://attached_assets/generated_images/dog-nose-golden.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "CUj0IXQC5DqmDA5qU9udD"
+uri = "file://attached_assets/generated_images/dog-nose-beagle.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "VMIhr5bYcHKIcWqVq4j0Q"
+uri = "file://attached_assets/generated_images/dog-nose-sketch-color.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "CPVXHGy1_XRVxpaC5WfCF"
+uri = "file://attached_assets/generated_images/dog-nose-sketch-golden.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "o6J0ngWEBjnUJOJAqIvE5"
+uri = "file://attached_assets/generated_images/dog-nose-sketch-beagle.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "gfn7_JPlhk0mvmiyy-wNn"
+uri = "file://attached_assets/generated_images/dog-nose-anime-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "uazJp2FSnTYdpi2LPWQ7D"
+uri = "file://attached_assets/generated_images/dog-nose-anime-2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "8h3d1VkzqX9Jze1gBk0G4"
+uri = "file://attached_assets/generated_images/dog-nose-anime-3.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "sLo0PGr-sEBa9TyGoZBzE"
 uri = "file://artifacts/mobile/assets/images/logo.png"
