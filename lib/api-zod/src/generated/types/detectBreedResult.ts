@@ -5,6 +5,7 @@
  * DogDex API - Pokemon GO for dogs
  * OpenAPI spec version: 0.1.0
  */
+import type { DetectBreedResultSource } from './detectBreedResultSource';
 
 export interface DetectBreedResult {
   /** ID of the matched breed in our database (empty if not matched) */
@@ -17,4 +18,6 @@ export interface DetectBreedResult {
   description: string;
   /** Whether the image contains a dog */
   isDog: boolean;
+  /** Detection source — "tflite" (on-device model) or "gpt" (vision fallback) */
+  source?: DetectBreedResultSource;
 }

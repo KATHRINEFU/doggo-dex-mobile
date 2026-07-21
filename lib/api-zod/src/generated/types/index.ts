@@ -8,6 +8,7 @@
 
 export * from './detectBreedRequest';
 export * from './detectBreedResult';
+export * from './detectBreedResultSource';
 export * from './dogBreed';
 export * from './dogBreedRarity';
 export * from './dogBreedSize';

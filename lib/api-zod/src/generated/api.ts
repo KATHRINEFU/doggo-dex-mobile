@@ -109,7 +109,8 @@ export const DetectDogBreedResponse = zod.object({
   "breedName": zod.string().describe('Detected breed name'),
   "confidence": zod.number().describe('Confidence score 0-1'),
   "description": zod.string().describe('Fun fact about this breed'),
-  "isDog": zod.boolean().describe('Whether the image contains a dog')
+  "isDog": zod.boolean().describe('Whether the image contains a dog'),
+  "source": zod.enum(['tflite', 'gpt']).optional().describe('Detection source — \"tflite\" (on-device model) or \"gpt\" (vision fallback)')
 })
 
 

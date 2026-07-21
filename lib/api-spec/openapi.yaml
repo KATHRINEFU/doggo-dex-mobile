@@ -214,6 +214,10 @@ components:
         isDog:
           type: boolean
           description: Whether the image contains a dog
+        source:
+          type: string
+          description: Detection source — "tflite" (on-device model) or "gpt" (vision fallback)
+          enum: [tflite, gpt]
       required:
         - breedId
         - breedName

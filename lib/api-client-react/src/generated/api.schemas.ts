@@ -71,6 +71,17 @@ export interface DetectBreedRequest {
   mimeType?: string;
 }
 
+/**
+ * Detection source — "tflite" (on-device model) or "gpt" (vision fallback)
+ */
+export type DetectBreedResultSource = typeof DetectBreedResultSource[keyof typeof DetectBreedResultSource];
+
+
+export const DetectBreedResultSource = {
+  tflite: 'tflite',
+  gpt: 'gpt',
+} as const;
+
 export interface DetectBreedResult {
   /** ID of the matched breed in our database (empty if not matched) */
   breedId: string;
@@ -82,6 +93,8 @@ export interface DetectBreedResult {
   description: string;
   /** Whether the image contains a dog */
   isDog: boolean;
+  /** Detection source — "tflite" (on-device model) or "gpt" (vision fallback) */
+  source?: DetectBreedResultSource;
 }
 
 export interface ErrorResponse {

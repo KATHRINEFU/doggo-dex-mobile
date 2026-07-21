@@ -1,12 +1,85 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import sharp from "sharp";
+import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+import path from "path";
 
 const router = Router();
 
 const openai = new OpenAI({
   apiKey: process.env["OPENAI_API_KEY"],
 });
+
+// TFLite model path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TFLITE_SCRIPT = path.join(__dirname, "../ml/tflite_infer.py");
+
+// Confidence thresholds for TFLite → GPT fallback
+const TFLITE_CONFIDENCE_THRESHOLD = 0.5;
+
+interface TFLiteResult {
+  top1: {
+    stanford_index: number;
+    stanford_name: string;
+    dogdex_id: string | null;
+    confidence: number;
+  };
+  top5: Array<{
+    stanford_index: number;
+    stanford_name: string;
+    dogdex_id: string | null;
+    confidence: number;
+  }>;
+  is_dog: boolean;
+  confidence: number;
+  error?: string;
+}
+
+/**
+ * Run TFLite inference via Python subprocess.
+ * Returns null if TFLite is unavailable or fails.
+ */
+function runTFLiteInference(imageBase64: string): Promise<TFLiteResult | null> {
+  return new Promise((resolve) => {
+    const child = spawn("python3", [TFLITE_SCRIPT], {
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 15000, // 15s max
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+
+    child.on("error", (err) => {
+      resolve(null);
+    });
+
+    child.on("close", (code) => {
+      if (code !== 0 || !stdout.trim()) {
+        resolve(null);
+        return;
+      }
+      try {
+        const result = JSON.parse(stdout.trim()) as TFLiteResult;
+        if (result.error) {
+          resolve(null);
+          return;
+        }
+        resolve(result);
+      } catch {
+        resolve(null);
+      }
+    });
+
+    // Send base64 image to stdin
+    child.stdin.write(imageBase64);
+    child.stdin.end();
+  });
+}
 
 const IMGS = {
   lab: "https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=400",
@@ -1435,24 +1508,71 @@ router.post("/dogs/detect", async (req, res) => {
     // Non-HEIC formats: pass through and let OpenAI give the clearest error.
   }
 
+  // ============================================================
+  // Stage 1: Try on-device TFLite model first (fast, no API cost)
+  // ============================================================
+  let tfliteResult: TFLiteResult | null = null;
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      max_completion_tokens: 512,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${jpegBase64}`,
-                detail: "low",
+    tfliteResult = await runTFLiteInference(jpegBase64);
+    req.log?.info({
+      tfliteConfidence: tfliteResult?.top1.confidence ?? null,
+      tfliteBreedId: tfliteResult?.top1.dogdex_id ?? null,
+      tfliteIsDog: tfliteResult?.is_dog ?? null,
+    }, "TFLite inference result");
+  } catch (tfliteErr) {
+    req.log?.warn({ tfliteErr }, "TFLite inference threw — will fallback to GPT");
+  }
+
+  // If TFLite is confident and maps to a DogDex breed, return immediately
+  if (
+    tfliteResult &&
+    tfliteResult.is_dog &&
+    tfliteResult.top1.confidence >= TFLITE_CONFIDENCE_THRESHOLD &&
+    tfliteResult.top1.dogdex_id
+  ) {
+    const breed = DOG_BREEDS.find((b) => b.id === tfliteResult!.top1.dogdex_id);
+    if (breed) {
+      return res.json({
+        isDog: true,
+        breedId: breed.id,
+        breedName: breed.name,
+        confidence: tfliteResult.top1.confidence,
+        description: breed.description,
+        source: "tflite",
+      });
+    }
+  }
+
+  // ============================================================
+  // Stage 2: Fallback to GPT-5 vision (handles edge cases, new breeds, ambiguous photos)
+  // ============================================================
+  const useFallback =
+    !tfliteResult ||
+    !tfliteResult.is_dog ||
+    tfliteResult.top1.confidence < TFLITE_CONFIDENCE_THRESHOLD ||
+    !tfliteResult.top1.dogdex_id;
+
+  req.log?.info({ useFallback }, "GPT-5 fallback decision");
+
+  if (useFallback) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        max_completion_tokens: 512,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${jpegBase64}`,
+                  detail: "low",
+                },
               },
-            },
-            {
-              type: "text",
-              text: `You are a dog breed expert. Analyze this image and respond with JSON only (no markdown).
+              {
+                type: "text",
+                text: `You are a dog breed expert. Analyze this image and respond with JSON only (no markdown).
 
 If there is NO dog in the image, respond with exactly:
 {"isDog": false, "breedName": "", "confidence": 0, "description": "No dog detected in this image."}
@@ -1461,89 +1581,97 @@ If there IS a dog, identify its breed and respond with:
 {"isDog": true, "breedName": "<breed name>", "confidence": <0.0-1.0>, "description": "<one fun sentence about this breed>"}
 
 Be specific with breed names. For mixed breeds, list the most likely breeds. Confidence should reflect how certain you are.`,
-            },
-          ],
-        },
-      ],
-    });
+              },
+            ],
+          },
+        ],
+      });
 
-    const msg = response.choices[0]?.message;
-    const refusal = (msg as { refusal?: string | null })?.refusal;
-    let content = msg?.content ?? "";
-    req.log?.info({ content, refusal: refusal ?? null }, "OpenAI response");
+      const msg = response.choices[0]?.message;
+      const refusal = (msg as { refusal?: string | null })?.refusal;
+      let content = msg?.content ?? "";
+      req.log?.info({ content, refusal: refusal ?? null }, "OpenAI response");
 
-    // Model refused (content policy / refusal field set) — treat as no dog found
-    if (refusal || !content.trim()) {
+      if (refusal || !content.trim()) {
+        return res.json({
+          isDog: false,
+          breedId: "",
+          breedName: "",
+          confidence: 0,
+          description: "No dog detected in this image.",
+        });
+      }
+
+      content = content.trim();
+      if (content.startsWith("```")) {
+        content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+      }
+
+      let parsed: {
+        isDog: boolean;
+        breedName: string;
+        confidence: number;
+        description: string;
+      };
+
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        req.log?.warn({ content }, "JSON parse failed — treating as no dog");
+        return res.json({
+          isDog: false,
+          breedId: "",
+          breedName: "",
+          confidence: 0,
+          description: "Couldn't read the AI response. Please try again.",
+        });
+      }
+
+      if (!parsed.isDog) {
+        return res.json({
+          isDog: false,
+          breedId: "",
+          breedName: "",
+          confidence: 0,
+          description: parsed.description ?? "No dog detected.",
+        });
+      }
+
+      const detectedName = parsed.breedName.toLowerCase();
+      const matched = DOG_BREEDS.find((b) => {
+        return (
+          b.name.toLowerCase() === detectedName ||
+          b.name.toLowerCase().includes(detectedName) ||
+          detectedName.includes(b.name.toLowerCase()) ||
+          b.id.replace(/-/g, " ") === detectedName
+        );
+      });
+
       return res.json({
-        isDog: false,
-        breedId: "",
-        breedName: "",
-        confidence: 0,
-        description: "No dog detected in this image.",
+        isDog: true,
+        breedId: matched?.id ?? "",
+        breedName: parsed.breedName,
+        confidence: parsed.confidence,
+        description: parsed.description,
+        source: "gpt",
+      });
+    } catch (err) {
+      req.log?.error({ err }, "OpenAI API error");
+      return res.status(500).json({
+        error: "ai_error",
+        message: "Failed to analyze image",
       });
     }
-
-    // Strip markdown code fences if the model wrapped the JSON
-    content = content.trim();
-    if (content.startsWith("```")) {
-      content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-    }
-
-    let parsed: {
-      isDog: boolean;
-      breedName: string;
-      confidence: number;
-      description: string;
-    };
-
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      req.log?.warn({ content }, "JSON parse failed — treating as no dog");
-      return res.json({
-        isDog: false,
-        breedId: "",
-        breedName: "",
-        confidence: 0,
-        description: "Couldn't read the AI response. Please try again.",
-      });
-    }
-
-    if (!parsed.isDog) {
-      return res.json({
-        isDog: false,
-        breedId: "",
-        breedName: "",
-        confidence: 0,
-        description: parsed.description ?? "No dog detected.",
-      });
-    }
-
-    // Try to match to our breed list
-    const detectedName = parsed.breedName.toLowerCase();
-    const matched = DOG_BREEDS.find((b) => {
-      return (
-        b.name.toLowerCase() === detectedName ||
-        b.name.toLowerCase().includes(detectedName) ||
-        detectedName.includes(b.name.toLowerCase()) ||
-        b.id.replace(/-/g, " ") === detectedName
-      );
-    });
-
-    return res.json({
-      isDog: true,
-      breedId: matched?.id ?? "",
-      breedName: parsed.breedName,
-      confidence: parsed.confidence,
-      description: parsed.description,
-    });
-  } catch (err) {
-    req.log?.error({ err }, "OpenAI API error");
-    return res.status(500).json({
-      error: "ai_error",
-      message: "Failed to analyze image",
-    });
   }
+
+  // TFLite said no dog, and no fallback wanted — return no dog
+  return res.json({
+    isDog: false,
+    breedId: "",
+    breedName: "",
+    confidence: 0,
+    description: "No dog detected in this image.",
+  });
 });
 
 export default router;

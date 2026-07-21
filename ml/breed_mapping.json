@@ -1,0 +1,757 @@
+{
+  "stanford_to_dogdex": {
+    "0": "afghan-hound",
+    "2": "airedale-terrier",
+    "7": "bernese-mountain-dog",
+    "8": "cavalier-king-charles-spaniel",
+    "9": "border-collie",
+    "11": "boston-terrier",
+    "12": "bouvier-des-flandres",
+    "15": "welsh-corgi-cardigan",
+    "16": "chesapeake-bay-retriever",
+    "17": "chihuahua",
+    "19": "doberman-pinscher",
+    "20": "american-foxhound",
+    "21": "english-setter",
+    "22": "english-springer-spaniel",
+    "24": "siberian-husky",
+    "25": "french-bulldog",
+    "26": "german-shepherd",
+    "27": "german-shorthaired-pointer",
+    "28": "gordon-setter",
+    "29": "great-dane",
+    "31": "bernese-mountain-dog",
+    "32": "ibizan-hound",
+    "33": "irish-setter",
+    "36": "irish-wolfhound",
+    "37": "greyhound",
+    "38": "papillon",
+    "40": "labrador-retriever",
+    "42": "leonberger",
+    "44": "maltese",
+    "45": "xoloitzcuintli",
+    "46": "newfoundland",
+    "48": "norwegian-elkhound",
+    "50": "old-english-sheepdog",
+    "51": "pomeranian",
+    "52": "welsh-corgi-pembroke",
+    "53": "pomeranian",
+    "54": "rhodesian-ridgeback",
+    "55": "rottweiler",
+    "56": "saint-bernard",
+    "57": "saluki",
+    "58": "samoyed",
+    "59": "scottish-terrier",
+    "60": "irish-wolfhound",
+    "62": "shetland-sheepdog",
+    "63": "shih-tzu",
+    "64": "siberian-husky",
+    "67": "tibetan-mastiff",
+    "69": "treeing-walker-coonhound",
+    "70": "weimaraner",
+    "72": "west-highland-white-terrier",
+    "73": "yorkshire-terrier",
+    "75": "basenji",
+    "77": "beagle",
+    "79": "bloodhound",
+    "81": "greyhound",
+    "82": "boxer",
+    "84": "bullmastiff",
+    "85": "cairn-terrier",
+    "86": "chow-chow",
+    "88": "cocker-spaniel",
+    "89": "collie",
+    "92": "carolina-dog",
+    "93": "flat-coated-retriever",
+    "94": "giant-schnauzer",
+    "95": "golden-retriever",
+    "96": "belgian-malinois",
+    "97": "keeshond",
+    "98": "australian-shepherd",
+    "101": "alaskan-malamute",
+    "102": "belgian-malinois",
+    "105": "miniature-schnauzer",
+    "107": "papillon",
+    "108": "pug",
+    "111": "yorkshire-terrier",
+    "113": "poodle",
+    "114": "standard-schnauzer",
+    "115": "poodle",
+    "117": "vizsla",
+    "118": "whippet"
+  },
+  "details": [
+    {
+      "stanford_index": 0,
+      "stanford_name": "Afghan_hound",
+      "dogdex_id": "afghan-hound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 2,
+      "stanford_name": "Airedale",
+      "dogdex_id": "airedale-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 7,
+      "stanford_name": "Bernese_mountain_dog",
+      "dogdex_id": "bernese-mountain-dog",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 8,
+      "stanford_name": "Blenheim_spaniel",
+      "dogdex_id": "cavalier-king-charles-spaniel",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 9,
+      "stanford_name": "Border_collie",
+      "dogdex_id": "border-collie",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 11,
+      "stanford_name": "Boston_bull",
+      "dogdex_id": "boston-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 12,
+      "stanford_name": "Bouvier_des_Flandres",
+      "dogdex_id": "bouvier-des-flandres",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 15,
+      "stanford_name": "Cardigan",
+      "dogdex_id": "welsh-corgi-cardigan",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 16,
+      "stanford_name": "Chesapeake_Bay_retriever",
+      "dogdex_id": "chesapeake-bay-retriever",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 17,
+      "stanford_name": "Chihuahua",
+      "dogdex_id": "chihuahua",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 19,
+      "stanford_name": "Doberman",
+      "dogdex_id": "doberman-pinscher",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 20,
+      "stanford_name": "English_foxhound",
+      "dogdex_id": "american-foxhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 21,
+      "stanford_name": "English_setter",
+      "dogdex_id": "english-setter",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 22,
+      "stanford_name": "English_springer",
+      "dogdex_id": "english-springer-spaniel",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 24,
+      "stanford_name": "Eskimo_dog",
+      "dogdex_id": "siberian-husky",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 25,
+      "stanford_name": "French_bulldog",
+      "dogdex_id": "french-bulldog",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 26,
+      "stanford_name": "German_shepherd",
+      "dogdex_id": "german-shepherd",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 27,
+      "stanford_name": "German_short-haired_pointer",
+      "dogdex_id": "german-shorthaired-pointer",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 28,
+      "stanford_name": "Gordon_setter",
+      "dogdex_id": "gordon-setter",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 29,
+      "stanford_name": "Great_Dane",
+      "dogdex_id": "great-dane",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 31,
+      "stanford_name": "Greater_Swiss_Mountain_dog",
+      "dogdex_id": "bernese-mountain-dog",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 32,
+      "stanford_name": "Ibizan_hound",
+      "dogdex_id": "ibizan-hound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 33,
+      "stanford_name": "Irish_setter",
+      "dogdex_id": "irish-setter",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 36,
+      "stanford_name": "Irish_wolfhound",
+      "dogdex_id": "irish-wolfhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 37,
+      "stanford_name": "Italian_greyhound",
+      "dogdex_id": "greyhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 38,
+      "stanford_name": "Japanese_spaniel",
+      "dogdex_id": "papillon",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 40,
+      "stanford_name": "Labrador_retriever",
+      "dogdex_id": "labrador-retriever",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 42,
+      "stanford_name": "Leonberg",
+      "dogdex_id": "leonberger",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 44,
+      "stanford_name": "Maltese_dog",
+      "dogdex_id": "maltese",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 45,
+      "stanford_name": "Mexican_hairless",
+      "dogdex_id": "xoloitzcuintli",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 46,
+      "stanford_name": "Newfoundland",
+      "dogdex_id": "newfoundland",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 48,
+      "stanford_name": "Norwegian_elkhound",
+      "dogdex_id": "norwegian-elkhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 50,
+      "stanford_name": "Old_English_sheepdog",
+      "dogdex_id": "old-english-sheepdog",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 51,
+      "stanford_name": "Pekinese",
+      "dogdex_id": "pomeranian",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 52,
+      "stanford_name": "Pembroke",
+      "dogdex_id": "welsh-corgi-pembroke",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 53,
+      "stanford_name": "Pomeranian",
+      "dogdex_id": "pomeranian",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 54,
+      "stanford_name": "Rhodesian_ridgeback",
+      "dogdex_id": "rhodesian-ridgeback",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 55,
+      "stanford_name": "Rottweiler",
+      "dogdex_id": "rottweiler",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 56,
+      "stanford_name": "Saint_Bernard",
+      "dogdex_id": "saint-bernard",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 57,
+      "stanford_name": "Saluki",
+      "dogdex_id": "saluki",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 58,
+      "stanford_name": "Samoyed",
+      "dogdex_id": "samoyed",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 59,
+      "stanford_name": "Scotch_terrier",
+      "dogdex_id": "scottish-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 60,
+      "stanford_name": "Scottish_deerhound",
+      "dogdex_id": "irish-wolfhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 62,
+      "stanford_name": "Shetland_sheepdog",
+      "dogdex_id": "shetland-sheepdog",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 63,
+      "stanford_name": "Shih-Tzu",
+      "dogdex_id": "shih-tzu",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 64,
+      "stanford_name": "Siberian_husky",
+      "dogdex_id": "siberian-husky",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 67,
+      "stanford_name": "Tibetan_mastiff",
+      "dogdex_id": "tibetan-mastiff",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 69,
+      "stanford_name": "Walker_hound",
+      "dogdex_id": "treeing-walker-coonhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 70,
+      "stanford_name": "Weimaraner",
+      "dogdex_id": "weimaraner",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 72,
+      "stanford_name": "West_Highland_white_terrier",
+      "dogdex_id": "west-highland-white-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 73,
+      "stanford_name": "Yorkshire_terrier",
+      "dogdex_id": "yorkshire-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 75,
+      "stanford_name": "basenji",
+      "dogdex_id": "basenji",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 77,
+      "stanford_name": "beagle",
+      "dogdex_id": "beagle",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 79,
+      "stanford_name": "bloodhound",
+      "dogdex_id": "bloodhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 81,
+      "stanford_name": "borzoi",
+      "dogdex_id": "greyhound",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 82,
+      "stanford_name": "boxer",
+      "dogdex_id": "boxer",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 84,
+      "stanford_name": "bull_mastiff",
+      "dogdex_id": "bullmastiff",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 85,
+      "stanford_name": "cairn",
+      "dogdex_id": "cairn-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 86,
+      "stanford_name": "chow",
+      "dogdex_id": "chow-chow",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 88,
+      "stanford_name": "cocker_spaniel",
+      "dogdex_id": "cocker-spaniel",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 89,
+      "stanford_name": "collie",
+      "dogdex_id": "collie",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 92,
+      "stanford_name": "dingo",
+      "dogdex_id": "carolina-dog",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 93,
+      "stanford_name": "flat-coated_retriever",
+      "dogdex_id": "flat-coated-retriever",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 94,
+      "stanford_name": "giant_schnauzer",
+      "dogdex_id": "giant-schnauzer",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 95,
+      "stanford_name": "golden_retriever",
+      "dogdex_id": "golden-retriever",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 96,
+      "stanford_name": "groenendael",
+      "dogdex_id": "belgian-malinois",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 97,
+      "stanford_name": "keeshond",
+      "dogdex_id": "keeshond",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 98,
+      "stanford_name": "kelpie",
+      "dogdex_id": "australian-shepherd",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 101,
+      "stanford_name": "malamute",
+      "dogdex_id": "alaskan-malamute",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 102,
+      "stanford_name": "malinois",
+      "dogdex_id": "belgian-malinois",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 105,
+      "stanford_name": "miniature_schnauzer",
+      "dogdex_id": "miniature-schnauzer",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 107,
+      "stanford_name": "papillon",
+      "dogdex_id": "papillon",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 108,
+      "stanford_name": "pug",
+      "dogdex_id": "pug",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 111,
+      "stanford_name": "silky_terrier",
+      "dogdex_id": "yorkshire-terrier",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 113,
+      "stanford_name": "standard_poodle",
+      "dogdex_id": "poodle",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 114,
+      "stanford_name": "standard_schnauzer",
+      "dogdex_id": "standard-schnauzer",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 115,
+      "stanford_name": "toy_poodle",
+      "dogdex_id": "poodle",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 117,
+      "stanford_name": "vizsla",
+      "dogdex_id": "vizsla",
+      "method": "manual"
+    },
+    {
+      "stanford_index": 118,
+      "stanford_name": "whippet",
+      "dogdex_id": "whippet",
+      "method": "manual"
+    }
+  ],
+  "unmatched_stanford": [
+    {
+      "index": 1,
+      "name": "African_hunting_dog"
+    },
+    {
+      "index": 3,
+      "name": "American_Staffordshire_terrier"
+    },
+    {
+      "index": 4,
+      "name": "Appenzeller"
+    },
+    {
+      "index": 5,
+      "name": "Australian_terrier"
+    },
+    {
+      "index": 6,
+      "name": "Bedlington_terrier"
+    },
+    {
+      "index": 10,
+      "name": "Border_terrier"
+    },
+    {
+      "index": 13,
+      "name": "Brabancon_griffon"
+    },
+    {
+      "index": 14,
+      "name": "Brittany_spaniel"
+    },
+    {
+      "index": 18,
+      "name": "Dandie_Dinmont"
+    },
+    {
+      "index": 23,
+      "name": "EntleBucher"
+    },
+    {
+      "index": 30,
+      "name": "Great_Pyrenees"
+    },
+    {
+      "index": 34,
+      "name": "Irish_terrier"
+    },
+    {
+      "index": 35,
+      "name": "Irish_water_spaniel"
+    },
+    {
+      "index": 39,
+      "name": "Kerry_blue_terrier"
+    },
+    {
+      "index": 41,
+      "name": "Lakeland_terrier"
+    },
+    {
+      "index": 43,
+      "name": "Lhasa"
+    },
+    {
+      "index": 47,
+      "name": "Norfolk_terrier"
+    },
+    {
+      "index": 49,
+      "name": "Norwich_terrier"
+    },
+    {
+      "index": 61,
+      "name": "Sealyham_terrier"
+    },
+    {
+      "index": 65,
+      "name": "Staffordshire_bullterrier"
+    },
+    {
+      "index": 66,
+      "name": "Sussex_spaniel"
+    },
+    {
+      "index": 68,
+      "name": "Tibetan_terrier"
+    },
+    {
+      "index": 71,
+      "name": "Welsh_springer_spaniel"
+    },
+    {
+      "index": 74,
+      "name": "affenpinscher"
+    },
+    {
+      "index": 76,
+      "name": "basset"
+    },
+    {
+      "index": 78,
+      "name": "black-and-tan_coonhound"
+    },
+    {
+      "index": 80,
+      "name": "bluetick"
+    },
+    {
+      "index": 83,
+      "name": "briard"
+    },
+    {
+      "index": 87,
+      "name": "clumber"
+    },
+    {
+      "index": 90,
+      "name": "curly-coated_retriever"
+    },
+    {
+      "index": 91,
+      "name": "dhole"
+    },
+    {
+      "index": 99,
+      "name": "komondor"
+    },
+    {
+      "index": 100,
+      "name": "kuvasz"
+    },
+    {
+      "index": 103,
+      "name": "miniature_pinscher"
+    },
+    {
+      "index": 104,
+      "name": "miniature_poodle"
+    },
+    {
+      "index": 106,
+      "name": "otterhound"
+    },
+    {
+      "index": 109,
+      "name": "redbone"
+    },
+    {
+      "index": 110,
+      "name": "schipperke"
+    },
+    {
+      "index": 112,
+      "name": "soft-coated_wheaten_terrier"
+    },
+    {
+      "index": 116,
+      "name": "toy_terrier"
+    },
+    {
+      "index": 119,
+      "name": "wire-haired_fox_terrier"
+    }
+  ],
+  "uncovered_dogdex": [
+    "akita",
+    "alaskan-klee-kai",
+    "american-hairless-terrier",
+    "azawakh",
+    "bichon-frise",
+    "bull-terrier",
+    "bulldog",
+    "canaan-dog",
+    "cane-corso",
+    "catahoula-leopard-dog",
+    "cirneco-dell-etna",
+    "dachshund",
+    "dalmatian",
+    "finnish-spitz",
+    "havanese",
+    "korean-jindo",
+    "lagotto-romagnolo",
+    "lagotto-truffle-hunter",
+    "mastiff",
+    "miniature-bull-terrier",
+    "mudi",
+    "nova-scotia-duck-tolling-retriever",
+    "peruvian-inca-orchid",
+    "pharaoh-hound",
+    "pointer",
+    "portuguese-podengo-pequeno",
+    "portuguese-water-dog",
+    "shiba-inu",
+    "spinone-italiano",
+    "thai-ridgeback"
+  ]
+}
