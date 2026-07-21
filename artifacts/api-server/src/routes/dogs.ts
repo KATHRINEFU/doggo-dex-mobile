@@ -60,9 +60,11 @@ class TFLiteWorker {
   private queue: Array<{
     resolve: (r: TFLiteResult | null) => void;
   }> = [];
+  private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this._spawn();
+    this._startKeepalive();
   }
 
   private _spawn() {
@@ -73,9 +75,12 @@ class TFLiteWorker {
     const rl = createInterface({ input: this.child.stdout! });
     rl.on("line", (line) => {
       try {
-        const parsed = JSON.parse(line) as TFLiteResult;
+        // Skip keepalive responses — they have no queued resolver
+        const parsed = JSON.parse(line);
+        if (parsed.ping === "ok") return;
+        const parsedResult = parsed as TFLiteResult;
         const item = this.queue.shift();
-        if (item) item.resolve(parsed);
+        if (item) item.resolve(parsedResult);
       } catch {
         const item = this.queue.shift();
         if (item) item.resolve(null);
@@ -107,6 +112,16 @@ class TFLiteWorker {
       const { resolve } = this.queue.shift()!;
       resolve(result);
     }
+  }
+
+  private _startKeepalive() {
+    if (this.keepaliveTimer) return;
+    // Ping every 20s to prevent OS from paging out the 78MB model
+    this.keepaliveTimer = setInterval(() => {
+      if (this.child && this.child.stdin && !this.child.stdin.destroyed) {
+        this.child.stdin.write(JSON.stringify({ ping: true }) + "\n");
+      }
+    }, 20_000);
   }
 
   infer(imageBase64: string): Promise<TFLiteResult | null> {
@@ -1518,15 +1533,15 @@ router.post("/dogs/detect", async (req, res) => {
     if (match) mimeType = match[1];
   }
 
-  // Convert any image format (HEIC, WebP, PNG, TIFF, etc.) to JPEG using sharp.
+  // Convert any image format to JPEG. The Python model resizes to 384x384 anyway,
+  // so skip sharp's resize and just rotate + convert format.
   let jpegBase64 = imageBase64;
   const inputBuffer = Buffer.from(imageBase64, "base64");
   const t0 = Date.now();
   try {
     const jpegBuffer = await sharp(inputBuffer)
       .rotate()           // respect EXIF orientation
-      .resize({ width: 1024, withoutEnlargement: true })
-      .jpeg({ quality: 88 })
+      .toFormat("jpeg", { quality: 88 })
       .toBuffer();
     jpegBase64 = jpegBuffer.toString("base64");
     req.log?.info({ inputBytes: inputBuffer.length, outputBytes: jpegBuffer.length, ms: Date.now() - t0 }, "sharp conversion OK");

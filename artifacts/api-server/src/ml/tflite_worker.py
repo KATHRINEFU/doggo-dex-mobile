@@ -100,6 +100,11 @@ if __name__ == "__main__":
             _write_payload({"error": "Invalid JSON"})
             continue
 
+        # Keepalive ping — no model work, just keeps process warm
+        if payload.get("ping"):
+            _write_payload({"ping": "ok"})
+            continue
+
         image_b64 = payload.get("image", "")
         if not image_b64:
             _write_payload({"error": "Missing 'image' field"})
