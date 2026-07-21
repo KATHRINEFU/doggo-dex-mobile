@@ -15,7 +15,8 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { setBaseUrl } from "@workspace/api-client-react";
+import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
+import { useAuth } from "@clerk/expo";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CollectionProvider } from "@/context/CollectionContext";
@@ -42,6 +43,23 @@ setBaseUrl(_apiBase);
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+function AuthTokenProvider({ children }: { children: React.ReactNode }) {
+  const { getToken, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      setAuthTokenGetter(async () => {
+        const token = await getToken();
+        return token ?? null;
+      });
+    } else {
+      setAuthTokenGetter(null);
+    }
+  }, [isSignedIn, getToken]);
+
+  return <>{children}</>;
+}
 
 function RootLayoutNav() {
   return (
@@ -84,7 +102,9 @@ export default function RootLayout() {
                 <KeyboardProvider>
                   <CollectionProvider>
                     <ScanProvider>
-                      <RootLayoutNav />
+                      <AuthTokenProvider>
+                        <RootLayoutNav />
+                      </AuthTokenProvider>
                     </ScanProvider>
                   </CollectionProvider>
                 </KeyboardProvider>
