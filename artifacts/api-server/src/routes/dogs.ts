@@ -1610,7 +1610,7 @@ router.post("/dogs/detect", async (req, res) => {
   if (useFallback) {
     const t2 = Date.now();
     const abortCtrl = new AbortController();
-    const timeoutId = setTimeout(() => abortCtrl.abort(), 6000); // 6s max for GPT fallback
+    const timeoutId = setTimeout(() => abortCtrl.abort(), 12000); // 12s max for GPT fallback
     try {
       const response = await openai.chat.completions.create(
         {
@@ -1719,14 +1719,16 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
       });
     } catch (err) {
       clearTimeout(timeoutId);
-      if ((err as Error).name === "AbortError") {
+      const errName = (err as Error).name ?? "";
+      const isTimeout = errName === "AbortError" || errName === "APIUserAbortError";
+      if (isTimeout) {
         req.log?.warn({ gptMs: Date.now() - t2 }, "GPT fallback timed out");
         return res.json({
           isDog: false,
           breedId: "",
           breedName: "",
           confidence: 0,
-          description: "Analysis timed out. The photo was too unclear to identify.",
+          description: "Analysis took too long. Please try again with a clearer photo.",
         });
       }
       req.log?.error({ err, gptMs: Date.now() - t2 }, "OpenAI API error");
@@ -1735,7 +1737,7 @@ Be specific with breed names. For mixed breeds, list the most likely breeds. Con
         breedId: "",
         breedName: "",
         confidence: 0,
-        description: "AI analysis failed. Please try again.",
+        description: "Could not analyze the image. Please try again.",
       });
     }
   }
