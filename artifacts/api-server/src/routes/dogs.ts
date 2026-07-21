@@ -54,7 +54,7 @@ function runTFLiteInference(imageBase64: string): Promise<TFLiteResult | null> {
     child.stdout.on("data", (d) => { stdout += d; });
     child.stderr.on("data", (d) => { stderr += d; });
 
-    child.on("error", (err) => {
+    child.on("error", () => {
       resolve(null);
     });
 
@@ -75,7 +75,10 @@ function runTFLiteInference(imageBase64: string): Promise<TFLiteResult | null> {
       }
     });
 
-    // Send base64 image to stdin
+    // Send base64 image to stdin — guard against EPIPE if child crashes early
+    child.stdin.on("error", () => {
+      // child already dead, close event will resolve(null)
+    });
     child.stdin.write(imageBase64);
     child.stdin.end();
   });

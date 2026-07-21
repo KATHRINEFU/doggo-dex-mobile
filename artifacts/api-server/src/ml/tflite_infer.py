@@ -27,14 +27,19 @@ except ImportError:
     import tensorflow.lite as tflite
 
 
+_interpreter = None
+
 def load_model():
-    """Load TFLite interpreter with XNNPACK delegate."""
-    interpreter = tflite.Interpreter(
+    """Load TFLite interpreter with XNNPACK delegate (cached globally)."""
+    global _interpreter
+    if _interpreter is not None:
+        return _interpreter
+    _interpreter = tflite.Interpreter(
         model_path=MODEL_PATH,
         num_threads=2,
     )
-    interpreter.allocate_tensors()
-    return interpreter
+    _interpreter.allocate_tensors()
+    return _interpreter
 
 
 def preprocess(image_bytes):
