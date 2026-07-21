@@ -72,9 +72,8 @@ def infer(image_base64):
     interpreter.invoke()
     output = interpreter.get_tensor(output_details[0]["index"])[0]
 
-    # Softmax to probabilities
-    exp_out = np.exp(output - np.max(output))
-    probs = exp_out / np.sum(exp_out)
+    # Model includes a softmax output layer — use raw output directly as probabilities
+    probs = output
 
     # Top-5 predictions
     top5_indices = np.argsort(probs)[-5:][::-1]
