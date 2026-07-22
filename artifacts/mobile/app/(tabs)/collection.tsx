@@ -146,7 +146,7 @@ export default function CollectionScreen() {
             <View style={styles.topNav}>
               <View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.brandTitle}>DogDex</Text>
+                  <Text style={styles.brandTitle}>PawDex</Text>
                   <Feather name="maximize" size={18} color="#2C5EAD" />
                 </View>
                 <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>

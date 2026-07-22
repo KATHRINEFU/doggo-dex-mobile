@@ -203,7 +203,21 @@ export default function SignUpScreen() {
     return (
       <View style={styles.root}>
         <LinearGradient colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.card, { marginHorizontal: 24, marginTop: insets.top + 80 }]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: "center",
+              paddingHorizontal: 24,
+              paddingTop: insets.top + 24,
+              paddingBottom: insets.bottom + 24,
+            }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.card}>
           <Text style={styles.heading}>Verify your email</Text>
           <Text style={styles.sub}>We sent a code to {email}</Text>
           <Text style={styles.inputLabel}>Verification code</Text>
@@ -225,8 +239,10 @@ export default function SignUpScreen() {
           >
             <Text style={{ color: "#2C5EAD", fontFamily: "Inter_600SemiBold" }}>Resend code</Text>
           </Pressable>
-        </View>
-        <View nativeID="clerk-captcha" />
+            </View>
+            <View nativeID="clerk-captcha" />
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     );
   }
@@ -259,7 +275,7 @@ export default function SignUpScreen() {
           </Pressable>
           <Text style={styles.photoHint}>Add profile photo (optional)</Text>
 
-          <Text style={styles.title}>Start your{"\n"}DogDex journey!</Text>
+          <Text style={styles.title}>Start your{"\n"}PawDex journey!</Text>
           <Text style={styles.subtitle}>Create your trainer account to collect all 100 breeds</Text>
 
           <Pressable style={styles.socialBtn} onPress={handleGoogle}>
@@ -315,7 +331,7 @@ export default function SignUpScreen() {
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
-              placeholder="trainer@dogdex.com"
+              placeholder="trainer@pawdex.com"
               placeholderTextColor="rgba(0,0,0,0.3)"
               value={email}
               onChangeText={setEmail}

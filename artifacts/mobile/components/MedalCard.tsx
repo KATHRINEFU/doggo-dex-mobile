@@ -43,8 +43,8 @@ export function MedalCard({ medal, currentCount }: Props) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `I just earned the "${medal.name}" badge on DogDex! I've discovered ${medal.required} dog breeds. Can you beat me?`,
-        title: "DogDex Badge",
+        message: `I just earned the "${medal.name}" badge on PawDex! I've discovered ${medal.required} dog breeds. Can you beat me?`,
+        title: "PawDex Badge",
       });
     } catch {}
   };

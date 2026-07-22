@@ -154,7 +154,7 @@ export default function HomeScreen() {
             <Text style={styles.trainerLevel}>
               {user
                 ? `Lv. ${trainerLevel} ${user.firstName || "Trainer"}`
-                : `Lv. ${trainerLevel} DogDex Trainer`}
+                : `Lv. ${trainerLevel} PawDex Trainer`}
             </Text>
           </View>
         </BlurView>

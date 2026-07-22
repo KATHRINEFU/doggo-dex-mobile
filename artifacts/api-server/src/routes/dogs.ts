@@ -1595,7 +1595,7 @@ router.post("/dogs/detect", async (req, res) => {
     req.log?.warn({ tfliteErr, ms: Date.now() - t1 }, "TFLite inference threw — will fallback to GPT");
   }
 
-  // If TFLite is confident and maps to a DogDex breed, return immediately
+  // If TFLite is confident and maps to a PawDex breed, return immediately
   if (
     tfliteResult &&
     tfliteResult.is_dog &&

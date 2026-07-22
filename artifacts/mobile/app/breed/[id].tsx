@@ -265,7 +265,7 @@ export default function BreedDetailScreen() {
               <Feather name="check-circle" size={20} color={rarityColor} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.statusTitle, { color: rarityColor }]}>
-                  In Your DogDex
+                  In Your PawDex
                 </Text>
                 <View style={styles.statsRow}>
                   <View

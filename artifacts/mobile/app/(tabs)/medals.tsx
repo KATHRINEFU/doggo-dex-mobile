@@ -46,7 +46,7 @@ export default function ProfileScreen() {
         <View style={styles.titleRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Field Journal</Text>
-            <Text style={styles.subtitle}>Your DogDex adventure log</Text>
+            <Text style={styles.subtitle}>Your PawDex adventure log</Text>
           </View>
           <Pressable
             style={styles.settingsBtn}
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionLabel, { marginTop: 8 }]}>FIELD NOTES</Text>
         <View style={styles.card}>
           {[
-            "Photos with 70%+ confidence are auto-added to your DogDex.",
+            "Photos with 70%+ confidence are auto-added to your PawDex.",
             "Legendary breeds need dedicated hunting — try dog shows!",
             "Snap one dog a day to build your discovery streak.",
             "Clear, bright photos give the best breed detection.",

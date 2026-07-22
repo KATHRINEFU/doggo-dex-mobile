@@ -38,7 +38,7 @@ const domain: string =
   "";
 
 const _apiBase = domain ? `https://${domain}` : "";
-console.log("[DogDex] API base URL:", _apiBase, "| Clerk key present:", !!publishableKey);
+console.log("[PawDex] API base URL:", _apiBase, "| Clerk key present:", !!publishableKey);
 setBaseUrl(_apiBase);
 
 SplashScreen.preventAutoHideAsync();
@@ -95,7 +95,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null;
 
   if (!publishableKey) {
-    console.error("[DogDex] CLERK_PUBLISHABLE_KEY is not set — auth will not work.");
+    console.error("[PawDex] CLERK_PUBLISHABLE_KEY is not set — auth will not work.");
   }
 
   return (

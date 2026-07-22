@@ -122,7 +122,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     const logTiming = (label: string) => {
       const ms = Date.now() - clientStart;
       // eslint-disable-next-line no-console
-      console.log(`[DogDex] ${label}: ${ms}ms`);
+      console.log(`[PawDex] ${label}: ${ms}ms`);
     };
     try {
       let asset: ImagePicker.ImagePickerAsset | null = null;
@@ -307,7 +307,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       setMatchedBreed(found);
       logTiming("result ready");
 
-      // Breed is NOT auto-collected — user taps "Save to DogDex" in the modal.
+      // Breed is NOT auto-collected — user taps "Save to PawDex" in the modal.
 
       setModalVisible(true);
     } catch (err) {

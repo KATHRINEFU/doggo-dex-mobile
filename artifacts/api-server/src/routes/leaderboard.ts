@@ -44,6 +44,25 @@ router.post("/users/sync", async (req, res) => {
   }
 
   try {
+    // Check username uniqueness (globally) — case-insensitive
+    const normalized = username.toLowerCase();
+    const nameTaken = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          sql`LOWER(${usersTable.username}) = ${normalized}`,
+          sql`${usersTable.clerkId} != ${clerkId}`,
+        ),
+      )
+      .limit(1);
+    if (nameTaken.length > 0) {
+      return res.status(409).json({
+        error: "username_taken",
+        message: `The username "${username}" is already taken. Please pick another one.`,
+      });
+    }
+
     // Upsert: insert if new, update if exists
     const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId)).limit(1);
 

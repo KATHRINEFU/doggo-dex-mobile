@@ -1,7 +1,7 @@
 module.exports = {
   expo: {
-    name: "DogDex",
-    slug: "mobile",
+    name: "PawDex",
+    slug: "pawdex",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -14,13 +14,13 @@ module.exports = {
       backgroundColor: "#0A1628",
     },
     ios: {
-      bundleIdentifier: "com.dogdex.app",
+      bundleIdentifier: "com.pawdex.app",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
-          "DogDex uses your camera to take photos of dogs for breed detection.",
+          "PawDex uses your camera to take photos of dogs for breed detection.",
         NSPhotoLibraryUsageDescription:
-          "DogDex accesses your photo library so you can pick dog photos for breed detection.",
+          "PawDex accesses your photo library so you can pick dog photos for breed detection.",
       },
     },
     android: {
@@ -49,14 +49,14 @@ module.exports = {
         "expo-image-picker",
         {
           photosPermission:
-            "DogDex accesses your photos to identify dog breeds.",
-          cameraPermission: "DogDex uses your camera to take photos of dogs.",
+            "PawDex accesses your photos to identify dog breeds.",
+          cameraPermission: "PawDex uses your camera to take photos of dogs.",
         },
       ],
       [
         "expo-camera",
         {
-          cameraPermission: "DogDex uses your camera for the AR background and to scan dog breeds.",
+          cameraPermission: "PawDex uses your camera for the AR background and to scan dog breeds.",
           microphonePermission: false,
         },
       ],

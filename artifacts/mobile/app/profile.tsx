@@ -155,7 +155,7 @@ export default function ProfileScreen() {
             </Pressable>
             <Text style={styles.displayName}>{displayName}</Text>
             <View style={styles.levelBadge}>
-              <Text style={styles.levelText}>Lv. {trainerLevel} DogDex Trainer</Text>
+              <Text style={styles.levelText}>Lv. {trainerLevel} PawDex Trainer</Text>
             </View>
             {user?.emailAddresses?.[0]?.emailAddress && (
               <Text style={styles.email}>{user.emailAddresses[0].emailAddress}</Text>

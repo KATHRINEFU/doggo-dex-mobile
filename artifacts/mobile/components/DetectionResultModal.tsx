@@ -283,7 +283,7 @@ export function DetectionResultModal({
                         { color: RARITY_COLORS[breed?.rarity ?? ""] ?? colors.primary },
                       ]}
                     >
-                      Already in your DogDex!
+                      Already in your PawDex!
                     </Text>
                     <Text style={[styles.bannerSub, { color: colors.mutedForeground }]}>
                       Spotted again — keep exploring!
@@ -298,7 +298,7 @@ export function DetectionResultModal({
                   ]}
                   onPress={onCollect}
                 >
-                  <Text style={styles.collectBtnText}>Save to DogDex</Text>
+                  <Text style={styles.collectBtnText}>Save to PawDex</Text>
                   <Feather name="chevron-right" size={20} color="#fff" />
                 </TouchableOpacity>
               )}
