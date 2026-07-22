@@ -28,7 +28,7 @@ try:
 except ImportError:
     import tensorflow.lite as tflite
 
-_interpreter = tflite.Interpreter(model_path=MODEL_PATH, num_threads=2)
+_interpreter = tflite.Interpreter(model_path=MODEL_PATH, num_threads=4)
 _interpreter.allocate_tensors()
 _input_details = _interpreter.get_input_details()
 _output_details = _interpreter.get_output_details()

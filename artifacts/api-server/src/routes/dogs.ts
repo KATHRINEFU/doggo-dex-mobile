@@ -1535,10 +1535,16 @@ router.post("/dogs/detect", async (req, res) => {
 
   // Convert any image format to JPEG. The Python model resizes to 384x384 anyway,
   // so skip sharp's resize and just rotate + convert format.
+  // Optimisation: if the client already sent a JPEG (the common case from mobile),
+  // skip the re-encode entirely — it adds ~100 ms for zero quality gain.
   let jpegBase64 = imageBase64;
   const inputBuffer = Buffer.from(imageBase64, "base64");
   const t0 = Date.now();
-  try {
+  const isJpeg = mimeType === "image/jpeg" || mimeType === "image/jpg";
+  if (isJpeg) {
+    req.log?.info({ inputBytes: inputBuffer.length, ms: 0 }, "sharp skipped (already JPEG)");
+  }
+  if (!isJpeg) try {
     const jpegBuffer = await sharp(inputBuffer)
       .rotate()           // respect EXIF orientation
       .toFormat("jpeg", { quality: 88 })
