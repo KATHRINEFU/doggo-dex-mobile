@@ -14,6 +14,7 @@ module.exports = {
       backgroundColor: "#0A1628",
     },
     ios: {
+      bundleIdentifier: "com.dogdex.app",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
