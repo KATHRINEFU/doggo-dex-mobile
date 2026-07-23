@@ -40,12 +40,22 @@ export default function ProfileScreen() {
 
   const handleSaveName = async () => {
     if (!user) return;
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+
+    // Nothing changed — just close the editor
+    if (trimmedFirst === (user.firstName ?? "") && trimmedLast === (user.lastName ?? "")) {
+      setEditingName(false);
+      return;
+    }
+
     setSaving(true);
     try {
-      await user.update({ firstName: firstName.trim(), lastName: lastName.trim() });
+      await user.update({ firstName: trimmedFirst, lastName: trimmedLast });
       setEditingName(false);
     } catch (e: any) {
-      const msg = e?.errors?.[0]?.longMessage ?? "Failed to update name. Please try again.";
+      console.error("Display name update failed:", e);
+      const msg = e?.errors?.[0]?.longMessage ?? e?.message ?? "Failed to update name. Please try again.";
       Alert.alert("Error", msg);
     } finally {
       setSaving(false);
