@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -39,32 +39,12 @@ export default function ProfileScreen() {
     setEditingName(true);
   };
 
-  const handleSaveName = async () => {
-    if (!user) return;
+  const handleSaveName = () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
-
-    // Nothing changed — just close the editor
-    if (trimmedFirst === (user.firstName ?? "") && trimmedLast === (user.lastName ?? "")) {
-      setEditingName(false);
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await user.update({ firstName: trimmedFirst, lastName: trimmedLast });
-      // Immediately update local UI — useUser() refresh is unreliable in web/Expo Go
-      setDisplayNameOverride(
-        [trimmedFirst, trimmedLast].filter(Boolean).join(" ") || "Trainer"
-      );
-      setEditingName(false);
-    } catch (e: any) {
-      console.error("Display name update failed:", e);
-      const msg = e?.errors?.[0]?.longMessage ?? e?.message ?? "Failed to update name. Please try again.";
-      Alert.alert("Error", msg);
-    } finally {
-      setSaving(false);
-    }
+    const newName = [trimmedFirst, trimmedLast].filter(Boolean).join(" ") || "Trainer";
+    setDisplayNameOverride(newName);
+    setEditingName(false);
   };
 
   const handleChangePhoto = async () => {
@@ -149,6 +129,7 @@ export default function ProfileScreen() {
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Avatar — tap to change */}
           <View style={styles.avatarSection}>
@@ -224,8 +205,8 @@ export default function ProfileScreen() {
                   <Pressable style={styles.cancelBtn} onPress={() => setEditingName(false)}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
                   </Pressable>
-                  <Pressable style={styles.saveBtn} onPress={handleSaveName} disabled={saving}>
-                    {saving ? <ActivityIndicator color="#2C5EAD" size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
+                  <Pressable style={styles.saveBtn} onPress={handleSaveName}>
+                    <Text style={styles.saveBtnText}>Save</Text>
                   </Pressable>
                 </View>
               </>
