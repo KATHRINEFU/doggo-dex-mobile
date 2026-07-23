@@ -36,6 +36,11 @@ module.exports = {
     web: {
       favicon: "./assets/images/icon.png",
     },
+    assets: [
+      "./assets/ml/dog_breed_classifier.tflite",
+      "./assets/ml/labels.json",
+      "./assets/ml/breed_index_to_id.json",
+    ],
     plugins: [
       [
         "expo-router",
