@@ -31,6 +31,29 @@ const TFLITE_WORKER = path.join(__dirname, "ml/tflite_worker.py");
 // Confidence thresholds for TFLite → GPT fallback
 const TFLITE_CONFIDENCE_THRESHOLD = 0.35;
 
+// Hugging Face Space inference endpoint (optional — falls back to local TFLite if unset)
+const HF_SPACE_URL = process.env["HF_SPACE_URL"];
+const HF_INFERENCE_API_KEY = process.env["HF_INFERENCE_API_KEY"] ?? "";
+
+async function callHFSpaceInference(imageBase64: string): Promise<TFLiteResult | null> {
+  if (!HF_SPACE_URL) return null;
+  const url = HF_SPACE_URL.replace(/\/$/, "") + "/detect";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": HF_INFERENCE_API_KEY,
+    },
+    body: JSON.stringify({ imageBase64 }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HF Space returned ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<TFLiteResult>;
+}
+
 interface TFLiteResult {
   top1: {
     stanford_index: number;
@@ -1579,20 +1602,32 @@ router.post("/dogs/detect", async (req, res) => {
   }
 
   // ============================================================
-  // Stage 1: Try on-device TFLite model first (fast, no API cost)
+  // Stage 1: TFLite inference — HF Space if configured, else local
   // ============================================================
   let tfliteResult: TFLiteResult | null = null;
   const t1 = Date.now();
   try {
-    tfliteResult = await runTFLiteInference(jpegBase64);
-    req.log?.info({
-      ms: Date.now() - t1,
-      tfliteConfidence: tfliteResult?.top1.confidence ?? null,
-      tfliteBreedId: tfliteResult?.top1.dogdex_id ?? null,
-      tfliteIsDog: tfliteResult?.is_dog ?? null,
-    }, "TFLite inference result");
-  } catch (tfliteErr) {
-    req.log?.warn({ tfliteErr, ms: Date.now() - t1 }, "TFLite inference threw — will fallback to GPT");
+    if (HF_SPACE_URL) {
+      tfliteResult = await callHFSpaceInference(jpegBase64);
+      req.log?.info({
+        ms: Date.now() - t1,
+        source: "hf-space",
+        tfliteConfidence: tfliteResult?.top1.confidence ?? null,
+        tfliteBreedId: tfliteResult?.top1.dogdex_id ?? null,
+        tfliteIsDog: tfliteResult?.is_dog ?? null,
+      }, "HF Space inference result");
+    } else {
+      tfliteResult = await runTFLiteInference(jpegBase64);
+      req.log?.info({
+        ms: Date.now() - t1,
+        source: "local-tflite",
+        tfliteConfidence: tfliteResult?.top1.confidence ?? null,
+        tfliteBreedId: tfliteResult?.top1.dogdex_id ?? null,
+        tfliteIsDog: tfliteResult?.is_dog ?? null,
+      }, "Local TFLite inference result");
+    }
+  } catch (inferErr) {
+    req.log?.warn({ inferErr, ms: Date.now() - t1, source: HF_SPACE_URL ? "hf-space" : "local-tflite" }, "Inference threw — falling back to GPT");
   }
 
   // If TFLite is confident and maps to a PawDex breed, return immediately
