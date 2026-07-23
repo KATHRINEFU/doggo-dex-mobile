@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [displayNameOverride, setDisplayNameOverride] = useState<string | null>(null);
 
   const startEditing = () => {
     setFirstName(user?.firstName ?? "");
@@ -52,7 +53,10 @@ export default function ProfileScreen() {
     setSaving(true);
     try {
       await user.update({ firstName: trimmedFirst, lastName: trimmedLast });
-      await user.reload(); // refresh so useUser() picks up the new name
+      // Immediately update local UI — useUser() refresh is unreliable in web/Expo Go
+      setDisplayNameOverride(
+        [trimmedFirst, trimmedLast].filter(Boolean).join(" ") || "Trainer"
+      );
       setEditingName(false);
     } catch (e: any) {
       console.error("Display name update failed:", e);
@@ -108,12 +112,13 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const displayName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-      user.username ||
-      user.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
-      "Trainer"
-    : "Trainer";
+  const displayName = displayNameOverride
+    ?? (user
+      ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+        user.username ||
+        user.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
+        "Trainer"
+      : "Trainer");
 
   const trainerLevel = Math.floor(collectionCount / 5) + 1;
 
