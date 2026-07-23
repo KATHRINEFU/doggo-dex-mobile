@@ -170,7 +170,7 @@ export default function ProfileScreen() {
               { icon: "sun", value: String(streak), label: "Streak" },
             ].map((s) => (
               <View key={s.label} style={styles.statCard}>
-                <Feather name={s.icon as any} size={18} color="#94A3B8" />
+                <Feather name={s.icon as any} size={18} color="rgba(255,255,255,0.85)" />
                 <Text style={styles.statValue}>{s.value}</Text>
                 <Text style={styles.statLabel}>{s.label}</Text>
               </View>

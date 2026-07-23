@@ -99,7 +99,7 @@ export default function ProfileScreen() {
             { icon: "map-pin", value: rarityBreakdown[0].count > 0 ? "Yes!" : "Not yet", label: "Legendary found" },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
-              <Text style={styles.statIcon}>{s.icon}</Text>
+              <Feather name={s.icon as any} size={22} color="rgba(255,255,255,0.85)" />
               <Text style={styles.statValue}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
             </View>
@@ -205,7 +205,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  statIcon: { fontSize: 24 },
   statValue: { fontFamily: "Georgia", fontSize: 20, color: "#FFFFFF" },
   statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, textAlign: "center", color: "rgba(255,255,255,0.65)" },
 
