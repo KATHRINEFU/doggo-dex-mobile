@@ -159,11 +159,13 @@ export default function HomeScreen() {
           </View>
         </BlurView>
 
-        <Image
-          source={require("@/assets/images/logo.png")}
-          style={styles.logoImage}
-          contentFit="contain"
-        />
+        <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
+          <Image
+            source={require("@/assets/images/logo.png")}
+            style={styles.logoImage}
+            contentFit="contain"
+          />
+        </Pressable>
       </View>
 
       {/* Dog encounter */}

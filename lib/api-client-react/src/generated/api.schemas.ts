@@ -97,6 +97,16 @@ export interface DetectBreedResult {
   source?: DetectBreedResultSource;
 }
 
+export interface MyProfile {
+  username: string;
+  displayName?: string | null;
+  country: string;
+  countryFlag: string;
+  collectionCount: number;
+  xp: number;
+  avatarUrl?: string | null;
+}
+
 export interface SyncUserRequest {
   /** @maxLength 50 */
   username: string;

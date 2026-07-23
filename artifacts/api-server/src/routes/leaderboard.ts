@@ -100,6 +100,37 @@ router.post("/users/sync", async (req, res) => {
 });
 
 /**
+ * GET /users/me
+ * Returns the current user's stored profile (displayName, country, etc.)
+ */
+router.get("/users/me", async (req, res) => {
+  const auth = getAuth(req);
+  const clerkId = auth?.userId;
+  if (!clerkId) {
+    return res.status(401).json({ error: "unauthorized", message: "Sign in required" });
+  }
+  try {
+    const rows = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId)).limit(1);
+    if (rows.length === 0) {
+      return res.json(null);
+    }
+    const u = rows[0];
+    return res.json({
+      username: u.username,
+      displayName: u.displayName ?? null,
+      country: u.country,
+      countryFlag: u.countryFlag,
+      collectionCount: u.collectionCount,
+      xp: u.xp,
+      avatarUrl: u.avatarUrl ?? null,
+    });
+  } catch (err) {
+    req.log?.error({ err }, "Failed to fetch user profile");
+    return res.status(500).json({ error: "db_error", message: "Failed to fetch profile" });
+  }
+});
+
+/**
  * PATCH /users/display-name
  * Updates only the display name for the authenticated user.
  */

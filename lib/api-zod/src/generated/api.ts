@@ -115,6 +115,21 @@ export const DetectDogBreedResponse = zod.object({
 
 
 /**
+ * Returns the authenticated user's profile from the database
+ * @summary Get current user's stored profile
+ */
+export const GetMyProfileResponse = zod.object({
+  "username": zod.string(),
+  "displayName": zod.string().nullish(),
+  "country": zod.string(),
+  "countryFlag": zod.string(),
+  "collectionCount": zod.number(),
+  "xp": zod.number(),
+  "avatarUrl": zod.string().nullish()
+})
+
+
+/**
  * Creates or updates the user's profile with country and username
  * @summary Sync user profile after registration
  */

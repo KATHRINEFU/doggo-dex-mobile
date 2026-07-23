@@ -17,5 +17,6 @@ export * from './errorResponse';
 export * from './getLeaderboardParams';
 export * from './healthStatus';
 export * from './leaderboardEntry';
+export * from './myProfile';
 export * from './successResponse';
 export * from './syncUserRequest';

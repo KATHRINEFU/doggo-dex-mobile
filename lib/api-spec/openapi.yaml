@@ -104,6 +104,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /users/me:
+    get:
+      operationId: getMyProfile
+      tags: [users]
+      summary: Get current user's stored profile
+      description: Returns the authenticated user's profile from the database
+      responses:
+        "200":
+          description: User profile (null if not yet synced)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /users/sync:
     post:
       operationId: syncUser
@@ -327,6 +347,32 @@ components:
         - confidence
         - description
         - isDog
+
+    MyProfile:
+      type: object
+      properties:
+        username:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        country:
+          type: string
+        countryFlag:
+          type: string
+        collectionCount:
+          type: integer
+        xp:
+          type: integer
+        avatarUrl:
+          type: string
+          nullable: true
+      required:
+        - username
+        - country
+        - countryFlag
+        - collectionCount
+        - xp
 
     SyncUserRequest:
       type: object
