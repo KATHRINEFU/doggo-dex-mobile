@@ -13,7 +13,7 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import { useClerk, useUser } from "@clerk/expo";
+import { useClerk, useUser, useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { collectionCount, xp, streak } = useCollection();
+  const { getToken } = useAuth();
 
   const [editingName, setEditingName] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -46,13 +47,29 @@ export default function ProfileScreen() {
     // Optimistic: update UI immediately
     setDisplayNameOverride(newName);
     setEditingName(false);
-    // Persist to Clerk in background
+    // Persist to Clerk + backend in background
     try {
       await user?.update({ firstName: trimmedFirst, lastName: trimmedLast });
-      // On success clear the override — Clerk now has the source of truth
       setDisplayNameOverride(null);
     } catch {
-      // Keep the local override so the UI stays correct even if Clerk call failed
+      // Keep local override if Clerk call failed
+    }
+    // Sync display name to backend so leaderboard shows it
+    try {
+      const token = await getToken();
+      const apiBase = process.env.EXPO_PUBLIC_DOMAIN
+        ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
+        : "";
+      await fetch(`${apiBase}/api/users/display-name`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ displayName: newName }),
+      });
+    } catch {
+      // Non-critical — leaderboard will show username as fallback
     }
   };
 

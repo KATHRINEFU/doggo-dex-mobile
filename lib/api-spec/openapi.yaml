@@ -334,6 +334,9 @@ components:
         username:
           type: string
           maxLength: 50
+        displayName:
+          type: string
+          maxLength: 100
         country:
           type: string
           maxLength: 100
@@ -371,6 +374,9 @@ components:
           type: string
         username:
           type: string
+        displayName:
+          type: string
+          nullable: true
         country:
           type: string
         countryFlag:

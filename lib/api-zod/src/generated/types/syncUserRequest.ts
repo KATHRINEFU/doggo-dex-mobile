@@ -10,6 +10,8 @@ export interface SyncUserRequest {
   /** @maxLength 50 */
   username: string;
   /** @maxLength 100 */
+  displayName?: string;
+  /** @maxLength 100 */
   country: string;
   /** @maxLength 10 */
   countryFlag?: string;

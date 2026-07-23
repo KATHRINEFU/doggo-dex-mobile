@@ -46,7 +46,7 @@ function LeaderboardRow({
         ) : (
           <View style={styles.avatarFallback}>
             <Text style={styles.avatarLetter}>
-              {item.username.charAt(0).toUpperCase()}
+              {(item.displayName ?? item.username).charAt(0).toUpperCase()}
             </Text>
           </View>
         )}
@@ -54,7 +54,7 @@ function LeaderboardRow({
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
-          {item.username} {isMe && <Text style={styles.youBadge}>YOU</Text>}
+          {item.displayName ?? item.username} {isMe && <Text style={styles.youBadge}>YOU</Text>}
         </Text>
         <Text style={styles.country}>{item.countryFlag} {item.country}</Text>
       </View>

@@ -10,6 +10,7 @@ export interface LeaderboardEntry {
   rank: number;
   clerkId: string;
   username: string;
+  displayName?: string | null;
   country: string;
   countryFlag: string;
   collectionCount: number;

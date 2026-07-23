@@ -10,6 +10,7 @@ export const usersTable = pgTable("users", {
   countryFlag: text("country_flag").notNull().default(""),
   collectionCount: integer("collection_count").notNull().default(0),
   xp: integer("xp").notNull().default(0),
+  displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

@@ -101,6 +101,8 @@ export interface SyncUserRequest {
   /** @maxLength 50 */
   username: string;
   /** @maxLength 100 */
+  displayName?: string;
+  /** @maxLength 100 */
   country: string;
   /** @maxLength 10 */
   countryFlag?: string;
@@ -123,6 +125,7 @@ export interface LeaderboardEntry {
   rank: number;
   clerkId: string;
   username: string;
+  displayName?: string | null;
   country: string;
   countryFlag: string;
   collectionCount: number;

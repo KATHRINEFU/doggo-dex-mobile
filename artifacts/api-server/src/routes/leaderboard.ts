@@ -29,12 +29,14 @@ router.post("/users/sync", async (req, res) => {
 
   const body = req.body as {
     username?: string;
+    displayName?: string;
     country?: string;
     countryFlag?: string;
     avatarUrl?: string;
   };
 
   const username = typeof body.username === "string" ? body.username.trim() : "";
+  const displayName = typeof body.displayName === "string" ? body.displayName.trim().slice(0, 100) : undefined;
   const country = typeof body.country === "string" ? body.country.trim() : "";
   const countryFlag = typeof body.countryFlag === "string" ? body.countryFlag.trim() : "";
   const avatarUrl = typeof body.avatarUrl === "string" && isValidUrl(body.avatarUrl) ? body.avatarUrl : undefined;
@@ -71,6 +73,7 @@ router.post("/users/sync", async (req, res) => {
         .update(usersTable)
         .set({
           username,
+          displayName: displayName ?? existing[0].displayName,
           country,
           countryFlag,
           avatarUrl: avatarUrl ?? existing[0].avatarUrl,
@@ -81,6 +84,7 @@ router.post("/users/sync", async (req, res) => {
       await db.insert(usersTable).values({
         clerkId,
         username,
+        displayName: displayName ?? null,
         country,
         countryFlag,
         avatarUrl: avatarUrl ?? null,
@@ -92,6 +96,34 @@ router.post("/users/sync", async (req, res) => {
   } catch (err) {
     req.log?.error({ err }, "User sync failed");
     return res.status(500).json({ error: "db_error", message: "Failed to save user" });
+  }
+});
+
+/**
+ * PATCH /users/display-name
+ * Updates only the display name for the authenticated user.
+ */
+router.patch("/users/display-name", async (req, res) => {
+  const auth = getAuth(req);
+  const clerkId = auth?.userId;
+  if (!clerkId) {
+    return res.status(401).json({ error: "unauthorized", message: "Sign in required" });
+  }
+
+  const displayName = typeof req.body?.displayName === "string"
+    ? req.body.displayName.trim().slice(0, 100)
+    : null;
+
+  try {
+    await db
+      .update(usersTable)
+      .set({ displayName, updatedAt: new Date() })
+      .where(eq(usersTable.clerkId, clerkId));
+
+    return res.json({ success: true });
+  } catch (err) {
+    req.log?.error({ err }, "Display name update failed");
+    return res.status(500).json({ error: "db_error", message: "Failed to update display name" });
   }
 });
 
@@ -162,6 +194,7 @@ router.get("/leaderboard", async (req, res) => {
       rank: index + 1,
       clerkId: user.clerkId,
       username: user.username,
+      displayName: user.displayName ?? null,
       country: user.country,
       countryFlag: user.countryFlag,
       collectionCount: user.collectionCount,

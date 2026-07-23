@@ -78,9 +78,11 @@ export default function SignUpScreen() {
         }
         // Sync user profile to backend with country
         try {
+          const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || undefined;
           await syncUserMutation.mutateAsync({
             data: {
               username: username || user.username || "Trainer",
+              displayName: fullName,
               country: countryName,
               countryFlag: countryCode,
               avatarUrl: photoUri || undefined,

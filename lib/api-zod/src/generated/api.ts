@@ -120,6 +120,8 @@ export const DetectDogBreedResponse = zod.object({
  */
 export const syncUserBodyUsernameMax = 50;
 
+export const syncUserBodyDisplayNameMax = 100;
+
 export const syncUserBodyCountryMax = 100;
 
 export const syncUserBodyCountryFlagMax = 10;
@@ -128,6 +130,7 @@ export const syncUserBodyCountryFlagMax = 10;
 
 export const SyncUserBody = zod.object({
   "username": zod.string().max(syncUserBodyUsernameMax),
+  "displayName": zod.string().max(syncUserBodyDisplayNameMax).optional(),
   "country": zod.string().max(syncUserBodyCountryMax),
   "countryFlag": zod.string().max(syncUserBodyCountryFlagMax).optional(),
   "avatarUrl": zod.string().url().optional()
@@ -175,6 +178,7 @@ export const GetLeaderboardResponseItem = zod.object({
   "rank": zod.number(),
   "clerkId": zod.string(),
   "username": zod.string(),
+  "displayName": zod.string().nullish(),
   "country": zod.string(),
   "countryFlag": zod.string(),
   "collectionCount": zod.number(),
