@@ -22,8 +22,9 @@ import { CountryPickerModal, type CountryOption } from "@/components/CountryPick
 import {
   useGetMyProfile,
   useSyncUser,
-  setBaseUrl,
+  getGetLeaderboardQueryKey,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function ProfileScreen() {
   const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
 
   const syncUser = useSyncUser();
+  const queryClient = useQueryClient();
 
   const apiBase = process.env.EXPO_PUBLIC_DOMAIN
     ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
@@ -110,6 +112,8 @@ export default function ProfileScreen() {
         ?.update({ firstName: trimmedFirst, lastName: trimmedLast })
         .catch(() => {});
       refetchProfile();
+      // Bust leaderboard cache so rank tab shows new name immediately
+      queryClient.invalidateQueries({ queryKey: getGetLeaderboardQueryKey() });
     } catch {
       // keep optimistic override, user sees the new name even if save failed
     } finally {
@@ -129,6 +133,7 @@ export default function ProfileScreen() {
         },
       });
       refetchProfile();
+      queryClient.invalidateQueries({ queryKey: getGetLeaderboardQueryKey() });
     } catch {
       Alert.alert("Error", "Failed to update country. Please try again.");
     }
