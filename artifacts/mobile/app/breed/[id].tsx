@@ -403,7 +403,7 @@ export default function BreedDetailScreen() {
             : "Discover this breed to unlock its field notes."}
         </Text>
 
-        {/* ── Dex entry cards (personality / humanJob / coffeeOrder) ── */}
+        {/* ── Dex entry cards (personality / career / origin) ── */}
         {collected && (
           <>
             <SectionHeading label="DEX ENTRIES" color={rarityColor} />
@@ -419,7 +419,7 @@ export default function BreedDetailScreen() {
               />
               <DexCard
                 icon="briefcase"
-                label="Human Job"
+                label="Career"
                 value={breed.humanJob}
                 accent={rarityColor}
                 cardBg={colors.card}
@@ -427,9 +427,9 @@ export default function BreedDetailScreen() {
                 fgColor={colors.foreground}
               />
               <DexCard
-                icon="coffee"
-                label="Coffee Order"
-                value={breed.coffeeOrder}
+                icon="map-pin"
+                label="Origin"
+                value={breed.origin}
                 accent={rarityColor}
                 cardBg={colors.card}
                 mutedColor={colors.mutedForeground}
@@ -453,7 +453,7 @@ export default function BreedDetailScreen() {
               />
               <StatChip
                 icon="home"
-                label="Apartment"
+                label="Living Space"
                 value={breed.apartmentFriendly}
                 color="#34D399"
                 mutedColor={colors.mutedForeground}
@@ -482,7 +482,7 @@ export default function BreedDetailScreen() {
             ]}
           >
             {[
-              { label: "Origin", value: breed.origin },
+              { label: "Group", value: breed.group },
               {
                 label: "Size",
                 value:
