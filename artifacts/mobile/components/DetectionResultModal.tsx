@@ -176,6 +176,14 @@ export function DetectionResultModal({
               {breed && (
                 <View style={styles.dexRow}>
                   <GlassDexCard
+                    icon="heart"
+                    label="Character"
+                    value={breed.temperament}
+                    accentColor={rarityColor}
+                    mutedColor={colors.mutedForeground}
+                    fgColor={colors.foreground}
+                  />
+                  <GlassDexCard
                     icon="smile"
                     label="Personality"
                     value={breed.personality}
@@ -185,16 +193,8 @@ export function DetectionResultModal({
                   />
                   <GlassDexCard
                     icon="briefcase"
-                    label="If human…"
+                    label="HUMAN JOB"
                     value={breed.humanJob}
-                    accentColor={rarityColor}
-                    mutedColor={colors.mutedForeground}
-                    fgColor={colors.foreground}
-                  />
-                  <GlassDexCard
-                    icon="coffee"
-                    label="Coffee Order"
-                    value={breed.coffeeOrder}
                     accentColor={rarityColor}
                     mutedColor={colors.mutedForeground}
                     fgColor={colors.foreground}
@@ -214,7 +214,7 @@ export function DetectionResultModal({
                   />
                   <StatChip
                     icon="home"
-                    label="Apartment"
+                    label="Space Fit"
                     value={breed.apartmentFriendly}
                     color="#34D399"
                     mutedColor={colors.mutedForeground}
@@ -263,33 +263,6 @@ export function DetectionResultModal({
                     Breed not in our database yet
                   </Text>
                 </View>
-              ) : alreadyCollected ? (
-                <View
-                  style={[
-                    styles.bannerRow,
-                    {
-                      backgroundColor: `${RARITY_COLORS[breed?.rarity ?? ""] ?? colors.primary}15`,
-                      borderColor: `${RARITY_COLORS[breed?.rarity ?? ""] ?? colors.primary}40`,
-                      borderRadius: 14,
-                      borderWidth: 1,
-                    },
-                  ]}
-                >
-                  <Feather name="check-circle" size={20} color={RARITY_COLORS[breed?.rarity ?? ""] ?? colors.primary} />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        styles.bannerText,
-                        { color: RARITY_COLORS[breed?.rarity ?? ""] ?? colors.primary },
-                      ]}
-                    >
-                      Already in your PawDex!
-                    </Text>
-                    <Text style={[styles.bannerSub, { color: colors.mutedForeground }]}>
-                      Spotted again — keep exploring!
-                    </Text>
-                  </View>
-                </View>
               ) : (
                 <TouchableOpacity
                   style={[
@@ -298,8 +271,10 @@ export function DetectionResultModal({
                   ]}
                   onPress={onCollect}
                 >
-                  <Text style={styles.collectBtnText}>Save to PawDex</Text>
-                  <Feather name="chevron-right" size={20} color="#fff" />
+                  <Text style={styles.collectBtnText}>
+                    {alreadyCollected ? "Add Photo to Entry" : "Save to PawDex"}
+                  </Text>
+                  <Feather name={alreadyCollected ? "camera" : "chevron-right"} size={20} color="#fff" />
                 </TouchableOpacity>
               )}
             </ScrollView>

@@ -409,6 +409,15 @@ export default function BreedDetailScreen() {
             <SectionHeading label="DEX ENTRIES" color={rarityColor} />
             <View style={styles.dexRow}>
               <DexCard
+                icon="heart"
+                label="Character"
+                value={breed.temperament}
+                accent={rarityColor}
+                cardBg={colors.card}
+                mutedColor={colors.mutedForeground}
+                fgColor={colors.foreground}
+              />
+              <DexCard
                 icon="smile"
                 label="Personality"
                 value={breed.personality}
@@ -419,17 +428,8 @@ export default function BreedDetailScreen() {
               />
               <DexCard
                 icon="briefcase"
-                label="Career"
+                label="HUMAN JOB"
                 value={breed.humanJob}
-                accent={rarityColor}
-                cardBg={colors.card}
-                mutedColor={colors.mutedForeground}
-                fgColor={colors.foreground}
-              />
-              <DexCard
-                icon="map-pin"
-                label="Origin"
-                value={breed.origin}
                 accent={rarityColor}
                 cardBg={colors.card}
                 mutedColor={colors.mutedForeground}
@@ -453,7 +453,7 @@ export default function BreedDetailScreen() {
               />
               <StatChip
                 icon="home"
-                label="Living Space"
+                label="Space Fit"
                 value={breed.apartmentFriendly}
                 color="#34D399"
                 mutedColor={colors.mutedForeground}
