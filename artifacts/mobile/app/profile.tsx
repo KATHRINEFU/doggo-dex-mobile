@@ -39,12 +39,21 @@ export default function ProfileScreen() {
     setEditingName(true);
   };
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     const newName = [trimmedFirst, trimmedLast].filter(Boolean).join(" ") || "Trainer";
+    // Optimistic: update UI immediately
     setDisplayNameOverride(newName);
     setEditingName(false);
+    // Persist to Clerk in background
+    try {
+      await user?.update({ firstName: trimmedFirst, lastName: trimmedLast });
+      // On success clear the override — Clerk now has the source of truth
+      setDisplayNameOverride(null);
+    } catch {
+      // Keep the local override so the UI stays correct even if Clerk call failed
+    }
   };
 
   const handleChangePhoto = async () => {
