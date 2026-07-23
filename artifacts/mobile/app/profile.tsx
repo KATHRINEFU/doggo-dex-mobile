@@ -52,6 +52,7 @@ export default function ProfileScreen() {
     setSaving(true);
     try {
       await user.update({ firstName: trimmedFirst, lastName: trimmedLast });
+      await user.reload(); // refresh so useUser() picks up the new name
       setEditingName(false);
     } catch (e: any) {
       console.error("Display name update failed:", e);
