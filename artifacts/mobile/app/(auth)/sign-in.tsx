@@ -98,7 +98,6 @@ export default function SignInScreen() {
         await setActive!({ session: result.createdSessionId });
         router.replace("/(tabs)");
       } else {
-        // Surface any unexpected status so user isn't left hanging
         Alert.alert(
           "Extra step needed",
           `Status: ${result.status}. Please contact support if this persists.`
@@ -123,10 +122,13 @@ export default function SignInScreen() {
           newErrs.general = err?.message ?? "Sign-in failed. Please try again.";
         }
         setFieldErrors(newErrs);
+        // Also show top-level alert so the error is never silent
+        const firstErr = clerkErrors[0];
+        Alert.alert("Sign-in failed", firstErr?.longMessage ?? firstErr?.message ?? "Please check your email and password.");
       } else {
-        // Non-Clerk error — show it so it's never silent
         const msg = err?.message ?? JSON.stringify(err);
         setFieldErrors({ general: msg || "An unexpected error occurred." });
+        Alert.alert("Sign-in failed", msg || "An unexpected error occurred.");
       }
     } finally {
       setLoading(false);
@@ -140,7 +142,7 @@ export default function SignInScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
         >
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Feather name="x" size={22} color="rgba(255,255,255,0.85)" />
@@ -197,9 +199,6 @@ export default function SignInScreen() {
             </View>
             {fieldErrors.password ? <Text style={styles.error}>{fieldErrors.password}</Text> : null}
             {fieldErrors.general ? <Text style={styles.error}>{fieldErrors.general}</Text> : null}
-
-            {/* Required by Clerk bot-protection on web */}
-            <View nativeID="clerk-captcha" />
 
             <Pressable
               style={[styles.primaryBtn, loading && styles.btnDisabled]}
