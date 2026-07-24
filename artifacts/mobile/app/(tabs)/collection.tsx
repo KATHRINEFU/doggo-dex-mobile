@@ -170,82 +170,83 @@ export default function CollectionScreen() {
           <>
             {/* ── Top nav ─────────────────────────────── */}
             <View style={styles.topNav}>
-              {/* Brand — fades out when search expands */}
-              <Animated.View
-                style={{
-                  opacity: searchAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0],
-                  }),
-                  transform: [{
-                    scale: searchAnim.interpolate({
+              {/* Left column: brand (fades out) + search bar (fades in) */}
+              <View style={{ flex: 1, justifyContent: "center" }}>
+                {/* Brand block */}
+                <Animated.View
+                  style={{
+                    opacity: searchAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [1, 0.92],
+                      outputRange: [1, 0],
                     }),
-                  }],
-                  position: showSearch ? "absolute" : "relative",
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.brandTitle}>PawDex</Text>
-                  <Feather name="maximize" size={18} color="#2C5EAD" />
-                </View>
-                <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
-              </Animated.View>
+                    transform: [{
+                      translateX: searchAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -10],
+                      }),
+                    }],
+                  }}
+                  pointerEvents={showSearch ? "none" : "auto"}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.brandTitle}>PawDex</Text>
+                    <Feather name="maximize" size={18} color="#2C5EAD" />
+                  </View>
+                  <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
+                </Animated.View>
 
-              {/* Search icon — rotates in/out */}
-              <Animated.View
-                style={{
-                  opacity: searchAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0],
-                  }),
-                  position: showSearch ? "absolute" : "relative",
-                  right: 0,
-                }}
-              >
-                <Pressable style={styles.searchIconBtn} onPress={expandSearch}>
-                  <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
-                    <Feather name="search" size={18} color="#2C5EAD" />
-                  </BlurView>
-                </Pressable>
-              </Animated.View>
+                {/* Compact search bar — overlays same left space */}
+                <Animated.View
+                  style={{
+                    opacity: searchAnim,
+                    transform: [{
+                      translateX: searchAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [10, 0],
+                      }),
+                    }],
+                    position: "absolute",
+                    left: 0,
+                    top: 2,
+                    width: 220,
+                    pointerEvents: showSearch ? "auto" : "none",
+                  }}
+                >
+                  <View style={styles.searchBarCompact}>
+                    <TextInput
+                      ref={searchRef}
+                      style={styles.searchInputCompact}
+                      value={search}
+                      onChangeText={setSearch}
+                      returnKeyType="search"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      onBlur={shrinkSearch}
+                    />
+                    {search.length > 0 && (
+                      <Pressable onPress={() => setSearch("")} hitSlop={8}>
+                        <View style={styles.clearCircle}>
+                          <Feather name="x" size={11} color="#8E8E93" />
+                        </View>
+                      </Pressable>
+                    )}
+                  </View>
+                </Animated.View>
+              </View>
 
-              {/* Search input bar — transparent, grows from right */}
-              <Animated.View
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  opacity: searchAnim,
-                  transform: [{
-                    translateX: searchAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [30, 0],
-                    }),
-                  }],
-                  position: showSearch ? "relative" : "absolute",
-                  pointerEvents: showSearch ? "auto" : "none",
-                }}
+              {/* Right: search icon (same height as title) */}
+              <Pressable
+                style={styles.searchIconBtn}
+                onPress={showSearch ? shrinkSearch : expandSearch}
               >
-                <TextInput
-                  ref={searchRef}
-                  style={styles.searchInput}
-                  value={search}
-                  onChangeText={setSearch}
-                  returnKeyType="search"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  onBlur={shrinkSearch}
-                />
-                {search.length > 0 && (
-                  <Pressable onPress={() => setSearch("")} hitSlop={8}>
-                    <View style={styles.clearCircle}>
-                      <Feather name="x" size={11} color="#8E8E93" />
-                    </View>
-                  </Pressable>
-                )}
-              </Animated.View>
+                <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
+                  <Feather
+                    name={showSearch ? "x" : "search"}
+                    size={16}
+                    color="#2C5EAD"
+                  />
+                </BlurView>
+              </Pressable>
             </View>
 
             {/* ── Progress bar ──────────────────────────── */}
@@ -412,36 +413,43 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   searchIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     overflow: "hidden",
   },
   searchIconBlur: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
+    borderRadius: 17,
   },
-  searchInput: {
+  searchBarCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 34,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  searchInputCompact: {
     flex: 1,
     fontFamily: "Inter_500Medium",
-    fontSize: 16,
+    fontSize: 15,
     color: "#1E3A5F",
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingVertical: 0,
     backgroundColor: "transparent",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.35)",
   },
   clearCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(142,142,147,0.2)",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "rgba(142,142,147,0.25)",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 6,
+    marginLeft: 4,
   },
 
   /* Progress */
