@@ -346,7 +346,7 @@ export default function SignUpScreen() {
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                style={[styles.input, styles.passwordInput]}
                 placeholder="Min. 8 characters"
                 placeholderTextColor="rgba(0,0,0,0.3)"
                 value={password}
@@ -436,8 +436,9 @@ const styles = StyleSheet.create({
     fontSize: 15, fontFamily: "Inter_400Regular", color: "#111",
     marginBottom: 12, borderWidth: 1, borderColor: "rgba(0,0,0,0.07)",
   },
-  passwordRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  eyeBtn: { padding: 8 },
+  passwordRow: { position: "relative", marginBottom: 12 },
+  passwordInput: { paddingRight: 44, marginBottom: 0 },
+  eyeBtn: { position: "absolute", right: 0, top: 0, bottom: 0, paddingHorizontal: 12, justifyContent: "center" },
 
   primaryBtn: {
     backgroundColor: "#2C5EAD", borderRadius: 12,
