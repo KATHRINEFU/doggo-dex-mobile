@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   FlatList,
   Platform,
@@ -55,6 +56,29 @@ export default function CollectionScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const searchRef = useRef<TextInput>(null);
+
+  /* Animated search bar */
+  const searchAnim = useRef(new Animated.Value(0)).current;
+
+  const expandSearch = () => {
+    setShowSearch(true);
+    Animated.timing(searchAnim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => searchRef.current?.focus());
+  };
+
+  const shrinkSearch = () => {
+    Animated.timing(searchAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowSearch(false);
+      setSearch("");
+    });
+  };
 
   const total = allBreeds?.length ?? 100;
   const progress = Math.min(collectionCount / total, 1);
@@ -146,54 +170,82 @@ export default function CollectionScreen() {
           <>
             {/* ── Top nav ─────────────────────────────── */}
             <View style={styles.topNav}>
-              {showSearch ? (
-                <View style={styles.searchRow}>
-                  <View style={styles.searchBar}>
-                    <Feather name="search" size={15} color="#8E8E93" />
-                    <TextInput
-                      ref={searchRef}
-                      style={styles.searchInput}
-                      value={search}
-                      onChangeText={setSearch}
-                      autoFocus
-                      returnKeyType="search"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                    {search.length > 0 && (
-                      <Pressable onPress={() => setSearch("")} hitSlop={8}>
-                        <View style={styles.clearCircle}>
-                          <Feather name="x" size={11} color="#8E8E93" />
-                        </View>
-                      </Pressable>
-                    )}
-                  </View>
-                  <Pressable
-                    onPress={() => { setShowSearch(false); setSearch(""); }}
-                    style={styles.cancelBtn}
-                  >
-                    <Text style={styles.cancelText}>Cancel</Text>
-                  </Pressable>
+              {/* Brand — fades out when search expands */}
+              <Animated.View
+                style={{
+                  opacity: searchAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 0],
+                  }),
+                  transform: [{
+                    scale: searchAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 0.92],
+                    }),
+                  }],
+                  position: showSearch ? "absolute" : "relative",
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={styles.brandTitle}>PawDex</Text>
+                  <Feather name="maximize" size={18} color="#2C5EAD" />
                 </View>
-              ) : (
-                <>
-                  <View>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Text style={styles.brandTitle}>PawDex</Text>
-                      <Feather name="maximize" size={18} color="#2C5EAD" />
+                <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
+              </Animated.View>
+
+              {/* Search icon — rotates in/out */}
+              <Animated.View
+                style={{
+                  opacity: searchAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 0],
+                  }),
+                  position: showSearch ? "absolute" : "relative",
+                  right: 0,
+                }}
+              >
+                <Pressable style={styles.searchIconBtn} onPress={expandSearch}>
+                  <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
+                    <Feather name="search" size={18} color="#2C5EAD" />
+                  </BlurView>
+                </Pressable>
+              </Animated.View>
+
+              {/* Search input bar — transparent, grows from right */}
+              <Animated.View
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  opacity: searchAnim,
+                  transform: [{
+                    translateX: searchAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [30, 0],
+                    }),
+                  }],
+                  position: showSearch ? "relative" : "absolute",
+                  pointerEvents: showSearch ? "auto" : "none",
+                }}
+              >
+                <TextInput
+                  ref={searchRef}
+                  style={styles.searchInput}
+                  value={search}
+                  onChangeText={setSearch}
+                  returnKeyType="search"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onBlur={shrinkSearch}
+                />
+                {search.length > 0 && (
+                  <Pressable onPress={() => setSearch("")} hitSlop={8}>
+                    <View style={styles.clearCircle}>
+                      <Feather name="x" size={11} color="#8E8E93" />
                     </View>
-                    <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
-                  </View>
-                  <Pressable
-                    style={styles.searchIconBtn}
-                    onPress={() => setShowSearch(true)}
-                  >
-                    <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
-                      <Feather name="search" size={18} color="#2C5EAD" />
-                    </BlurView>
                   </Pressable>
-                </>
-              )}
+                )}
+              </Animated.View>
             </View>
 
             {/* ── Progress bar ──────────────────────────── */}
@@ -371,37 +423,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 20,
   },
-  searchRow: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.7)",
-  },
   searchInput: {
     flex: 1,
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
     color: "#1E3A5F",
-    paddingVertical: 0,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.35)",
   },
-  cancelBtn: {
-    paddingVertical: 4,
-  },
-  cancelText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: "#fff",
+  clearCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(142,142,147,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
   },
 
   /* Progress */
