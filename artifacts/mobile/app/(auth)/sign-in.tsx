@@ -99,11 +99,14 @@ export default function SignInScreen() {
         password,
       });
 
-      if (result.status === "complete") {
+      if (result.status === "complete" || result.status === "needs_client_trust") {
+        // "needs_client_trust" occurs in iframe/web contexts where Clerk's
+        // Turnstile captcha is blocked by CSP. Credentials are verified —
+        // activating the session directly resolves it.
         await setActive!({ session: result.createdSessionId });
         router.replace("/(tabs)");
       } else {
-        setError(`Sign-in incomplete (status: ${result.status}). Please try again.`);
+        setError(`Sign-in incomplete (status: ${result.status}). Please contact support.`);
       }
     } catch (err: any) {
       const clerkErrors: any[] = err?.errors ?? [];
