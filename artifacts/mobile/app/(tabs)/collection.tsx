@@ -3,7 +3,7 @@ import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -52,7 +52,9 @@ export default function CollectionScreen() {
   const [collectionStatus, setCollectionStatus] = useState<CollectionFilter>("all");
   const [sort, setSort] = useState<SortType>("default");
   const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const searchRef = useRef<TextInput>(null);
 
   const total = allBreeds?.length ?? 100;
   const progress = Math.min(collectionCount / total, 1);
@@ -144,18 +146,54 @@ export default function CollectionScreen() {
           <>
             {/* ── Top nav ─────────────────────────────── */}
             <View style={styles.topNav}>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.brandTitle}>PawDex</Text>
-                  <Feather name="maximize" size={18} color="#2C5EAD" />
+              {showSearch ? (
+                <View style={styles.searchRow}>
+                  <BlurView intensity={40} tint="light" style={styles.searchBar}>
+                    <Feather name="search" size={16} color="#2C5EAD" />
+                    <TextInput
+                      ref={searchRef}
+                      style={styles.searchInput}
+                      placeholder="Search breeds…"
+                      placeholderTextColor="#94A3B8"
+                      value={search}
+                      onChangeText={setSearch}
+                      autoFocus
+                      returnKeyType="search"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {search.length > 0 && (
+                      <Pressable onPress={() => setSearch("")} hitSlop={8}>
+                        <Feather name="x" size={15} color="#94A3B8" />
+                      </Pressable>
+                    )}
+                  </BlurView>
+                  <Pressable
+                    onPress={() => { setShowSearch(false); setSearch(""); }}
+                    style={styles.cancelBtn}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
                 </View>
-                <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
-              </View>
-              <Pressable style={styles.searchIconBtn} onPress={() => {}}>
-                <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
-                  <Feather name="search" size={18} color="#2C5EAD" />
-                </BlurView>
-              </Pressable>
+              ) : (
+                <>
+                  <View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={styles.brandTitle}>PawDex</Text>
+                      <Feather name="maximize" size={18} color="#2C5EAD" />
+                    </View>
+                    <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>
+                  </View>
+                  <Pressable
+                    style={styles.searchIconBtn}
+                    onPress={() => setShowSearch(true)}
+                  >
+                    <BlurView intensity={40} tint="light" style={styles.searchIconBlur}>
+                      <Feather name="search" size={18} color="#2C5EAD" />
+                    </BlurView>
+                  </Pressable>
+                </>
+              )}
             </View>
 
             {/* ── Progress bar ──────────────────────────── */}
@@ -332,6 +370,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 20,
+  },
+  searchRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.7)",
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: "#1E3A5F",
+    paddingVertical: 0,
+  },
+  cancelBtn: {
+    paddingVertical: 4,
+  },
+  cancelText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#fff",
   },
 
   /* Progress */
