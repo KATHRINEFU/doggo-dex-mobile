@@ -12,6 +12,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/expo";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { useGetLeaderboard } from "@workspace/api-client-react";
 import type { LeaderboardEntry } from "@workspace/api-client-react";
 
@@ -69,8 +71,15 @@ function LeaderboardRow({
 
 export default function LeaderboardScreen() {
   const insets = useSafeAreaInsets();
-  const { userId } = useAuth();
+  const { userId, isSignedIn, isLoaded } = useAuth();
+  const router = useRouter();
   const [scope, setScope] = useState<"global" | "country">("global");
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/(auth)/sign-in");
+    }
+  }, [isLoaded, isSignedIn]);
 
   // TODO: fetch current user's country from backend context or local storage
   const userCountry = undefined; // will be wired once user profile is stored locally

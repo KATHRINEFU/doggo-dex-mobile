@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useAuth } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useCollection, XP_LEVELS } from "@/context/CollectionContext";
@@ -19,7 +20,14 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
   const { medals, collectionCount, xp, xpLevel, streak, collectedDogs } = useCollection();
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/(auth)/sign-in");
+    }
+  }, [isLoaded, isSignedIn]);
 
   const nextLevel = XP_LEVELS[XP_LEVELS.indexOf(xpLevel) + 1];
   const xpProgress = nextLevel ? (xp - xpLevel.min) / (nextLevel.min - xpLevel.min) : 1;

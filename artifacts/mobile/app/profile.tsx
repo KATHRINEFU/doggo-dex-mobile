@@ -31,8 +31,14 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const { collectionCount, xp, streak } = useCollection();
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/(auth)/sign-in");
+    }
+  }, [isLoaded, isSignedIn]);
 
   // DB profile — wait until Clerk auth is ready so the token getter is registered
   const { data: profile, refetch: refetchProfile } = useGetMyProfile(

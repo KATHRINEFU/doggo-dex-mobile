@@ -97,11 +97,17 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
     openScan();
   }
 
+  const PROTECTED_TABS = ["leaderboard", "medals"];
+
   const goTo = useCallback(
     (routeName: string) => {
+      if (PROTECTED_TABS.includes(routeName) && !isSignedIn) {
+        router.push("/(auth)/sign-in");
+        return;
+      }
       navigation.navigate(routeName);
     },
-    [navigation],
+    [navigation, isSignedIn, router],
   );
 
   function isActive(routeName: string) {
@@ -249,7 +255,7 @@ export default function TabLayout() {
       tabBar={(props: any) => <PoGoTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        lazy: false,
+        lazy: true,
       }}
     >
       <Tabs.Screen name="index" />
