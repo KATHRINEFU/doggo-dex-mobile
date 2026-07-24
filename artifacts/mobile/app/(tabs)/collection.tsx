@@ -148,13 +148,11 @@ export default function CollectionScreen() {
             <View style={styles.topNav}>
               {showSearch ? (
                 <View style={styles.searchRow}>
-                  <BlurView intensity={40} tint="light" style={styles.searchBar}>
-                    <Feather name="search" size={16} color="#2C5EAD" />
+                  <View style={styles.searchBar}>
+                    <Feather name="search" size={15} color="#8E8E93" />
                     <TextInput
                       ref={searchRef}
                       style={styles.searchInput}
-                      placeholder="Search breeds…"
-                      placeholderTextColor="#94A3B8"
                       value={search}
                       onChangeText={setSearch}
                       autoFocus
@@ -164,10 +162,12 @@ export default function CollectionScreen() {
                     />
                     {search.length > 0 && (
                       <Pressable onPress={() => setSearch("")} hitSlop={8}>
-                        <Feather name="x" size={15} color="#94A3B8" />
+                        <View style={styles.clearCircle}>
+                          <Feather name="x" size={11} color="#8E8E93" />
+                        </View>
                       </Pressable>
                     )}
-                  </BlurView>
+                  </View>
                   <Pressable
                     onPress={() => { setShowSearch(false); setSearch(""); }}
                     style={styles.cancelBtn}
