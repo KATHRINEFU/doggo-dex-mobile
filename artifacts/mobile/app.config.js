@@ -14,7 +14,7 @@ module.exports = {
       backgroundColor: "#0A1628",
     },
     ios: {
-      bundleIdentifier: "com.pawdex.app",
+      bundleIdentifier: "com.lizhenpi.pawdex",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
@@ -24,6 +24,7 @@ module.exports = {
       },
     },
     android: {
+      package: "com.lizhenpi.pawdex",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#0A1628",
