@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -53,6 +54,9 @@ export default function ProfileScreen() {
 
   // Country editing
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  // Level info modal
+  const [showLevelInfo, setShowLevelInfo] = useState(false);
 
   // Photo
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -268,11 +272,16 @@ export default function ProfileScreen() {
               </View>
             </Pressable>
             <Text style={styles.displayName}>{displayName}</Text>
-            <View style={styles.levelBadge}>
+            <Pressable
+              style={styles.levelBadge}
+              onPress={() => setShowLevelInfo(true)}
+              hitSlop={8}
+            >
               <Text style={styles.levelText}>
                 Lv. {trainerLevel} PawDex Trainer
               </Text>
-            </View>
+              <Feather name="info" size={11} color="rgba(255,255,255,0.7)" style={{ marginLeft: 5 }} />
+            </Pressable>
             {user?.emailAddresses?.[0]?.emailAddress && (
               <Text style={styles.email}>
                 {user.emailAddresses[0].emailAddress}
@@ -399,6 +408,56 @@ export default function ProfileScreen() {
         </ScrollView>
       )}
 
+      {/* Level Info Modal */}
+      <Modal
+        visible={showLevelInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLevelInfo(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowLevelInfo(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>How levels work</Text>
+              <Pressable onPress={() => setShowLevelInfo(false)} hitSlop={8}>
+                <Feather name="x" size={18} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            </View>
+
+            <Text style={styles.modalFormula}>1 level per 5 breeds collected</Text>
+
+            <View style={styles.modalStatRow}>
+              <Feather name="hash" size={14} color="rgba(255,255,255,0.6)" />
+              <Text style={styles.modalStatText}>
+                You've collected <Text style={styles.modalBold}>{collectionCount} breed{collectionCount !== 1 ? "s" : ""}</Text>
+                {" → "}
+                <Text style={styles.modalBold}>Lv. {trainerLevel}</Text>
+              </Text>
+            </View>
+
+            {(() => {
+              const breedsToNext = 5 - (collectionCount % 5);
+              const isExact = collectionCount % 5 === 0 && collectionCount > 0;
+              return (
+                <View style={styles.modalStatRow}>
+                  <Feather name="trending-up" size={14} color="rgba(255,255,255,0.6)" />
+                  <Text style={styles.modalStatText}>
+                    {isExact
+                      ? <><Text style={styles.modalBold}>5 more breeds</Text> to reach Lv. {trainerLevel + 1}</>
+                      : <><Text style={styles.modalBold}>{breedsToNext} more breed{breedsToNext !== 1 ? "s" : ""}</Text> to reach Lv. {trainerLevel + 1}</>
+                    }
+                  </Text>
+                </View>
+              );
+            })()}
+
+            <Pressable style={styles.modalDismissBtn} onPress={() => setShowLevelInfo(false)}>
+              <Text style={styles.modalDismissBtnText}>Got it</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <CountryPickerModal
         visible={showCountryPicker}
         selected={profile?.countryFlag}
@@ -473,6 +532,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 5,
+    flexDirection: "row",
+    alignItems: "center",
   },
   levelText: {
     fontFamily: "Inter_600SemiBold",
@@ -578,5 +639,72 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 16,
     color: "#FF6B6B",
+  },
+
+  // Level info modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#1E3A6E",
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    gap: 14,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 17,
+    color: "#fff",
+  },
+  modalFormula: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    overflow: "hidden",
+  },
+  modalStatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  modalStatText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    flex: 1,
+  },
+  modalBold: {
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
+  },
+  modalDismissBtn: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+  },
+  modalDismissBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: "#fff",
   },
 });
