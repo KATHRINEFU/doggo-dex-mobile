@@ -1,0 +1,54 @@
+(base) katefu@Kates-MacBook-Pro-4 doggo-dex-mobile % cd artifacts/mobile
+(base) katefu@Kates-MacBook-Pro-4 mobile % echo "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key_here" > .env.local
+(base) katefu@Kates-MacBook-Pro-4 mobile % cd ..
+(base) katefu@Kates-MacBook-Pro-4 artifacts % cd ..
+(base) katefu@Kates-MacBook-Pro-4 doggo-dex-mobile % pnpm install
+Scope: all 9 workspace projects
+✓ Lockfile passes supply-chain policies (1256 entries in 7.1s)
+Lockfile is up to date, resolution step is skipped
+Packages: +1251
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 1251, reused 1225, downloaded 0, added 1251, done
+
+devDependencies:
++ prettier 3.8.3
++ typescript 5.9.3
+
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead…
+└─ Done in 75ms
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: browser-tabs-lock@1.3.0, core-js@3.47.0, esbuild@0.27.3
+
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+(base) katefu@Kates-MacBook-Pro-4 doggo-dex-mobile % cd artifacts/mobile                                                      
+(base) katefu@Kates-MacBook-Pro-4 mobile % npx expo prebuild --clean --platform ios
+env: load .env.local
+env: export EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY
+! Git branch has uncommitted file changes
+› It's recommended to commit all changes before proceeding in case you want to revert generated changes.
+
+✔ Continue with uncommitted changes? … yes
+
+✔ Cleared ios code
+✔ Created native directory
+✔ Updated package.json
+Dependencies in the package.json changed:
+  expo, react, react-native
+✔ Install the updated dependencies? … yes
+› Installing using pnpm
+> pnpm install
+Error: pnpm install exited with non-zero code: 1
+Error: pnpm install exited with non-zero code: 1
+    at ChildProcess.completionListener (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+spawn-async@1.8.0/node_modules/@expo/spawn-async/build/spawnAsync.js:113:23)
+    at Object.onceWrapper (node:events:631:26)
+    at ChildProcess.emit (node:events:509:28)
+    at maybeClose (node:internal/child_process:1124:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:306:5)
+    ...
+    at spawnAsync (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+spawn-async@1.8.0/node_modules/@expo/spawn-async/build/spawnAsync.js:9:23)
+    at PnpmPackageManager.runAsync (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+package-manager@1.12.1/node_modules/@expo/package-manager/build/node/BasePackageManager.js:41:42)
+    at PnpmPackageManager.installAsync (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+package-manager@1.12.1/node_modules/@expo/package-manager/build/node/PnpmPackageManager.js:30:21)
+    at PnpmPackageManager.addAsync (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+package-manager@1.12.1/node_modules/@expo/package-manager/build/node/PnpmPackageManager.js:34:25)
+    at installPackagesAsync (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+cli@54.0.25_expo-router@6.0.24_expo@54.0.35_react-native@0.81.5_@babel+core@7.29._d2692a18a3c9d9eb24f2d1bd1f7e96db/node_modules/@expo/cli/build/src/install/installAsync.js:189:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async prebuildAsync (/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/@expo+cli@54.0.25_expo-router@6.0.24_expo@54.0.35_react-native@0.81.5_@babel+core@7.29._d2692a18a3c9d9eb24f2d1bd1f7e96db/node_modules/@expo/cli/build/src/prebuild/prebuildAsync.js:144:17)
+(base) katefu@Kates-MacBook-Pro-4 mobile % 
