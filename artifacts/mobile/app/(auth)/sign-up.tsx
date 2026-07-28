@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import * as ImagePicker from "expo-image-picker";
-import { useSSO, useUser } from "@clerk/expo";
+import { useAuth, useSSO, useUser } from "@clerk/expo";
 import { useSignUp } from "@clerk/expo/legacy";
 import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -50,6 +50,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
+  const { isSignedIn } = useAuth();
   const { signUp, setActive, isLoaded } = useSignUp();
   const { user } = useUser();
 
@@ -70,7 +71,7 @@ export default function SignUpScreen() {
   const syncUserMutation = useSyncUser();
 
   useEffect(() => {
-    if (readyToNavigate && user) {
+    if (readyToNavigate && isSignedIn && user) {
       const doIt = async () => {
         if (pendingPhotoRef.current) {
           await uploadPhoto(user, pendingPhotoRef.current);
@@ -95,7 +96,7 @@ export default function SignUpScreen() {
       };
       doIt();
     }
-  }, [readyToNavigate, user]);
+  }, [readyToNavigate, isSignedIn, user]);
 
   const pickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

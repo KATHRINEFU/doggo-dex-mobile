@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { useSSO } from "@clerk/expo";
+import { useAuth, useSSO } from "@clerk/expo";
 import { useSignIn } from "@clerk/expo/legacy";
 import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,6 +35,7 @@ export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
+  const { isSignedIn } = useAuth();
   const { signIn, setActive, isLoaded } = useSignIn();
 
   const [email, setEmail] = useState("");
@@ -45,6 +46,13 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState(false);
+
+  useEffect(() => {
+    if (!pendingNavigation || !isSignedIn) return;
+    setPendingNavigation(false);
+    router.replace("/(tabs)");
+  }, [isSignedIn, pendingNavigation, router]);
 
   const clearErrors = () => {
     setError(null);
@@ -60,7 +68,7 @@ export default function SignInScreen() {
       });
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
-        router.replace("/(tabs)");
+        setPendingNavigation(true);
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Google sign-in failed.");
@@ -75,7 +83,7 @@ export default function SignInScreen() {
       });
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
-        router.replace("/(tabs)");
+        setPendingNavigation(true);
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Apple sign-in failed.");
@@ -99,12 +107,20 @@ export default function SignInScreen() {
         password,
       });
 
-      if (result.status === "complete" || result.status === "needs_client_trust") {
-        // "needs_client_trust" occurs in iframe/web contexts where Clerk's
-        // Turnstile captcha is blocked by CSP. Credentials are verified —
-        // activating the session directly resolves it.
+      if (result.status === "complete") {
         await setActive!({ session: result.createdSessionId });
-        router.replace("/(tabs)");
+        // Do not navigate until Clerk has propagated the active session.
+        setPendingNavigation(true);
+      } else if (result.status === "needs_client_trust") {
+        // This is the iframe-only Turnstile case. Native clients should
+        // complete Clerk's trust step instead of activating an untrusted
+        // session directly.
+        if (Platform.OS !== "web") {
+          setError("Please complete the account verification step and try again.");
+        } else {
+          await setActive!({ session: result.createdSessionId });
+          setPendingNavigation(true);
+        }
       } else {
         setError(`Sign-in incomplete (status: ${result.status}). Please contact support.`);
       }
