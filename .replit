@@ -37,4 +37,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-GITHUB_TOKEN = "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"
