@@ -1,14 +1,16 @@
 const { withPodfile } = require("@expo/config-plugins");
 
 /**
- * React Native 0.81's SPM post-install hook assumes every pod registered
- * with an SPM dependency still has a matching Xcode target. Clerk Expo
- * registers ClerkKit through SPM, and CocoaPods can omit that target during
- * EAS pod generation, causing:
+ * React Native 0.81's SPM post-install hook (scripts/cocoapods/spm.rb)
+ * assumes every pod that registered an SPM dependency has a matching target
+ * in the Pods project. When CocoaPods omits that target (seen with
+ * @clerk/expo's ClerkExpo pod on EAS), pod install crashes with:
  *   undefined method `package_product_dependencies' for nil
  *
- * Guard the hook at the generated Podfile level. This keeps the normal
- * React Native post-install behavior and only skips an invalid SPM entry.
+ * spm.rb dereferences the nil target in TWO places (add_spm_to_target and
+ * the SWIFT_INCLUDE_PATHS workaround right after it), so instead of guarding
+ * one method we drop any SPM registration whose pod target doesn't exist,
+ * right before react_native_post_install runs.
  */
 function withReactNativeSpmGuard(config) {
   return withPodfile(config, (config) => {
@@ -20,15 +22,18 @@ function withReactNativeSpmGuard(config) {
     }
 
     const guard = `
-    # ${marker}: Clerk Expo + React Native 0.81 CocoaPods SPM compatibility
-    if defined?(SPMManager)
-      class SPMManager
-        alias doggo_dex_add_spm_to_target add_spm_to_target
-
-        def add_spm_to_target(project, target, url, requirement, products)
-          return unless target
-          doggo_dex_add_spm_to_target(project, target, url, requirement, products)
+    # ${marker}: drop SPM registrations whose pod target is missing to avoid
+    # React Native 0.81 spm.rb crashing on a nil target during pod install.
+    if defined?(SPM) && SPM.respond_to?(:instance_variable_get)
+      spm_deps = SPM.instance_variable_get(:@dependencies_by_pod)
+      if spm_deps.is_a?(Hash)
+        target_names = installer.pods_project.targets.map(&:name)
+        spm_deps.each_key do |pod_name|
+          unless target_names.include?(pod_name)
+            Pod::UI.warn "[${marker}] Skipping SPM deps for missing pod target: #{pod_name}"
+          end
         end
+        spm_deps.select! { |pod_name, _| target_names.include?(pod_name) }
       end
     end
 `;

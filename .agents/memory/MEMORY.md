@@ -1,3 +1,4 @@
 - [Clerk Expo legacy hooks](clerk-expo-legacy.md) — @clerk/expo v3.7.4's default `useSignIn`/`useSignUp` export returns the new v6 signal-based API. For legacy object-based auth flows, import from `@clerk/expo/legacy` instead.
 - [Feather icon whitelist](feather-icons.md) — Invalid icon names crash the Expo app at runtime with no clear error. Use only exact Feather set names.
+- [RN SPM nil-target crash](rn-spm-nil-target.md) — RN 0.81 spm.rb has two nil-target crash sites; fix via Podfile plugin that filters SPM deps for missing pod targets, not a single-method guard.
 - [Clerk needs_client_trust](clerk-needs-client-trust.md) — native needs the mfa email-code trust flow (SignInFuture API); only Replit dev web preview may bypass via setActive. Navigate on isSignedIn effect, not right after setActive.
