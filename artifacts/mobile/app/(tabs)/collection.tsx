@@ -85,7 +85,7 @@ export default function CollectionScreen() {
 
   /* Rarity stats for the header */
   const rarityStats = useMemo(() => {
-    if (!allBreeds) return [];
+    if (!Array.isArray(allBreeds)) return [];
     return RARITY_ORDER.map((r) => {
       const totalR = allBreeds.filter((b) => b.rarity === r).length;
       const collectedR = collectedDogs.filter(
