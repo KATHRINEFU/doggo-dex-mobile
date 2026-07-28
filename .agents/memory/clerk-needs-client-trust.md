@@ -1,19 +1,17 @@
 ---
 name: Clerk needs_client_trust
-description: How to handle Clerk's needs_client_trust status in Replit web preview (iframe) context.
+description: How to handle Clerk's needs_client_trust status on native and in Replit web preview (iframe).
 ---
 
 ## Rule
 
-When `signIn.create()` returns `status === "needs_client_trust"`, treat it the same as `"complete"` and call `setActive({ session: result.createdSessionId })` directly.
+`needs_client_trust` means the device isn't trusted yet. Handle it per platform using the new signal-based `useSignIn` from `@clerk/expo` (SignInFuture API):
 
-```ts
-if (result.status === "complete" || result.status === "needs_client_trust") {
-  await setActive!({ session: result.createdSessionId });
-  router.replace("/(tabs)");
-}
-```
+- **Native (iOS/Android) and real web:** run Clerk's documented client-trust flow — `await signIn.mfa.sendEmailCode()`, show a code-entry UI, `await signIn.mfa.verifyEmailCode({ code })`, then `await signIn.finalize({ navigate })`. Do NOT just show an error or the user dead-ends.
+- **Replit dev web preview only** (`Platform.OS === "web" && __DEV__`): Turnstile is CSP-blocked in the iframe, so activate the session directly via `useClerk().setActive({ session: signIn.createdSessionId })`.
 
-**Why:** Clerk's Turnstile bot-protection widget cannot initialize inside the Replit iframe (the sandbox CSP blocks Cloudflare's Turnstile scripts). Clerk still verifies credentials and creates the session — it just won't mark it "complete" without the captcha confirmation. Activating the session directly bypasses this. Credentials are verified, so this is safe.
+**Also:** all SignInFuture methods (`password`, `finalize`, `mfa.sendEmailCode`, `mfa.verifyEmailCode`) return an `{ error }` envelope instead of throwing — check it every time.
 
-**How to apply:** Only needed for web/iframe environments. Native iOS/Android builds use Clerk's native auth flow which has no Turnstile dependency.
+**Navigation:** never `router.replace` right after `setActive`/`finalize`; auth state propagates async and protected screens bounce back to sign-in. Instead navigate from a `useEffect` on `useAuth().isSignedIn`.
+
+**Why:** Clerk creates the session but won't mark sign-in "complete" until the client is trusted. On native the email-code flow is the supported path; in the Replit iframe Turnstile can never load, so the dev-only bypass is required.

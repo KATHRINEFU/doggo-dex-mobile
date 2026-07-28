@@ -13,8 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
-import { useAuth, useSSO } from "@clerk/expo";
-import { useSignIn } from "@clerk/expo/legacy";
+import { useAuth, useClerk, useSSO, useSignIn } from "@clerk/expo";
 import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -36,23 +35,28 @@ export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
   const { isSignedIn } = useAuth();
-  const { signIn, setActive, isLoaded } = useSignIn();
+  const { setActive } = useClerk();
+  const { signIn, fetchStatus } = useSignIn();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  // null = idle, string = error message to show inline
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [pendingNavigation, setPendingNavigation] = useState(false);
 
+  // Client-trust email-code verification state
+  const [needsTrustCode, setNeedsTrustCode] = useState(false);
+  const [trustCode, setTrustCode] = useState("");
+
+  // Safety net: if Clerk reports us signed in while this screen is open,
+  // go to the tabs. This covers every path (password, SSO, trust code).
   useEffect(() => {
-    if (!pendingNavigation || !isSignedIn) return;
-    setPendingNavigation(false);
-    router.replace("/(tabs)");
-  }, [isSignedIn, pendingNavigation, router]);
+    if (isSignedIn) {
+      router.replace("/(tabs)");
+    }
+  }, [isSignedIn, router]);
 
   const clearErrors = () => {
     setError(null);
@@ -60,15 +64,34 @@ export default function SignInScreen() {
     setPasswordError(null);
   };
 
+  const finishSignIn = useCallback(async () => {
+    // finalize() sets the newly created session as the active session.
+    // Navigation happens via the isSignedIn effect above, which only fires
+    // once Clerk has actually propagated the signed-in state — this avoids
+    // bouncing off protected screens.
+    const { error: finalizeError } = await signIn.finalize({
+      navigate: async () => {},
+    });
+    if (finalizeError) {
+      const clerkErrors: any[] = (finalizeError as any)?.errors ?? [];
+      setError(
+        clerkErrors[0]?.longMessage ??
+        clerkErrors[0]?.message ??
+        (finalizeError as any)?.message ??
+        "Could not activate your session. Please try again.",
+      );
+    }
+  }, [signIn]);
+
   const handleGoogle = useCallback(async () => {
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({
         strategy: "oauth_google",
         redirectUrl: AuthSession.makeRedirectUri(),
       });
       if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        setPendingNavigation(true);
+        await ssoSetActive!({ session: createdSessionId });
+        // Navigation happens via the isSignedIn effect.
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Google sign-in failed.");
@@ -77,13 +100,13 @@ export default function SignInScreen() {
 
   const handleApple = useCallback(async () => {
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({
         strategy: "oauth_apple",
         redirectUrl: AuthSession.makeRedirectUri(),
       });
       if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        setPendingNavigation(true);
+        await ssoSetActive!({ session: createdSessionId });
+        // Navigation happens via the isSignedIn effect.
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Apple sign-in failed.");
@@ -92,41 +115,16 @@ export default function SignInScreen() {
 
   const handleSignIn = async () => {
     clearErrors();
-
-    if (!isLoaded || !signIn) {
-      setError("Auth is still loading — please wait a moment and try again.");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const result = await signIn.create({
-        strategy: "password",
-        identifier: email.trim(),
+      const { error: pwError } = await signIn.password({
+        emailAddress: email.trim(),
         password,
       });
 
-      if (result.status === "complete") {
-        await setActive!({ session: result.createdSessionId });
-        // Do not navigate until Clerk has propagated the active session.
-        setPendingNavigation(true);
-      } else if (result.status === "needs_client_trust") {
-        // This is the iframe-only Turnstile case. Native clients should
-        // complete Clerk's trust step instead of activating an untrusted
-        // session directly.
-        if (Platform.OS !== "web") {
-          setError("Please complete the account verification step and try again.");
-        } else {
-          await setActive!({ session: result.createdSessionId });
-          setPendingNavigation(true);
-        }
-      } else {
-        setError(`Sign-in incomplete (status: ${result.status}). Please contact support.`);
-      }
-    } catch (err: any) {
-      const clerkErrors: any[] = err?.errors ?? [];
-      if (clerkErrors.length > 0) {
+      if (pwError) {
+        const clerkErrors: any[] = (pwError as any)?.errors ?? [];
         let hadFieldError = false;
         for (const e of clerkErrors) {
           const code: string = e.code ?? "";
@@ -140,15 +138,148 @@ export default function SignInScreen() {
           }
         }
         if (!hadFieldError) {
-          setError(clerkErrors[0]?.longMessage ?? clerkErrors[0]?.message ?? "Sign-in failed. Please try again.");
+          setError(
+            clerkErrors[0]?.longMessage ??
+            clerkErrors[0]?.message ??
+            (pwError as any)?.message ??
+            "Sign-in failed. Please try again.",
+          );
         }
-      } else {
-        setError(err?.message ?? "An unexpected error occurred. Please try again.");
+        return;
       }
+
+      if (signIn.status === "complete") {
+        await finishSignIn();
+      } else if (signIn.status === "needs_client_trust") {
+        // Device isn't trusted yet. Clerk requires a one-time email code.
+        // Only in the Replit dev preview iframe (web + dev build) Turnstile
+        // is CSP-blocked, so activate the already-verified session directly.
+        // Real web deployments go through the normal trust verification.
+        if (Platform.OS === "web" && __DEV__ && signIn.createdSessionId) {
+          await setActive({ session: signIn.createdSessionId });
+          // Navigation happens via the isSignedIn effect.
+          return;
+        }
+        const { error: sendError } = await signIn.mfa.sendEmailCode();
+        if (sendError) {
+          setError("Could not send the verification code. Please try again.");
+          return;
+        }
+        setNeedsTrustCode(true);
+      } else if (signIn.status === "needs_second_factor") {
+        setError("Your account has two-factor authentication enabled, which isn't supported in this app yet.");
+      } else {
+        setError(`Sign-in incomplete (status: ${signIn.status}). Please try again.`);
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifyTrustCode = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: verifyError } = await signIn.mfa.verifyEmailCode({ code: trustCode.trim() });
+      if (verifyError) {
+        const clerkErrors: any[] = (verifyError as any)?.errors ?? [];
+        setError(
+          clerkErrors[0]?.longMessage ??
+          clerkErrors[0]?.message ??
+          "Invalid code. Please check the code and try again.",
+        );
+        return;
+      }
+      if (signIn.status === "complete") {
+        await finishSignIn();
+      } else {
+        setError(`Verification incomplete (status: ${signIn.status}). Please try again.`);
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendTrustCode = async () => {
+    setError(null);
+    try {
+      const { error: resendError } = await signIn.mfa.sendEmailCode();
+      if (resendError) {
+        setError("Could not resend the code. Please try again.");
+      }
+    } catch {
+      setError("Could not resend the code. Please try again.");
+    }
+  };
+
+  const busy = loading || fetchStatus === "fetching";
+
+  // ---- Client-trust verification screen ----
+  if (needsTrustCode) {
+    return (
+      <View style={styles.root}>
+        <LinearGradient colors={["#4BB8FA", "#3A8FDC", "#2C5EAD"]} style={StyleSheet.absoluteFill} />
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}
+            keyboardShouldPersistTaps="always"
+          >
+            <Feather name="mail" size={48} color="rgba(255,255,255,0.9)" />
+            <Text style={styles.title}>Check your email</Text>
+            <Text style={styles.subtitle}>
+              We sent a verification code to {email.trim()}.{"\n"}Enter it below to finish signing in.
+            </Text>
+
+            <View style={styles.card}>
+              {error ? (
+                <View style={styles.errorBanner}>
+                  <Feather name="alert-circle" size={14} color="#fff" />
+                  <Text style={styles.errorBannerText}>{error}</Text>
+                </View>
+              ) : null}
+
+              <Text style={styles.inputLabel}>Verification code</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="123456"
+                placeholderTextColor="rgba(0,0,0,0.3)"
+                value={trustCode}
+                onChangeText={(t) => { setTrustCode(t); setError(null); }}
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                textContentType="oneTimeCode"
+              />
+
+              <Pressable
+                style={[styles.primaryBtn, (busy || trustCode.trim().length === 0) && styles.btnDisabled]}
+                onPress={handleVerifyTrustCode}
+                disabled={busy || trustCode.trim().length === 0}
+              >
+                {busy
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.primaryBtnText}>Verify</Text>}
+              </Pressable>
+
+              <Pressable style={styles.secondaryBtn} onPress={handleResendTrustCode} disabled={busy}>
+                <Text style={styles.secondaryBtnText}>Resend code</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={() => { setNeedsTrustCode(false); setTrustCode(""); setError(null); }}
+              >
+                <Text style={styles.secondaryBtnText}>Start over</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -226,16 +357,13 @@ export default function SignInScreen() {
             <View nativeID="clerk-captcha" />
 
             <Pressable
-              style={[styles.primaryBtn, (loading || !isLoaded) && styles.btnDisabled]}
+              style={[styles.primaryBtn, busy && styles.btnDisabled]}
               onPress={handleSignIn}
-              disabled={loading || !isLoaded}
+              disabled={busy}
             >
-              {loading
+              {busy
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.primaryBtnText}>
-                    {!isLoaded ? "Initializing…" : "Sign In"}
-                  </Text>
-              }
+                : <Text style={styles.primaryBtnText}>Sign In</Text>}
             </Pressable>
           </View>
 
@@ -309,6 +437,8 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.55 },
   primaryBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_700Bold" },
+  secondaryBtn: { alignItems: "center", paddingVertical: 12, marginTop: 4 },
+  secondaryBtnText: { color: "#2C5EAD", fontSize: 14, fontFamily: "Inter_600SemiBold" },
 
   footerRow: { flexDirection: "row", marginTop: 20, alignItems: "center" },
   footerText: { color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" },
