@@ -1,0 +1,33 @@
+ ERROR  [BreedModel] load failed: [Error: TfliteModule.createModel(...): Failed to create TFLite model from data!] 
+
+Call Stack
+  createModel (artifacts/mobile/<native>)
+  loadTensorflowModel (node_modules/.pnpm/react-native-fast-tflite@3.0.1_react-native-nitro-modules@0.36.1_react-native@0.81.5_@b_aa7aace960ff08fa776a0d1c701f6512/node_modules/react-native-fast-tflite/src/loadTensorflowModel.ts:46:34)
+  next (artifacts/mobile/<native>)
+  asyncGeneratorStep (node_modules/.pnpm/@babel+runtime@7.29.2/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+  _next (node_modules/.pnpm/@babel+runtime@7.29.2/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:27)
+  tryCallOne (address at (artifacts/mobile/InternalBytecode.js:1:1180)
+  anonymous (address at (artifacts/mobile/InternalBytecode.js:1:1874)
+[CoreMotion] {"msg":"file does not exist... clearing",
+"file":/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS
+26.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed
+Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist, "error":Error Domain=NSCocoaErrorDomain Code=260 "The file
+“com.apple.CoreMotion.plist” couldn’t be opened because there is no such file."
+UserInfo={NSFilePath=/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS
+26.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed
+Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist,
+NSURL=file:///Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS%2026.5.simruntime/Contents/Resources/RuntimeRoot/private/var/Managed%20Preferences/kCFPreferencesCurrentUser/com.apple.CoreMotion.plist,
+NSUnderlyingError=0x106c59620 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file or directory"}}}
+[libdispatch.dylib] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:259
+[libdispatch.dylib] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:259
+[CoreMedia] <<<< FormatDescription >>>> signalled err=-12710 at <>:1002
+[AVFCapture] (Fig) signalled err=-12710 at <>:601
+[CoreMedia] <<<< FormatDescription >>>> signalled err=-12710 at <>:1002
+[AVFCapture] (Fig) signalled err=-12710 at <>:601
+[CoreMedia] <<<< FormatDescription >>>> signalled err=-12710 at <>:1002
+[AVFCapture] (Fig) signalled err=-12710 at <>:601
+[libdispatch.dylib] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:259
+[libdispatch.dylib] <<<< FigCaptureSourceSimulator >>>> signalled err=-12784 at <>:259
+[AVFCapture] <<<< FigCaptureSessionSimulator >>>> signalled err=-12782 at <>:297
+[DoggoDex.debug.dylib] Detected the current OS's ImageIO PNG Decoder is buggy on indexed color PNG. Perform workaround
+solution...
