@@ -1630,7 +1630,7 @@ router.post("/dogs/detect", async (req, res) => {
     req.log?.warn({ inferErr, ms: Date.now() - t1, source: HF_SPACE_URL ? "hf-space" : "local-tflite" }, "Inference threw — falling back to GPT");
   }
 
-  // If TFLite is confident and maps to a PawDex breed, return immediately
+  // If TFLite is confident and maps to a Doggo Dex breed, return immediately
   if (
     tfliteResult &&
     tfliteResult.is_dog &&

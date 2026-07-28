@@ -1,7 +1,8 @@
 module.exports = {
   expo: {
     name: "Doggo Dex",
-    slug: "pawdex",
+    slug: "doggodex",
+    owner: "lizhen",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -14,7 +15,7 @@ module.exports = {
       backgroundColor: "#0A1628",
     },
     ios: {
-      bundleIdentifier: "com.lizhenpi.pawdex",
+      bundleIdentifier: "com.lizhen.doggodex",
       supportsTablet: false,
       infoPlist: {
         NSCameraUsageDescription:
@@ -24,7 +25,7 @@ module.exports = {
       },
     },
     android: {
-      package: "com.lizhenpi.pawdex",
+      package: "com.lizhen.doggodex",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#0A1628",

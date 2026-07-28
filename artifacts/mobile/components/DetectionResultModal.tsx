@@ -272,7 +272,7 @@ export function DetectionResultModal({
                   onPress={onCollect}
                 >
                   <Text style={styles.collectBtnText}>
-                    {alreadyCollected ? "Add Photo to Entry" : "Save to PawDex"}
+                    {alreadyCollected ? "Add Photo to Entry" : "Save to Doggo Dex"}
                   </Text>
                   <Feather name={alreadyCollected ? "camera" : "chevron-right"} size={20} color="#fff" />
                 </TouchableOpacity>

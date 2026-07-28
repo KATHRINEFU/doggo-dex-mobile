@@ -296,7 +296,7 @@ export default function SignInScreen() {
 
           <Feather name="maximize" size={48} color="rgba(255,255,255,0.9)" />
           <Text style={styles.title}>Welcome back,{"\n"}Trainer!</Text>
-          <Text style={styles.subtitle}>Sign in to continue your PawDex journey</Text>
+          <Text style={styles.subtitle}>Sign in to continue your Doggo Dex journey</Text>
 
           <Pressable style={styles.socialBtn} onPress={handleGoogle}>
             <Text style={styles.googleG}>G</Text>

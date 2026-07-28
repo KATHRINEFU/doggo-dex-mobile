@@ -278,7 +278,7 @@ export default function SignUpScreen() {
           </Pressable>
           <Text style={styles.photoHint}>Add profile photo (optional)</Text>
 
-          <Text style={styles.title}>Start your{"\n"}PawDex journey!</Text>
+          <Text style={styles.title}>Start your{"\n"}Doggo Dex journey!</Text>
           <Text style={styles.subtitle}>Create your trainer account to collect all 100 breeds</Text>
 
           <Pressable style={styles.socialBtn} onPress={handleGoogle}>
@@ -334,7 +334,7 @@ export default function SignUpScreen() {
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
-              placeholder="trainer@pawdex.com"
+              placeholder="trainer@doggodex.com"
               placeholderTextColor="rgba(0,0,0,0.3)"
               value={email}
               onChangeText={setEmail}
