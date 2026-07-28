@@ -133,7 +133,13 @@ export default function CollectionScreen() {
       list.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    return list;
+    // Dedup by id — FlatList with numColumns crashes on duplicate keys
+    const seen = new Set<string>();
+    return list.filter((b) => {
+      if (seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
   }, [allBreeds, rarity, collectionStatus, sort, search, isCollected, collectedDogs]);
 
   /* Active filter pill label */
