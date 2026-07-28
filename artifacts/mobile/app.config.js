@@ -52,6 +52,7 @@ module.exports = {
       ],
       "expo-font",
       "expo-web-browser",
+      "./plugins/withReactNativeSpmGuard",
       [
         "expo-image-picker",
         {
