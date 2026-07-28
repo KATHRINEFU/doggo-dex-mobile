@@ -189,7 +189,7 @@ export default function CollectionScreen() {
                   pointerEvents={showSearch ? "none" : "auto"}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={styles.brandTitle}>PawDex</Text>
+                    <Text style={styles.brandTitle}>Doggo Dex</Text>
                     <Feather name="maximize" size={18} color="#2C5EAD" />
                   </View>
                   <Text style={styles.brandSubtitle}>Collect every dog. Share every story.</Text>

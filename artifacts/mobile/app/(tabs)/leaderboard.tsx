@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { useGetLeaderboard } from "@workspace/api-client-react";
+import { useGetLeaderboard, useGetMyProfile } from "@workspace/api-client-react";
 import type { LeaderboardEntry } from "@workspace/api-client-react";
 
 const RANK_COLORS = ["#FBBF24", "#94A3B8", "#D97706"];
@@ -81,8 +81,11 @@ export default function LeaderboardScreen() {
     }
   }, [isLoaded, isSignedIn]);
 
-  // TODO: fetch current user's country from backend context or local storage
-  const userCountry = undefined; // will be wired once user profile is stored locally
+  // Fetch the signed-in user's profile to get their stored country.
+  const { data: myProfile } = useGetMyProfile({
+    query: { enabled: !!isSignedIn, queryKey: [] as any },
+  });
+  const userCountry = myProfile?.country;
 
   const { data, isLoading } = useGetLeaderboard(
     scope === "country" && userCountry
