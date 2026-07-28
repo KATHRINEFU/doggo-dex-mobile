@@ -278,7 +278,7 @@ export default function ProfileScreen() {
               hitSlop={8}
             >
               <Text style={styles.levelText}>
-                Lv. {trainerLevel} Doggo Dex Trainer
+                Lv.{trainerLevel} Trainer
               </Text>
               <Feather name="info" size={11} color="rgba(255,255,255,0.7)" style={{ marginLeft: 5 }} />
             </Pressable>
