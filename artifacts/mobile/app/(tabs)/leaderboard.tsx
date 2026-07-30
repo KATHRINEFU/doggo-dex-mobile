@@ -82,18 +82,26 @@ export default function LeaderboardScreen() {
   }, [isLoaded, isSignedIn]);
 
   // Fetch the signed-in user's profile to get their stored country.
-  const { data: myProfile } = useGetMyProfile({
-    query: { enabled: !!isSignedIn, queryKey: [] as any },
-  });
+  const { data: myProfile, isLoading: profileLoading } = useGetMyProfile({
+    query: { enabled: !!isSignedIn },
+  } as any);
   const userCountry = myProfile?.country;
 
+  // In country scope, never fall back to the global query — wait for the
+  // profile to load and disable the fetch if the user has no country set.
+  const countryScopeReady = scope === "global" || !!userCountry;
+
   const { data, isLoading } = useGetLeaderboard(
-    scope === "country" && userCountry
-      ? { country: userCountry, limit: 50 }
-      : { limit: 50 }
+    scope === "country"
+      ? { country: userCountry ?? "", limit: 50 }
+      : { limit: 50 },
+    {
+      query: { enabled: countryScopeReady },
+    } as any
   );
 
-  const entries = data ?? [];
+  const entries = countryScopeReady ? (data ?? []) : [];
+  const waitingForCountry = scope === "country" && !userCountry;
 
   return (
     <View style={styles.root}>
@@ -140,11 +148,17 @@ export default function LeaderboardScreen() {
           <View style={styles.centered}>
             <Feather name="star" size={48} color="#FBBF24" />
             <Text style={styles.emptyTitle}>
-              {isLoading ? "Loading..." : "No rankings yet"}
+              {isLoading || (waitingForCountry && profileLoading)
+                ? "Loading..."
+                : waitingForCountry
+                  ? "No country set"
+                  : "No rankings yet"}
             </Text>
-            {!isLoading && (
+            {!isLoading && !profileLoading && (
               <Text style={styles.emptySub}>
-                Be the first to collect breeds and top the leaderboard!
+                {waitingForCountry
+                  ? "Set your country in your profile to see your country ranking."
+                  : "Be the first to collect breeds and top the leaderboard!"}
               </Text>
             )}
           </View>
