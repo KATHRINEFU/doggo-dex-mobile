@@ -78,7 +78,7 @@ module.exports = {
         projectId: "603150f3-fa2a-4aa0-b7de-25a20c9f0c44",
       },
       clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY,
-      domain: process.env.REPLIT_DEV_DOMAIN,
+      domain: process.env.REPLIT_DEV_DOMAIN || process.env.EXPO_PUBLIC_DOMAIN,
     },
   },
 };
