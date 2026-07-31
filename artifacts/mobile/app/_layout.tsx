@@ -7,6 +7,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { ClerkProvider, ClerkLoaded } from "@clerk/expo";
 import { tokenCache } from "@/lib/tokenCache";
+import { initBreedModel } from "@/lib/BreedModel";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -86,6 +87,11 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    // Pre-load and warm the on-device TFLite model (native only)
+    initBreedModel().catch(() => {});
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

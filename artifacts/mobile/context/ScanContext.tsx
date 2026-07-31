@@ -13,6 +13,7 @@ import {
   useRecordCollection,
 } from "@workspace/api-client-react";
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
+import { detectBreedOnDevice } from "@/lib/BreedModel";
 
 interface ScanContextValue {
   openScan: () => void;
@@ -229,15 +230,32 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       setImageUri(displayUri);
       setDetecting(true);
 
-      let res: DetectBreedResult;
+      let res: DetectBreedResult | null = null;
+
+      // Native: try the on-device TFLite model first, but accuracy-first —
+      // only trust it when highly confident; otherwise defer to the server.
+      if (Platform.OS !== "web") {
+        try {
+          phase = "device-detect";
+          const deviceRes = await detectBreedOnDevice(base64Data);
+          if (deviceRes && deviceRes.isDog && deviceRes.confidence >= 0.75) {
+            res = deviceRes as unknown as DetectBreedResult;
+            logTiming("detect done (on-device)");
+          }
+        } catch {
+          // fall through to server
+        }
+      }
+
       try {
-        // Accuracy first: all platforms use the server detection pipeline
-        // (proper image handling + GPT Vision fallback).
-        phase = "detect";
-        res = await detectMutation.mutateAsync({
-          data: { imageBase64: base64Data, mimeType: "image/jpeg" },
-        });
-        logTiming("detect done");
+        if (!res) {
+          // Server pipeline: proper image handling + GPT Vision fallback.
+          phase = "detect";
+          res = await detectMutation.mutateAsync({
+            data: { imageBase64: base64Data, mimeType: "image/jpeg" },
+          });
+          logTiming("detect done (server)");
+        }
       } catch (apiErr: unknown) {
         let msg = "Could not analyze the image. Please try again.";
         if (apiErr && typeof apiErr === "object") {
