@@ -179,10 +179,12 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       // on high-resolution camera photos. Instead use the base64 returned directly
       // by the picker (at reduced quality) and let decodeJpegToRgbFloat32 handle
       // the nearest-neighbour resize to INPUT_SIZE×INPUT_SIZE in pure JS (~5–20 ms).
+      // Use the file URI for display — NOT the base64 string. Passing a 50MB+
+      // base64 data URI as a React prop chokes the JS bridge and freezes the app.
       if (Platform.OS !== "web" && asset.base64) {
         phase = "native-b64";
         base64Data = asset.base64;
-        displayUri = `data:image/jpeg;base64,${asset.base64}`;
+        displayUri = asset.uri; // file:// URI — lightweight, renders fine on native
         logTiming("native-b64 done (skip manipulator)");
       } else {
         // Web: resize to 1024 via manipulator for the server API.
