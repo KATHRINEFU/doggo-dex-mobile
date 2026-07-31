@@ -12,7 +12,7 @@ module.exports = {
     splash: {
       image: "./assets/images/icon.png",
       resizeMode: "contain",
-      backgroundColor: "#0A1628",
+      backgroundColor: "#4BB8FA",
     },
     ios: {
       bundleIdentifier: "com.lizhen.doggodex",
@@ -28,7 +28,7 @@ module.exports = {
       package: "com.lizhen.doggodex",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#0A1628",
+        backgroundColor: "#4BB8FA",
       },
       permissions: [
         "android.permission.CAMERA",
