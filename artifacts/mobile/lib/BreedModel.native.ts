@@ -262,13 +262,34 @@ export async function detectBreedOnDevice(
     const input = decodeJpegToRgbFloat32(jpegBase64);
     const decodeMs = Date.now() - tDecode;
 
-    // --- TFLite inference ---
+    // --- TFLite inference with test-time augmentation (horizontal flip) ---
+    // The model was trained with random_flip_left_right augmentation, so
+    // averaging predictions over the image and its mirror measurably improves
+    // accuracy and confidence calibration at the cost of one extra pass.
     const tInfer = Date.now();
     const outputs = await model.run([input.buffer as ArrayBuffer]);
+
+    const flipped = new Float32Array(input.length);
+    for (let y = 0; y < INPUT_SIZE; y++) {
+      const row = y * INPUT_SIZE * 3;
+      for (let x = 0; x < INPUT_SIZE; x++) {
+        const src = row + x * 3;
+        const dst = row + (INPUT_SIZE - 1 - x) * 3;
+        flipped[dst] = input[src];
+        flipped[dst + 1] = input[src + 1];
+        flipped[dst + 2] = input[src + 2];
+      }
+    }
+    const outputsFlip = await model.run([flipped.buffer as ArrayBuffer]);
     const inferMs = Date.now() - tInfer;
 
-    // --- Argmax over 120 breed probabilities ---
-    const probs = new Float32Array(outputs[0]);
+    // --- Average probabilities, then argmax over 120 breeds ---
+    const probsA = new Float32Array(outputs[0]);
+    const probsB = new Float32Array(outputsFlip[0]);
+    const probs = new Float32Array(NUM_CLASSES);
+    for (let i = 0; i < NUM_CLASSES; i++) {
+      probs[i] = (probsA[i] + probsB[i]) / 2;
+    }
     let bestIdx = 0;
     let bestScore = probs[0];
     for (let i = 1; i < NUM_CLASSES; i++) {

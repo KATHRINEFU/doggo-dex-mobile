@@ -202,8 +202,6 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
             <Animated.View key={i} style={[styles.dot, { opacity: d }]} />
           ))}
         </View>
-
-        <Text style={styles.sublabel}>Powered by GPT Vision</Text>
       </LinearGradient>
     </View>
   );
@@ -321,13 +319,5 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 3.5,
     backgroundColor: "#5AC8FA",
-  },
-
-  sublabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: "rgba(255,255,255,0.45)",
-    letterSpacing: 0.5,
-    marginTop: -8,
   },
 });

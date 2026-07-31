@@ -238,7 +238,8 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         try {
           phase = "device-detect";
           const deviceRes = await detectBreedOnDevice(base64Data);
-          if (deviceRes && deviceRes.isDog && deviceRes.confidence >= 0.75) {
+          // TTA-averaged confidence is better calibrated — accept at 60%+.
+          if (deviceRes && deviceRes.isDog && deviceRes.confidence >= 0.6) {
             res = deviceRes as unknown as DetectBreedResult;
             logTiming("detect done (on-device)");
           }
