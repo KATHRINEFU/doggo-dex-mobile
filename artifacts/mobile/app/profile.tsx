@@ -132,14 +132,26 @@ export default function ProfileScreen() {
   };
 
   const handleSelectCountry = async (option: CountryOption) => {
-    if (!profile?.username) return;
+    // Fall back to Clerk username or email prefix if DB profile isn't synced yet
+    const username =
+      profile?.username ??
+      user?.username ??
+      user?.emailAddresses?.[0]?.emailAddress?.split("@")[0] ??
+      "";
+    if (!username) {
+      Alert.alert("Username required", "Please set a username before selecting a country.");
+      return;
+    }
     try {
       await syncUser.mutateAsync({
         data: {
-          username: profile.username,
-          displayName: displayName,
+          username,
+          displayName: displayName ?? null,
           country: option.name,
-          countryFlag: option.code,
+          // Convert ISO code (e.g. "US") to flag emoji (e.g. "🇺🇸")
+          countryFlag: [...option.code.toUpperCase()]
+            .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
+            .join(""),
         },
       });
       refetchProfile();

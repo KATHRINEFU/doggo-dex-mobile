@@ -174,7 +174,6 @@ const COUNTRIES: CountryOption[] = [
   { code: "LR", name: "Liberia" },
   { code: "TG", name: "Togo" },
   { code: "BJ", name: "Benin" },
-  { code: "TG", name: "Togo" },
 ];
 
 interface Props {
