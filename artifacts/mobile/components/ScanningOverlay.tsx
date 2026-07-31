@@ -5,7 +5,6 @@ import {
   Dimensions,
   Easing,
   Image,
-  Modal,
   StyleSheet,
   Text,
   View,
@@ -84,17 +83,24 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
         ]),
       );
 
+    const dotAnim1 = makeDot(dot1, 0);
+    const dotAnim2 = makeDot(dot2, 200);
+    const dotAnim3 = makeDot(dot3, 400);
+
     scanAnim.start();
     pulseAnim.start();
     spinAnim.start();
-    makeDot(dot1, 0).start();
-    makeDot(dot2, 200).start();
-    makeDot(dot3, 400).start();
+    dotAnim1.start();
+    dotAnim2.start();
+    dotAnim3.start();
 
     return () => {
       scanAnim.stop();
       pulseAnim.stop();
       spinAnim.stop();
+      dotAnim1.stop();
+      dotAnim2.stop();
+      dotAnim3.stop();
       scanY.setValue(0);
       pulseScale.setValue(1);
       pulseOpacity.setValue(0.6);
@@ -115,8 +121,13 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
     outputRange: ["0deg", "360deg"],
   });
 
+  // Rendered as an absolutely-positioned view (NOT a Modal): iOS deadlocks when
+  // two Modals are visible at once, and the result modal opens right after this
+  // overlay closes. A plain view avoids the race entirely.
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
+    <View style={styles.root} pointerEvents="auto">
       <LinearGradient
         colors={["rgba(30,60,130,0.97)", "rgba(20,40,100,0.99)"]}
         style={styles.overlay}
@@ -194,7 +205,7 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
 
         <Text style={styles.sublabel}>Powered by GPT Vision</Text>
       </LinearGradient>
-    </Modal>
+    </View>
   );
 }
 
@@ -202,6 +213,11 @@ const CORNER = 20;
 const BORDER = 3;
 
 const styles = StyleSheet.create({
+  root: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+  },
   overlay: {
     flex: 1,
     alignItems: "center",
