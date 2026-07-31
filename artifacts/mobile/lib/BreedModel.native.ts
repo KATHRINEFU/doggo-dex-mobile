@@ -107,11 +107,15 @@ export async function initBreedModel(): Promise<void> {
 
 /**
  * Decode a JPEG (base64 string) to raw RGB Float32Array [0, 255].
- * Uses Buffer.from for fast native base64 decode (no charCodeAt loop).
+ * Uses atob (available in Hermes) to convert base64 → binary → Uint8Array.
  */
 function decodeJpegToRgbFloat32(base64: string): Float32Array {
-  // Native Buffer.from is ~10× faster than atob + charCodeAt loop
-  const bytes: Uint8Array = Buffer.from(base64, "base64");
+  // Buffer is a Node.js global not available in Hermes — use atob instead
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
 
   const decoded = jpeg.decode(bytes, {
     useTArray: true,
