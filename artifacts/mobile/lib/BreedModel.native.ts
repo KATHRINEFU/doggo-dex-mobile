@@ -11,13 +11,17 @@
  *   Resize: stretch to exactly 384x384 (not aspect-ratio preserved).
  *
  * On-device timing budget (warm model, iPhone 13+):
- *   expo-image-manipulator resize   ~30–50 ms  (done in ScanContext before this)
- *   Buffer.from base64 decode        ~2–5 ms
- *   jpeg-js JPEG decode (384×384)   ~30–80 ms  (pure JS, main bottleneck here)
+ *   expo-image-picker (quality 0.5)  ~0 ms extra (base64 returned by picker)
+ *   atob base64 decode               ~5–15 ms
+ *   jpeg-js JPEG decode (full-res)  ~50–200 ms  (pure JS; scales with file size)
+ *   Nearest-neighbour JS resize     ~5–20 ms   (INPUT_SIZE² iterations)
  *   Float32Array RGB copy           ~3–8 ms
  *   TFLite Core ML inference       ~80–200 ms  (float32; float16 would be faster)
  *   ─────────────────────────────────────────
- *   Total (warm)                  ~150–350 ms  → well under 1 s
+ *   Total (warm)                  ~150–450 ms  → well under 2 s
+ *
+ * Key: ScanContext no longer calls expo-image-manipulator on native (was 10+ s).
+ * Instead it passes picker base64 directly; decodeJpegToRgbFloat32 resizes here.
  *
  * Note: float16 model (~43 MB) gives better ANE utilisation; current model is
  * float32 (78 MB) which Core ML still accelerates but some ops may fall to CPU.
@@ -125,7 +129,7 @@ function decodeJpegToRgbFloat32(base64: string): Float32Array {
   const { width, height, data } = decoded;
   const out = new Float32Array(INPUT_SIZE * INPUT_SIZE * 3);
 
-  // Fast path: image was already resized to 384×384 by expo-image-manipulator
+  // Fast path: image is already exactly INPUT_SIZE×INPUT_SIZE (rare on native now)
   if (width === INPUT_SIZE && height === INPUT_SIZE) {
     let j = 0;
     for (let i = 0; i < data.length; i += 4) {

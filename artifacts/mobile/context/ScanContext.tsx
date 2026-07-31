@@ -141,7 +141,9 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         phase = "camera";
         const picked = await ImagePicker.launchCameraAsync({
           mediaTypes: "images",
-          quality: 0.85,
+          // Lower quality on native: smaller JPEG → faster jpeg-js decode.
+          // On web, manipulator re-compresses before the server call anyway.
+          quality: Platform.OS === "web" ? 0.85 : 0.5,
           base64: true,
           ...editOptions,
         });
@@ -156,7 +158,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         phase = "picker";
         const picked = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: "images",
-          quality: 0.85,
+          quality: Platform.OS === "web" ? 0.85 : 0.5,
           base64: true,
           ...editOptions,
         });
@@ -172,20 +174,29 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
       let base64Data: string;
       let displayUri = "";
-      try {
-        phase = "manip";
-        // Native: resize to 384x384 (model input). Web: 1024 for server API.
-        const targetSize = Platform.OS === "web" ? 1024 : 384;
-        const manip = await ImageManipulator.manipulateAsync(
-          asset.uri,
-          [{ resize: { width: targetSize, height: targetSize } }],
-          { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-        );
-        if (!manip.base64) throw new Error("no base64");
-        base64Data = manip.base64;
-        displayUri = `data:image/jpeg;base64,${manip.base64}`;
-      } catch {
-        if (Platform.OS === "web") {
+
+      // On native, skip expo-image-manipulator entirely — it can take 10+ seconds
+      // on high-resolution camera photos. Instead use the base64 returned directly
+      // by the picker (at reduced quality) and let decodeJpegToRgbFloat32 handle
+      // the nearest-neighbour resize to INPUT_SIZE×INPUT_SIZE in pure JS (~5–20 ms).
+      if (Platform.OS !== "web" && asset.base64) {
+        phase = "native-b64";
+        base64Data = asset.base64;
+        displayUri = `data:image/jpeg;base64,${asset.base64}`;
+        logTiming("native-b64 done (skip manipulator)");
+      } else {
+        // Web: resize to 1024 via manipulator for the server API.
+        try {
+          phase = "manip";
+          const manip = await ImageManipulator.manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 1024, height: 1024 } }],
+            { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+          );
+          if (!manip.base64) throw new Error("no base64");
+          base64Data = manip.base64;
+          displayUri = `data:image/jpeg;base64,${manip.base64}`;
+        } catch {
           try {
             phase = "heic";
             const heic2any = (await import("heic2any")).default;
@@ -212,16 +223,9 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
             }
             base64Data = asset.base64;
           }
-        } else {
-          if (!asset.base64) {
-            showError("Could not read this image. Please try a different photo.", pickedUri);
-            return;
-          }
-          base64Data = asset.base64;
         }
+        logTiming(`${phase} done`);
       }
-
-      logTiming(`${phase} done`);
       setImageUri(displayUri);
       setDetecting(true);
 
