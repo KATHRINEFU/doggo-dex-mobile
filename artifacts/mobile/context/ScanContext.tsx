@@ -313,13 +313,14 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       setMatchedBreed(found);
       logTiming("result ready");
 
-      // Breed is NOT auto-collected — user taps "Save to Doggo Dex" in the modal.
-
+      // iOS cannot have two Modals active simultaneously — dismiss the scanning
+      // overlay first, then open the result modal after it has fully closed.
+      setDetecting(false);
+      await new Promise<void>((resolve) => setTimeout(resolve, 350));
       setModalVisible(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       showError(msg, pickedUri);
-    } finally {
       setDetecting(false);
     }
   }
