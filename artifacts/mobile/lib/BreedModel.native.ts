@@ -67,19 +67,28 @@ export async function initBreedModel(): Promise<void> {
     try {
       const t0 = Date.now();
 
-      const delegates: TensorflowModelDelegate[] =
+      const preferredDelegates: TensorflowModelDelegate[] =
         Platform.OS === "ios"
           ? ["core-ml"]
           : Platform.OS === "android"
             ? ["android-gpu"]
             : [];
 
-      model = await loadTensorflowModel(
-        require("../assets/ml/dog_breed_classifier.tflite"),
-        delegates,
-      );
-
-      console.log(`[BreedModel] model loaded in ${Date.now() - t0} ms (delegates: ${delegates.join(",") || "none"})`);
+      // Try preferred delegate first, fall back to CPU if unavailable
+      try {
+        model = await loadTensorflowModel(
+          require("../assets/ml/dog_breed_classifier.tflite"),
+          preferredDelegates,
+        );
+        console.log(`[BreedModel] model loaded in ${Date.now() - t0} ms (delegates: ${preferredDelegates.join(",") || "none"})`);
+      } catch (delegateErr) {
+        console.warn(`[BreedModel] delegate load failed, retrying with CPU:`, delegateErr);
+        model = await loadTensorflowModel(
+          require("../assets/ml/dog_breed_classifier.tflite"),
+          [],
+        );
+        console.log(`[BreedModel] model loaded in ${Date.now() - t0} ms (delegates: cpu-fallback)`);
+      }
 
       // Warm-up: Core ML compiles a Metal shader on first run — do it at startup
       // so the first real scan is fast.
