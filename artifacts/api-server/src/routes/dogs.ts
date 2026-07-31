@@ -29,7 +29,9 @@ const TFLITE_SCRIPT = path.join(__dirname, "ml/tflite_infer.py");
 const TFLITE_WORKER = path.join(__dirname, "ml/tflite_worker.py");
 
 // Confidence thresholds for TFLite → GPT fallback
-const TFLITE_CONFIDENCE_THRESHOLD = 0.35;
+// Accuracy first: only trust the TFLite fast path when it is highly confident;
+// everything else falls through to GPT Vision.
+const TFLITE_CONFIDENCE_THRESHOLD = 0.75;
 
 // Hugging Face Space inference endpoint (optional — falls back to local TFLite if unset)
 const HF_SPACE_URL = process.env["HF_SPACE_URL"];

@@ -13,7 +13,6 @@ import {
   useRecordCollection,
 } from "@workspace/api-client-react";
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
-import { detectBreedOnDevice } from "@/lib/BreedModel";
 
 interface ScanContextValue {
   openScan: () => void;
@@ -142,9 +141,8 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         phase = "camera";
         const picked = await ImagePicker.launchCameraAsync({
           mediaTypes: "images",
-          // Lower quality on native: smaller JPEG → faster jpeg-js decode.
-          // On web, manipulator re-compresses before the server call anyway.
-          quality: Platform.OS === "web" ? 0.85 : 0.5,
+          // Accuracy first: keep high JPEG quality on all platforms.
+          quality: 0.85,
           base64: true,
           ...editOptions,
         });
@@ -159,7 +157,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         phase = "picker";
         const picked = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: "images",
-          quality: Platform.OS === "web" ? 0.85 : 0.5,
+          quality: 0.85,
           base64: true,
           ...editOptions,
         });
@@ -176,10 +174,9 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       let base64Data: string;
       let displayUri = "";
 
-      // On native, skip expo-image-manipulator entirely — it can take 10+ seconds
-      // on high-resolution camera photos. Instead use the base64 returned directly
-      // by the picker (at reduced quality) and let decodeJpegToRgbFloat32 handle
-      // the nearest-neighbour resize to INPUT_SIZE×INPUT_SIZE in pure JS (~5–20 ms).
+      // On native, skip expo-image-manipulator — it can take 10+ seconds on
+      // high-resolution camera photos. Send the picker's base64 directly to the
+      // server, which handles orientation and resizing properly.
       // Use the file URI for display — NOT the base64 string. Passing a 50MB+
       // base64 data URI as a React prop chokes the JS bridge and freezes the app.
       if (Platform.OS !== "web" && asset.base64) {
@@ -234,73 +231,32 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
       let res: DetectBreedResult;
       try {
-        // Native: try on-device TFLite first (instant, no network)
-        if (Platform.OS !== "web") {
-          phase = "device-detect";
-          const deviceRes = await detectBreedOnDevice(base64Data);
-          if (deviceRes && deviceRes.isDog && deviceRes.confidence >= 0.35) {
-            res = deviceRes as unknown as DetectBreedResult;
-            logTiming("detect done (on-device)");
-          } else {
-            throw new Error("on-device low confidence or no dog");
-          }
-        } else {
-          // Web: always use server
-          phase = "detect";
-          res = await detectMutation.mutateAsync({
-            data: { imageBase64: base64Data, mimeType: "image/jpeg" },
-          });
-          logTiming("detect done");
-        }
+        // Accuracy first: all platforms use the server detection pipeline
+        // (proper image handling + GPT Vision fallback).
+        phase = "detect";
+        res = await detectMutation.mutateAsync({
+          data: { imageBase64: base64Data, mimeType: "image/jpeg" },
+        });
+        logTiming("detect done");
       } catch (apiErr: unknown) {
-        // If on-device failed on native, fall back to server
-        if (Platform.OS !== "web") {
-          try {
-            phase = "detect";
-            res = await detectMutation.mutateAsync({
-              data: { imageBase64: base64Data, mimeType: "image/jpeg" },
-            });
-            logTiming("detect done (server fallback)");
-          } catch (serverErr: unknown) {
-            let msg = "Could not analyze the image. Please try again.";
-            if (serverErr && typeof serverErr === "object") {
-              const anyErr = serverErr as Record<string, unknown>;
-              const responseData =
-                (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
-                (anyErr["data"] as unknown);
-              if (
-                responseData &&
-                typeof responseData === "object" &&
-                typeof (responseData as Record<string, unknown>)["message"] === "string"
-              ) {
-                msg = (responseData as Record<string, unknown>)["message"] as string;
-              } else if (typeof anyErr["message"] === "string") {
-                msg = anyErr["message"] as string;
-              }
-            }
-            showError(msg, pickedUri);
-            return;
+        let msg = "Could not analyze the image. Please try again.";
+        if (apiErr && typeof apiErr === "object") {
+          const anyErr = apiErr as Record<string, unknown>;
+          const responseData =
+            (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
+            (anyErr["data"] as unknown);
+          if (
+            responseData &&
+            typeof responseData === "object" &&
+            typeof (responseData as Record<string, unknown>)["message"] === "string"
+          ) {
+            msg = (responseData as Record<string, unknown>)["message"] as string;
+          } else if (typeof anyErr["message"] === "string") {
+            msg = anyErr["message"] as string;
           }
-        } else {
-          let msg = "Could not analyze the image. Please try again.";
-          if (apiErr && typeof apiErr === "object") {
-            const anyErr = apiErr as Record<string, unknown>;
-            const responseData =
-              (anyErr["response"] as Record<string, unknown> | undefined)?.["data"] ??
-              (anyErr["data"] as unknown);
-            if (
-              responseData &&
-              typeof responseData === "object" &&
-              typeof (responseData as Record<string, unknown>)["message"] === "string"
-            ) {
-              msg = (responseData as Record<string, unknown>)["message"] as string;
-            } else if (typeof anyErr["message"] === "string") {
-              msg = anyErr["message"] as string;
-            }
-          }
-          showError(msg, pickedUri);
-          return;
         }
+        showError(msg, pickedUri);
+        return;
       }
 
       setResult(res);

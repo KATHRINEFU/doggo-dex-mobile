@@ -22,7 +22,6 @@ import { useAuth } from "@clerk/expo";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CollectionProvider } from "@/context/CollectionContext";
 import { ScanProvider } from "@/context/ScanContext";
-import { initBreedModel } from "@/lib/BreedModel";
 
 const extra = Constants.expoConfig?.extra ?? {};
 
@@ -87,11 +86,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
-
-  useEffect(() => {
-    // Pre-load and warm the on-device TFLite model (native only)
-    initBreedModel().catch(() => {});
-  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 
