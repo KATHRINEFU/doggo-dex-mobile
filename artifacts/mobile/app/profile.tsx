@@ -23,6 +23,7 @@ import { CountryPickerModal, type CountryOption } from "@/components/CountryPick
 import {
   useGetMyProfile,
   useSyncUser,
+  useGetDogBreeds,
   getGetLeaderboardQueryKey,
   getGetMyProfileQueryKey,
 } from "@workspace/api-client-react";
@@ -34,7 +35,10 @@ export default function ProfileScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { getToken, isSignedIn } = useAuth();
-  const { collectionCount, xp, streak } = useCollection();
+  const { collectionCount, xp, streak, addDog, isCollected } = useCollection();
+  // Dev-only: breed catalog for seeding test data
+  const { data: allBreeds } = useGetDogBreeds({ query: { enabled: __DEV__ } } as any);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -420,6 +424,47 @@ export default function ProfileScreen() {
             <Feather name="log-out" size={18} color="#FF6B6B" />
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
+
+          {/* Dev-only: seed test breeds for badge testing */}
+          {__DEV__ && (
+            <Pressable
+              style={[styles.signOutBtn, { borderColor: "rgba(90,200,250,0.4)" }]}
+              disabled={seeding}
+              onPress={async () => {
+                if (!allBreeds?.length) {
+                  Alert.alert("Dev seed", "Breed catalog not loaded yet.");
+                  return;
+                }
+                setSeeding(true);
+                try {
+                  const candidates = allBreeds.filter((b) => !isCollected(b.id)).slice(0, 10);
+                  for (const b of candidates) {
+                    await addDog({
+                      breedId: b.id,
+                      breedName: b.name,
+                      imageUri: b.imageUrl,
+                      collectedAt: new Date().toISOString(),
+                      confidence: 0.95,
+                      description: b.description,
+                      rarity: b.rarity as any,
+                    });
+                  }
+                  Alert.alert("Dev seed", `Added ${candidates.length} breeds to your local collection.`);
+                } finally {
+                  setSeeding(false);
+                }
+              }}
+            >
+              {seeding ? (
+                <ActivityIndicator size="small" color="#5AC8FA" />
+              ) : (
+                <Feather name="plus-circle" size={18} color="#5AC8FA" />
+              )}
+              <Text style={[styles.signOutText, { color: "#5AC8FA" }]}>
+                Dev: Seed 10 test breeds
+              </Text>
+            </Pressable>
+          )}
         </ScrollView>
       )}
 
