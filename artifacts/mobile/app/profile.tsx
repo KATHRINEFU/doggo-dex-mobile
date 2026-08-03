@@ -24,6 +24,7 @@ import {
   useGetMyProfile,
   useSyncUser,
   getGetLeaderboardQueryKey,
+  getGetMyProfileQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -154,7 +155,9 @@ export default function ProfileScreen() {
             .join(""),
         },
       });
-      refetchProfile();
+      // Invalidate both the profile cache (leaderboard screen reads its own copy
+      // of useGetMyProfile to power the "My Country" scope) and the leaderboard.
+      await queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetLeaderboardQueryKey() });
     } catch {
       Alert.alert("Error", "Failed to update country. Please try again.");
