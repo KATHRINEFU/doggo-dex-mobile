@@ -20,9 +20,11 @@ function withReactNativeSpmGuard(config) {
     const guard = `
     # ${marker}: filter SPM registrations whose pod target is missing.
     # React Native 0.81 otherwise crashes while updating the Pods project.
-    if defined?(SPMManager)
-      class SPMManager
-        unless method_defined?(:doggo_dex_apply_on_post_install)
+    # Patch the live ::SPM singleton (class reopening inside a Podfile lands in
+    # the Pod::Podfile namespace and misses the real SPMManager).
+    if defined?(::SPM) && ::SPM.respond_to?(:apply_on_post_install)
+      unless ::SPM.respond_to?(:doggo_dex_apply_on_post_install)
+        class << ::SPM
           alias_method :doggo_dex_apply_on_post_install, :apply_on_post_install
 
           def apply_on_post_install(installer)
