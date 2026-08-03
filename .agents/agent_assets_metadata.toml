@@ -71,3 +71,17 @@ id = "sLo0PGr-sEBa9TyGoZBzE"
 uri = "file://artifacts/mobile/assets/images/logo.png"
 type = "image"
 title = "DogDex Logo"
+
+[[outputs]]
+id = "d-jDBnYDWzynyUKrplwPL"
+uri = "file://artifacts/mobile/assets/images/logo_transparent.png"
+type = "image"
+title = "DogDex logo with natural ears"
+description = "Updated transparent DogDex mark with softer, relaxed floppy ears, friendly smile, and the original hand-drawn nose style."
+
+[[outputs]]
+id = "k6E0ALfrSNeshJYAyBvfM"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "DogDex icon with natural ears"
+description = "Square app icon variant with the refined natural floppy ears."
