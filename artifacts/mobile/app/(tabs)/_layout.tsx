@@ -188,11 +188,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   pokeballHit: {
-    shadowColor: "#000",
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 18,
+    borderRadius: POKEBALL_SIZE / 2,
   },
   bar: {
     width: "100%",
