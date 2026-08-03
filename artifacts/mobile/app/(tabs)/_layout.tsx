@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, useRouter, type Href } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -22,6 +22,13 @@ const RIGHT_TABS = [
   { name: "leaderboard", icon: "award" as const, label: "Rank" },
   { name: "medals", icon: "user" as const, label: "Profile" },
 ];
+
+const TAB_HREFS: Record<string, Href> = {
+  index: "/(tabs)",
+  collection: "/(tabs)/collection",
+  leaderboard: "/(tabs)/leaderboard",
+  medals: "/(tabs)/medals",
+};
 
 const POKEBALL_SIZE = 68;
 const BAR_HEIGHT = 62;
@@ -105,9 +112,15 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
         router.push("/(auth)/sign-in");
         return;
       }
-      navigation.navigate(routeName);
+      // Use Expo Router's file paths instead of the raw React Navigation
+      // route name. This keeps custom tab buttons working with Expo Router's
+      // grouped `(tabs)` routes and avoids "route was not handled" warnings.
+      const href = TAB_HREFS[routeName];
+      if (href) {
+        router.navigate(href);
+      }
     },
-    [navigation, isSignedIn, router],
+    [isSignedIn, router],
   );
 
   function isActive(routeName: string) {
