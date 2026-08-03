@@ -376,19 +376,17 @@ export default function ProfileScreen() {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Country</Text>
-              {profile?.username && (
-                <Pressable
-                  onPress={() => setShowCountryPicker(true)}
-                  hitSlop={8}
-                  disabled={syncUser.isPending}
-                >
-                  <Feather
-                    name="edit-2"
-                    size={16}
-                    color="rgba(255,255,255,0.6)"
-                  />
-                </Pressable>
-              )}
+              <Pressable
+                onPress={() => setShowCountryPicker(true)}
+                hitSlop={8}
+                disabled={syncUser.isPending}
+              >
+                <Feather
+                  name="edit-2"
+                  size={16}
+                  color="rgba(255,255,255,0.6)"
+                />
+              </Pressable>
             </View>
             {syncUser.isPending ? (
               <ActivityIndicator
@@ -397,10 +395,12 @@ export default function ProfileScreen() {
                 style={{ alignSelf: "flex-start" }}
               />
             ) : (
-              <Text style={styles.fieldValue}>
-                {profile?.countryFlag ? `${profile.countryFlag}  ` : ""}
-                {profile?.country || "—"}
-              </Text>
+              <Pressable onPress={() => setShowCountryPicker(true)} hitSlop={4}>
+                <Text style={styles.fieldValue}>
+                  {profile?.countryFlag ? `${profile.countryFlag}  ` : ""}
+                  {profile?.country || "Tap to set your country"}
+                </Text>
+              </Pressable>
             )}
           </View>
 
