@@ -7,8 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import { captureRef } from "react-native-view-shot";
+import { NativeModules, Platform, StyleSheet, View } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import { useCollection, type Medal } from "@/context/CollectionContext";
 import { BadgeShareCard } from "@/components/BadgeShareCard";
@@ -22,6 +21,15 @@ import { BadgeShareCard } from "@/components/BadgeShareCard";
  */
 
 const INDEX_KEY = "@dogdex_v2_badge_share_images";
+
+// A development build made before react-native-view-shot was installed does
+// not contain RNViewShot. Avoid loading the native library in that old binary:
+// the badge can still use its existing text-sharing fallback instead of
+// crashing the entire app while Metro serves the latest JavaScript.
+const captureRef =
+  Platform.OS !== "web" && NativeModules.RNViewShot
+    ? require("react-native-view-shot").captureRef
+    : null;
 
 interface CacheEntry {
   uri: string;
@@ -92,6 +100,10 @@ export function BadgeShareProvider({ children }: { children: React.ReactNode }) 
 
   const doCapture = useCallback(async () => {
     if (!pending || capturing.current || !shotRef.current) return;
+    if (!captureRef) {
+      setPending(null);
+      return;
+    }
     capturing.current = true;
     const medal = pending;
     try {
