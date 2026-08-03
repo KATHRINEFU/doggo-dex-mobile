@@ -1,0 +1,40 @@
+(base) katefu@Kates-MacBook-Pro-4 mobile % npx expo run:ios --device           
+⚠️  Something went wrong running `pod install` in the `ios` directory.
+Command `pod install` failed.
+└─ Cause: An error occurred while processing the post-install hook of the Podfile.
+
+undefined method 'package_product_dependencies' for nil
+
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:80:in 'block in SPMManager#add_spm_to_target'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:79:in 'Array#each'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:79:in 'SPMManager#add_spm_to_target'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:25:in 'block (2 levels) in SPMManager#apply_on_post_install'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:23:in 'Array#each'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:23:in 'block in SPMManager#apply_on_post_install'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:22:in 'Hash#each'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/cocoapods/spm.rb:22:in 'SPMManager#apply_on_post_install'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/node_modules/.pnpm/react-native@0.81.5_@babel+core@7.29.0_supports-color@8.1.1__@types+react@19.1.17_react@19.1.0_supports-color@8.1.1/node_modules/react-native/scripts/react_native_pods.rb:507:in 'Object#react_native_post_install'
+/Users/katefu/VSCodeProjects/doggo-dex-mobile/artifacts/mobile/ios/Podfile:56:in 'block (3 levels) in Pod::Podfile.from_ruby'
+/opt/homebrew/lib/ruby/gems/4.0.0/gems/cocoapods-core-1.17.0/lib/cocoapods-core/podfile.rb:196:in 'Pod::Podfile#post_install!'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:1013:in 'Pod::Installer#run_podfile_post_install_hook'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:1001:in 'block in Pod::Installer#run_podfile_post_install_hooks'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/user_interface.rb:149:in 'Pod::UserInterface.message'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:1000:in 'Pod::Installer#run_podfile_post_install_hooks'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:337:in 'block (2 levels) in Pod::Installer#create_and_save_projects'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer/xcode/pods_project_generator/pods_project_writer.rb:61:in 'Pod::Installer::Xcode::PodsProjectWriter#write!'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:336:in 'block in Pod::Installer#create_and_save_projects'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/user_interface.rb:64:in 'Pod::UserInterface.section'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:315:in 'Pod::Installer#create_and_save_projects'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:307:in 'Pod::Installer#generate_pods_project'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:183:in 'Pod::Installer#integrate'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/installer.rb:170:in 'Pod::Installer#install!'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/command/install.rb:52:in 'Pod::Command::Install#run'
+/opt/homebrew/lib/ruby/gems/4.0.0/gems/claide-1.1.0/lib/claide/command.rb:334:in 'CLAide::Command.run'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/lib/cocoapods/command.rb:52:in 'Pod::Command.run'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/gems/cocoapods-1.17.0/bin/pod:55:in '<top (required)>'
+/opt/homebrew/Cellar/ruby/4.0.6/lib/ruby/4.0.0/rubygems.rb:305:in 'Kernel#load'
+/opt/homebrew/Cellar/ruby/4.0.6/lib/ruby/4.0.0/rubygems.rb:305:in 'Gem.activate_and_load_bin_path'
+/opt/homebrew/Cellar/cocoapods/1.17.0/libexec/bin/pod:25:in '<main>'
+
+pod install --repo-update --ansi exited with non-zero code: 1
+(base) katefu@Kates-MacBook-Pro-4 mobile % 
