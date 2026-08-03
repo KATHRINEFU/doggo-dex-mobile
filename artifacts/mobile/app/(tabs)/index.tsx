@@ -137,7 +137,7 @@ export default function HomeScreen() {
       />
 
       {/* Top HUD */}
-      <View style={[styles.topHud, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.topHud, { paddingTop: insets.top + 24 }]}>
         <BlurView intensity={48} tint="dark" style={styles.trainerBadge}>
           <View style={styles.trainerAvatar}>
             {user?.imageUrl ? (
