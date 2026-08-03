@@ -1,8 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
-import * as Sharing from "expo-sharing";
+import {
+  NativeModules,
+  Platform,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import type { Medal } from "@/context/CollectionContext";
 import { useBadgeShare } from "@/context/BadgeShareContext";
 
@@ -37,6 +44,13 @@ const ICON_MAP: Record<string, string> = {
   b100: "star",
 };
 
+// Older development builds do not contain expo-sharing's native module. Load
+// it only when the binary has it, then fall back to React Native's text share.
+const Sharing =
+  Platform.OS !== "web" && NativeModules.ExpoSharing
+    ? require("expo-sharing")
+    : null;
+
 export function MedalCard({ medal, currentCount }: Props) {
   const progress = Math.min(currentCount / medal.required, 1);
   const gradColors = TIER_GRADIENTS[medal.id] ?? ["#5AC8FA", "#007AFF"];
@@ -48,7 +62,7 @@ export function MedalCard({ medal, currentCount }: Props) {
     // Prefer the pre-generated badge image (created when the badge unlocked,
     // so there's no latency here). Share sheet lets the user save/download it.
     const imageUri = getShareImageUri(medal.id);
-    if (imageUri && Platform.OS !== "web") {
+    if (imageUri && Sharing) {
       try {
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(imageUri, {
