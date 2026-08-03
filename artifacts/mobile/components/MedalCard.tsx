@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import * as FileSystem from "expo-file-system/legacy";
+import React, { useState } from "react";
 import {
   NativeModules,
   Platform,
@@ -12,6 +13,8 @@ import {
 } from "react-native";
 import type { Medal } from "@/context/CollectionContext";
 import { useBadgeShare } from "@/context/BadgeShareContext";
+import { useCollection } from "@/context/CollectionContext";
+import Constants from "expo-constants";
 
 interface Props {
   medal: Medal;
@@ -57,8 +60,45 @@ export function MedalCard({ medal, currentCount }: Props) {
   const icon = ICON_MAP[medal.id] ?? "award";
 
   const { getShareImageUri } = useBadgeShare();
+  const { collectedDogs } = useCollection();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleShare = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const domain = Constants.expoConfig?.extra?.domain || process.env.EXPO_PUBLIC_DOMAIN;
+      if (!domain) throw new Error("API domain is unavailable");
+      const response = await fetch(`https://${domain}/api/share-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          badgeName: medal.name,
+          totalCollected: collectedDogs.length,
+          breeds: collectedDogs.map((dog) => dog.breedName),
+        }),
+      });
+      if (!response.ok) throw new Error("Image generation failed");
+      const { imageBase64 } = (await response.json()) as { imageBase64?: string };
+      if (!imageBase64) throw new Error("No image returned");
+
+      const imageUri = `${FileSystem.cacheDirectory}doggo-dex-${medal.id}-${Date.now()}.png`;
+      await FileSystem.writeAsStringAsync(imageUri, imageBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      if (Sharing && await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(imageUri, {
+          mimeType: "image/png",
+          dialogTitle: "Your Doggo Dex collection",
+        });
+        return;
+      }
+    } catch {
+      // If AI generation fails, retain the existing instant badge-card share.
+    } finally {
+      setIsGenerating(false);
+    }
+
     // Prefer the pre-generated badge image (created when the badge unlocked,
     // so there's no latency here). Share sheet lets the user save/download it.
     const imageUri = getShareImageUri(medal.id);
@@ -91,8 +131,14 @@ export function MedalCard({ medal, currentCount }: Props) {
 
       {/* Share button — top-right, unlocked badges only */}
       {medal.unlocked && (
-        <Pressable style={styles.shareBtn} onPress={handleShare} hitSlop={8}>
-          <Feather name="share-2" size={14} color="rgba(255,255,255,0.65)" />
+        <Pressable
+          style={[styles.shareBtn, isGenerating && styles.shareBtnBusy]}
+          onPress={handleShare}
+          hitSlop={8}
+          disabled={isGenerating}
+          accessibilityLabel={isGenerating ? "Creating share image" : "Share badge"}
+        >
+          <Feather name={isGenerating ? "loader" : "share-2"} size={14} color="rgba(255,255,255,0.8)" />
         </Pressable>
       )}
 
@@ -175,6 +221,7 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     zIndex: 1,
   },
+  shareBtnBusy: { opacity: 0.7 },
 
   iconOuter: {
     width: 54, height: 54, borderRadius: 27,
