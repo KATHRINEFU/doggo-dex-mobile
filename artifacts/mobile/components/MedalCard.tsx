@@ -45,18 +45,23 @@ export function MedalCard({ medal, currentCount }: Props) {
   const { getShareImageUri } = useBadgeShare();
 
   const handleShare = async () => {
-    try {
-      // Prefer the pre-generated badge image (created when the badge unlocked,
-      // so there's no latency here). Share sheet lets the user save/download it.
-      const imageUri = getShareImageUri(medal.id);
-      if (imageUri && Platform.OS !== "web" && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(imageUri, {
-          mimeType: "image/png",
-          dialogTitle: "Doggo Dex Badge",
-        });
-        return;
+    // Prefer the pre-generated badge image (created when the badge unlocked,
+    // so there's no latency here). Share sheet lets the user save/download it.
+    const imageUri = getShareImageUri(medal.id);
+    if (imageUri && Platform.OS !== "web") {
+      try {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(imageUri, {
+            mimeType: "image/png",
+            dialogTitle: "Doggo Dex Badge",
+          });
+          return;
+        }
+      } catch {
+        // fall through to text share
       }
-      // Fallback: plain text share
+    }
+    try {
       await Share.share({
         message: `I just earned the "${medal.name}" badge on Doggo Dex! I've discovered ${medal.required} dog breeds. Can you beat me?`,
         title: "Doggo Dex Badge",
