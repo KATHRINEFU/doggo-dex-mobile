@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: 10,
     fontFamily: "Inter_600SemiBold",
-    color: "#64748B",
+    color: "rgba(90,200,250,0.7)",
     letterSpacing: 1.5,
     marginBottom: 2,
   },
