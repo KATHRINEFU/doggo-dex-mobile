@@ -12,6 +12,9 @@ export function PokeBall({ size = 60, shadow = false }: PokeBallProps) {
   const btnOuter = size * 0.34;
   const btnInner = size * 0.2;
   const border = Math.max(2, size * 0.048);
+  // Children are laid out inside the border, so center them on the inner box
+  const innerSize = size - border * 2;
+  const c = innerSize / 2;
 
   return (
     <View
@@ -29,9 +32,9 @@ export function PokeBall({ size = 60, shadow = false }: PokeBallProps) {
         },
       ]}
     >
-      <View style={[styles.topHalf, { height: r }]} />
-      <View style={[styles.bottomHalf, { height: r }]} />
-      <View style={[styles.band, { top: r - band / 2, height: band }]} />
+      <View style={[styles.topHalf, { height: c }]} />
+      <View style={[styles.bottomHalf, { height: c }]} />
+      <View style={[styles.band, { top: c - band / 2, height: band }]} />
       <View
         style={[
           styles.centerOuter,
@@ -39,8 +42,8 @@ export function PokeBall({ size = 60, shadow = false }: PokeBallProps) {
             width: btnOuter,
             height: btnOuter,
             borderRadius: btnOuter / 2,
-            top: r - btnOuter / 2,
-            left: r - btnOuter / 2,
+            top: c - btnOuter / 2,
+            left: c - btnOuter / 2,
             borderWidth: band,
           },
         ]}
