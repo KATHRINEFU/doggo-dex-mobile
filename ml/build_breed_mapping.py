@@ -159,7 +159,7 @@ dogdex_breeds = {
     "cirneco-dell-etna": "Cirneco dell'Etna",
     "portuguese-podengo-pequeno": "Portuguese Podengo Pequeno",
     "carolina-dog": "Carolina Dog",
-    "lagotto-truffle-hunter": "Lagotto Truffle Hunter",
+    "otterhound": "Lagotto Truffle Hunter",
     "mudi": "Mudi",
 }
 

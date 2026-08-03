@@ -213,7 +213,7 @@ all_dogdex_ids = set([
     "american-foxhound", "pharaoh-hound", "ibizan-hound", "xoloitzcuintli",
     "peruvian-inca-orchid", "american-hairless-terrier", "canaan-dog", "basenji",
     "saluki", "tibetan-mastiff", "azawakh", "thai-ridgeback", "cirneco-dell-etna",
-    "portuguese-podengo-pequeno", "carolina-dog", "lagotto-truffle-hunter", "mudi",
+    "portuguese-podengo-pequeno", "carolina-dog", "otterhound", "mudi",
 ])
 uncovered = sorted(all_dogdex_ids - matched_ids)
 print(f"\nDogDex breeds NOT covered by TFLite model ({len(uncovered)}):")
