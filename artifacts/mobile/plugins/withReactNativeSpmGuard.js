@@ -9,46 +9,60 @@ const { withPodfile } = require("@expo/config-plugins");
  *
  * spm.rb dereferences the nil target in TWO places (add_spm_to_target and
  * the SWIFT_INCLUDE_PATHS workaround right after it), so instead of guarding
- * one method we drop any SPM registration whose pod target doesn't exist,
- * right before react_native_post_install runs.
+ * one method we filter invalid registrations inside SPMManager immediately
+ * before its original post-install logic runs.
  */
 function withReactNativeSpmGuard(config) {
   return withPodfile(config, (config) => {
     const podfile = config.modResults.contents;
     const marker = "DOGGO_DEX_RN_SPM_GUARD";
 
-    if (podfile.includes(marker)) {
-      return config;
-    }
-
     const guard = `
-    # ${marker}: drop SPM registrations whose pod target is missing to avoid
-    # React Native 0.81 spm.rb crashing on a nil target during pod install.
-    if defined?(SPM) && SPM.respond_to?(:instance_variable_get)
-      spm_deps = SPM.instance_variable_get(:@dependencies_by_pod)
-      if spm_deps.is_a?(Hash)
-        target_names = installer.pods_project.targets.map(&:name)
-        spm_deps.each_key do |pod_name|
-          unless target_names.include?(pod_name)
-            Pod::UI.warn "[${marker}] Skipping SPM deps for missing pod target: #{pod_name}"
+    # ${marker}: filter SPM registrations whose pod target is missing.
+    # React Native 0.81 otherwise crashes while updating the Pods project.
+    if defined?(SPMManager)
+      class SPMManager
+        unless method_defined?(:doggo_dex_apply_on_post_install)
+          alias_method :doggo_dex_apply_on_post_install, :apply_on_post_install
+
+          def apply_on_post_install(installer)
+            spm_deps = instance_variable_get(:@dependencies_by_pod)
+            if spm_deps.is_a?(Hash)
+              target_names = installer.pods_project.targets.map(&:name)
+              spm_deps.delete_if do |pod_name, _|
+                missing_target = !target_names.include?(pod_name)
+                if missing_target
+                  Pod::UI.warn "[${marker}] Skipping SPM deps for missing pod target: #{pod_name}"
+                end
+                missing_target
+              end
+            end
+            doggo_dex_apply_on_post_install(installer)
           end
         end
-        spm_deps.select! { |pod_name, _| target_names.include?(pod_name) }
       end
     end
 `;
 
     const postInstallCall = "react_native_post_install(";
-    const index = podfile.indexOf(postInstallCall);
+    const postInstallIndex = podfile.indexOf(postInstallCall);
 
-    if (index === -1) {
+    if (postInstallIndex === -1) {
       throw new Error(
         "Doggo Dex could not add the React Native SPM guard: react_native_post_install was not found.",
       );
     }
 
+    const existingGuardIndex = podfile.indexOf(marker);
+    if (existingGuardIndex === -1) {
+      config.modResults.contents =
+        podfile.slice(0, postInstallIndex) + guard + podfile.slice(postInstallIndex);
+      return config;
+    }
+
+    const guardLineStart = podfile.lastIndexOf("\n", existingGuardIndex) + 1;
     config.modResults.contents =
-      podfile.slice(0, index) + guard + podfile.slice(index);
+      podfile.slice(0, guardLineStart) + guard + podfile.slice(postInstallIndex);
     return config;
   });
 }
