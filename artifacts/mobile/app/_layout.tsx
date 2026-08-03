@@ -22,6 +22,7 @@ import { useAuth } from "@clerk/expo";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CollectionProvider } from "@/context/CollectionContext";
+import { BadgeShareProvider } from "@/context/BadgeShareContext";
 import { ScanProvider } from "@/context/ScanContext";
 
 const extra = Constants.expoConfig?.extra ?? {};
@@ -108,11 +109,13 @@ export default function RootLayout() {
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
                   <CollectionProvider>
-                    <ScanProvider>
-                      <AuthTokenProvider>
-                        <RootLayoutNav />
-                      </AuthTokenProvider>
-                    </ScanProvider>
+                    <BadgeShareProvider>
+                      <ScanProvider>
+                        <AuthTokenProvider>
+                          <RootLayoutNav />
+                        </AuthTokenProvider>
+                      </ScanProvider>
+                    </BadgeShareProvider>
                   </CollectionProvider>
                 </KeyboardProvider>
               </GestureHandlerRootView>

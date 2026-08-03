@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import * as Sharing from "expo-sharing";
 import type { Medal } from "@/context/CollectionContext";
+import { useBadgeShare } from "@/context/BadgeShareContext";
 
 interface Props {
   medal: Medal;
@@ -40,8 +42,21 @@ export function MedalCard({ medal, currentCount }: Props) {
   const gradColors = TIER_GRADIENTS[medal.id] ?? ["#5AC8FA", "#007AFF"];
   const icon = ICON_MAP[medal.id] ?? "award";
 
+  const { getShareImageUri } = useBadgeShare();
+
   const handleShare = async () => {
     try {
+      // Prefer the pre-generated badge image (created when the badge unlocked,
+      // so there's no latency here). Share sheet lets the user save/download it.
+      const imageUri = getShareImageUri(medal.id);
+      if (imageUri && Platform.OS !== "web" && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(imageUri, {
+          mimeType: "image/png",
+          dialogTitle: "Doggo Dex Badge",
+        });
+        return;
+      }
+      // Fallback: plain text share
       await Share.share({
         message: `I just earned the "${medal.name}" badge on Doggo Dex! I've discovered ${medal.required} dog breeds. Can you beat me?`,
         title: "Doggo Dex Badge",
