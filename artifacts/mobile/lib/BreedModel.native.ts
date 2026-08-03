@@ -44,7 +44,21 @@ let modelLoadPromise: Promise<void> | null = null;
 
 const TFLITE_CONFIDENCE_THRESHOLD = 0.35;
 const INPUT_SIZE = 384;
-const NUM_CLASSES = 120;
+// Derived from labels.json so a retrained model with more classes works
+// without code changes (model output length must match labels length).
+const NUM_CLASSES = LABELS.length;
+
+/** "bull_mastiff" → "Bull Mastiff", "German_short-haired_pointer" → "German Short-Haired Pointer" */
+function prettifyBreedName(raw: string): string {
+  return raw
+    .replace(/_/g, " ")
+    .split(" ")
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ")
+    .split("-")
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join("-");
+}
 
 export interface BreedPrediction {
   isDog: boolean;
@@ -308,7 +322,7 @@ export async function detectBreedOnDevice(
     const confidence = bestScore;
     const isDog = confidence > TFLITE_CONFIDENCE_THRESHOLD;
     const breedId = INDEX_TO_ID[bestIdx] ?? "";
-    const breedName = LABELS[bestIdx] ?? "Unknown";
+    const breedName = prettifyBreedName(LABELS[bestIdx] ?? "Unknown");
 
     return {
       isDog,
@@ -316,7 +330,7 @@ export async function detectBreedOnDevice(
       breedName,
       confidence,
       description: isDog
-        ? `Looks like a ${breedName.replace(/_/g, " ")}!`
+        ? `Looks like a ${breedName}!`
         : "No dog detected in this image.",
       timingMs: { decode: decodeMs, inference: inferMs, total: totalMs },
     };
