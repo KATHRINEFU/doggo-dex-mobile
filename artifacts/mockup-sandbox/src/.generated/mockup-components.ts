@@ -4,5 +4,6 @@ export const modules: ModuleMap = {
   "./components/mockups/build-your-doggo-dex.tsx": () => import("../components/mockups/build-your-doggo-dex.tsx"),
   "./components/mockups/capture-next-breed.tsx": () => import("../components/mockups/capture-next-breed.tsx"),
   "./components/mockups/climb-the-pack.tsx": () => import("../components/mockups/climb-the-pack.tsx"),
-  "./components/mockups/meet-every-breed.tsx": () => import("../components/mockups/meet-every-breed.tsx")
+  "./components/mockups/meet-every-breed.tsx": () => import("../components/mockups/meet-every-breed.tsx"),
+  "./components/mockups/pawdex-vibes/GoldenHourFieldGuide.tsx": () => import("../components/mockups/pawdex-vibes/GoldenHourFieldGuide.tsx")
 };

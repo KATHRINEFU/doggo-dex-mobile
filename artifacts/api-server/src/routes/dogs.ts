@@ -8,6 +8,7 @@ import path from "path";
 import { logger } from "../lib/logger";
 import { db, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { DOG_BREEDS_EXTRA } from "./dogBreedsExtra";
 
 const router = Router();
 
@@ -1497,9 +1498,9 @@ const DOG_BREEDS = [
     randomLore: "Carolina Dogs share genetic markers with ancient Asian dogs brought across the Bering land bridge — they are a living genetic link to the original dogs that came to the Americas with the first humans",
   },
   {
-    id: "lagotto-truffle-hunter", name: "Otterhound",
+    id: "otterhound", name: "Otterhound",
     description: "Critically endangered! Fewer than 1,000 Otterhounds exist worldwide. This shaggy, web-footed breed was bred exclusively to hunt otters.",
-    origin: "England", size: "large" as const, temperament: "Amiable, Boisterous, Jovial", lifespan: "10-13 years", imageUrl: IMGS.generic1, group: "Hound", rarity: "legendary" as const,
+    origin: "England", size: "large" as const, temperament: "Amiable, Boisterous, Jovial", lifespan: "10-13 years", imageUrl: "https://images.dog.ceo/breeds/otterhound/n02091635_1043.jpg", group: "Hound", rarity: "legendary" as const,
     personality: "Boisterous shaggy eccentric, specific enthusiasms",
     humanJob: "Conservation biologist who saved forgotten ecosystem",
     coffeeOrder: "Large messy drink, knocked over accidentally",
@@ -1522,6 +1523,7 @@ const DOG_BREEDS = [
     energyLevel: 5, apartmentFriendly: 2, chaosLevel: 4,
     randomLore: "After WWII, only a handful of Mudis could be found in Hungary — Dr. Dezso Fenyes had documented the breed in 1936, and his records became the blueprint for rebuilding the population from near-extinction",
   },
+  ...DOG_BREEDS_EXTRA,
 ];
 
 router.get("/dogs/breeds", (req, res) => {
