@@ -10,6 +10,7 @@ import {
   clerkProxyMiddleware,
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
+import healthRouter from "./routes/health";
 
 const app: Express = express();
 
@@ -38,6 +39,11 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
+// The deployment platform probes this route without user authentication.
+// It must run before Clerk middleware so the API can report readiness even
+// when production Clerk configuration is unavailable during startup.
+app.use("/api", healthRouter);
 
 app.use(
   clerkMiddleware((req) => ({
