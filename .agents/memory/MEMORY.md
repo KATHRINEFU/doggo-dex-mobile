@@ -2,4 +2,5 @@
 - [Feather icon whitelist](feather-icons.md) — Invalid icon names crash the Expo app at runtime with no clear error. Use only exact Feather set names.
 - [RN SPM nil-target crash](rn-spm-nil-target.md) — RN 0.81 spm.rb has two nil-target crash sites; fix via Podfile plugin that filters SPM deps for missing pod targets, not a single-method guard.
 - [Breed catalog in code](breed-catalog-in-code.md) — catalog is a TS array (DB migration cancelled); keep 3 breed_index_to_id.json copies identical; non-breed classes stay null.
+- [Expo Launch static config](expo-launch-static-config.md) — App Store publishing breaks with dynamic app.config.js; use static app.json, EXPO_PUBLIC_* env vars, and the prod-domain fallback in _layout.
 - [Clerk needs_client_trust](clerk-needs-client-trust.md) — native needs the mfa email-code trust flow (SignInFuture API); only Replit dev web preview may bypass via setActive. Navigate on isSignedIn effect, not right after setActive.
