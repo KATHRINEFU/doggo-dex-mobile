@@ -4,15 +4,18 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import * as Haptics from "expo-haptics";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
+  type GestureResponderEvent,
 } from "react-native";
 import { useUser } from "@clerk/expo";
 import Animated, {
@@ -33,6 +36,13 @@ const { width: W } = Dimensions.get("window");
 
 const DOG_EMOJIS: string[] = [];
 
+function getPinchDistance(event: GestureResponderEvent): number | null {
+  const touches = event.nativeEvent.touches;
+  if (touches.length < 2) return null;
+  const [first, second] = touches;
+  return Math.hypot(second.pageX - first.pageX, second.pageY - first.pageY);
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -42,6 +52,10 @@ export default function HomeScreen() {
   const cameraRef = useRef<CameraView>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraError, setCameraError] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [zoom, setZoom] = useState(0);
+  const zoomRef = useRef(0);
+  const pinchDistanceRef = useRef<number | null>(null);
   const { data: allBreeds } = useGetDogBreeds();
 
   const totalBreeds = allBreeds?.length ?? 100;
@@ -108,11 +122,55 @@ export default function HomeScreen() {
 
   const showCamera = Platform.OS !== "web" && cameraPermission?.granted;
 
+  const updateZoom = useCallback((nextZoom: number, withFeedback = false) => {
+    const next = Math.max(0, Math.min(1, nextZoom));
+    zoomRef.current = next;
+    setZoom(next);
+    if (withFeedback) {
+      try {
+        Haptics.selectionAsync();
+      } catch {}
+    }
+  }, []);
+
+  const adjustZoom = useCallback((amount: number) => {
+    updateZoom(zoomRef.current + amount, true);
+  }, [updateZoom]);
+
+  const pinchResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          gestureState.numberActiveTouches >= 2,
+        onPanResponderGrant: (event) => {
+          pinchDistanceRef.current = getPinchDistance(event);
+        },
+        onPanResponderMove: (event) => {
+          const distance = getPinchDistance(event);
+          const previousDistance = pinchDistanceRef.current;
+          if (distance === null || previousDistance === null) return;
+
+          // CameraView's zoom is normalized from 0 (1x) to 1 (device max).
+          // Updating incrementally keeps the pinch smooth and avoids jumps.
+          updateZoom(zoomRef.current + (distance - previousDistance) / 220);
+          pinchDistanceRef.current = distance;
+        },
+        onPanResponderRelease: () => {
+          pinchDistanceRef.current = null;
+        },
+        onPanResponderTerminate: () => {
+          pinchDistanceRef.current = null;
+        },
+      }),
+    [updateZoom],
+  );
+
   useEffect(() => {
     if (Platform.OS === "web") return;
 
     const capture = async (): Promise<LiveCameraPhoto | undefined> => {
-      if (!cameraPermission?.granted || !cameraRef.current) return undefined;
+      if (!cameraPermission?.granted || !cameraReady || !cameraRef.current) return undefined;
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
         base64: true,
@@ -122,7 +180,7 @@ export default function HomeScreen() {
     };
 
     return registerCameraCapture(capture);
-  }, [cameraPermission?.granted, registerCameraCapture]);
+  }, [cameraPermission?.granted, cameraReady, registerCameraCapture]);
 
   return (
     <View style={styles.root}>
@@ -135,15 +193,23 @@ export default function HomeScreen() {
         end={{ x: 0.7, y: 1 }}
       />
       {Platform.OS !== "web" && (
-        <CameraView
-          ref={cameraRef}
-          style={[StyleSheet.absoluteFill, { opacity: showCamera ? 1 : 0 }]}
-          facing="back"
-          onCameraReady={() => console.log("[Camera] ready")}
-          onMountError={(err) => {
-            console.warn("[Camera] mount error:", err.message);
-          }}
-        />
+        <View style={StyleSheet.absoluteFill} {...pinchResponder.panHandlers}>
+          <CameraView
+            ref={cameraRef}
+            style={[StyleSheet.absoluteFill, { opacity: showCamera ? 1 : 0 }]}
+            facing="back"
+            zoom={zoom}
+            onCameraReady={() => {
+              setCameraReady(true);
+              console.log("[Camera] ready");
+            }}
+            onMountError={(err) => {
+              setCameraReady(false);
+              setCameraError(true);
+              console.warn("[Camera] mount error:", err.message);
+            }}
+          />
+        </View>
       )}
 
       {/* Vignette overlay */}
@@ -153,6 +219,40 @@ export default function HomeScreen() {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
+
+      {showCamera && cameraReady && (
+        <View style={[styles.zoomControls, { bottom: insets.bottom + 206 }]}>
+          <Pressable
+            accessibilityLabel="Zoom out"
+            testID="camera-zoom-out"
+            onPress={() => adjustZoom(-0.1)}
+            disabled={zoom <= 0}
+            style={({ pressed }) => [
+              styles.zoomButton,
+              zoom <= 0 && styles.zoomButtonDisabled,
+              pressed && zoom > 0 && styles.zoomButtonPressed,
+            ]}
+          >
+            <Text style={styles.zoomButtonText}>−</Text>
+          </Pressable>
+          <Text style={styles.zoomValue}>
+            {zoom <= 0 ? "1×" : zoom >= 1 ? "Max" : `Zoom ${Math.round(zoom * 100)}%`}
+          </Text>
+          <Pressable
+            accessibilityLabel="Zoom in"
+            testID="camera-zoom-in"
+            onPress={() => adjustZoom(0.1)}
+            disabled={zoom >= 1}
+            style={({ pressed }) => [
+              styles.zoomButton,
+              zoom >= 1 && styles.zoomButtonDisabled,
+              pressed && zoom < 1 && styles.zoomButtonPressed,
+            ]}
+          >
+            <Text style={styles.zoomButtonText}>+</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Top HUD */}
       <View style={[styles.topHud, { paddingTop: insets.top + 24 }]}>
@@ -388,6 +488,47 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 10,
     zIndex: 100,
+  },
+  zoomControls: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 22,
+    backgroundColor: "rgba(6,15,31,0.62)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+    zIndex: 20,
+  },
+  zoomButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  zoomButtonPressed: {
+    backgroundColor: "rgba(90,200,250,0.72)",
+  },
+  zoomButtonDisabled: {
+    opacity: 0.35,
+  },
+  zoomButtonText: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    lineHeight: 24,
+    fontFamily: "Inter_500Medium",
+  },
+  zoomValue: {
+    minWidth: 68,
+    textAlign: "center",
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
   xpText: {
     color: "#fff",
