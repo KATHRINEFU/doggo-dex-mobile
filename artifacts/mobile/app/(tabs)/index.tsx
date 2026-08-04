@@ -4,7 +4,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -26,7 +26,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LiquidGlass } from "@/components/LiquidGlass";
 import { useCollection } from "@/context/CollectionContext";
-import { useScan } from "@/context/ScanContext";
+import { useScan, type LiveCameraPhoto } from "@/context/ScanContext";
 import { useGetDogBreeds } from "@workspace/api-client-react";
 
 const { width: W } = Dimensions.get("window");
@@ -38,7 +38,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useUser();
   const { collectionCount } = useCollection();
-  const { xpMessage, confettiActive } = useScan();
+  const { xpMessage, confettiActive, registerCameraCapture } = useScan();
+  const cameraRef = useRef<CameraView>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [cameraError, setCameraError] = useState(false);
   const { data: allBreeds } = useGetDogBreeds();
@@ -107,6 +108,22 @@ export default function HomeScreen() {
 
   const showCamera = Platform.OS !== "web" && cameraPermission?.granted;
 
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const capture = async (): Promise<LiveCameraPhoto | undefined> => {
+      if (!cameraPermission?.granted || !cameraRef.current) return undefined;
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.85,
+        base64: true,
+        skipProcessing: false,
+      });
+      return photo?.uri ? { uri: photo.uri, base64: photo.base64 } : undefined;
+    };
+
+    return registerCameraCapture(capture);
+  }, [cameraPermission?.granted, registerCameraCapture]);
+
   return (
     <View style={styles.root}>
       {/* Background — gradient always renders; CameraView overlays it when permitted */}
@@ -119,6 +136,7 @@ export default function HomeScreen() {
       />
       {Platform.OS !== "web" && (
         <CameraView
+          ref={cameraRef}
           style={[StyleSheet.absoluteFill, { opacity: showCamera ? 1 : 0 }]}
           facing="back"
           onCameraReady={() => console.log("[Camera] ready")}

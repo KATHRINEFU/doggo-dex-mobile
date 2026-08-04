@@ -83,7 +83,7 @@ function TabItem({
 
 function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { openScan, isScanning } = useScan();
+  const { openCameraScan, isScanning } = useScan();
   const { isSignedIn } = useAuth();
   const router = useRouter();
 
@@ -101,7 +101,7 @@ function PoGoTabBar({ state, navigation }: BottomTabBarProps) {
       router.push("/(auth)/sign-in");
       return;
     }
-    openScan();
+    openCameraScan();
   }
 
   const PROTECTED_TABS = ["leaderboard", "medals"];

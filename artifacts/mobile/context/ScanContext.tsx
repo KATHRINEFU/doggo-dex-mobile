@@ -15,8 +15,15 @@ import {
 import type { DetectBreedResult, DogBreed } from "@workspace/api-client-react";
 import { detectBreedOnDevice } from "@/lib/BreedModel";
 
+export interface LiveCameraPhoto {
+  uri: string;
+  base64?: string;
+}
+
 interface ScanContextValue {
   openScan: () => void;
+  openCameraScan: () => void;
+  registerCameraCapture: (capture: () => Promise<LiveCameraPhoto | undefined>) => () => void;
   isScanning: boolean;
   xpMessage: string;
   confettiActive: boolean;
@@ -24,6 +31,8 @@ interface ScanContextValue {
 
 const ScanContext = createContext<ScanContextValue>({
   openScan: () => {},
+  openCameraScan: () => {},
+  registerCameraCapture: () => () => {},
   isScanning: false,
   xpMessage: "",
   confettiActive: false,
@@ -65,6 +74,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [confettiActive, setConfettiActive] = useState(false);
   const [xpMessage, setXpMessage] = useState("");
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraCaptureRef = useRef<(() => Promise<LiveCameraPhoto | undefined>) | null>(null);
 
   const showError = useCallback((message: string, uri = "") => {
     setResult({ ...ERROR_RESULT, description: message });
@@ -116,8 +126,20 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     ]);
   }
 
-  async function pickAndDetect(fromCamera: boolean) {
-    let pickedUri = "";
+  const registerCameraCapture = useCallback(
+    (capture: () => Promise<LiveCameraPhoto | undefined>) => {
+      cameraCaptureRef.current = capture;
+      return () => {
+        if (cameraCaptureRef.current === capture) {
+          cameraCaptureRef.current = null;
+        }
+      };
+    },
+    [],
+  );
+
+  async function processImage(asset: LiveCameraPhoto) {
+    let pickedUri = asset.uri;
     const clientStart = Date.now();
     let phase: string | null = null;
     const logTiming = (label: string) => {
@@ -126,54 +148,16 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       console.log(`[DoggoDex] ${label}: ${ms}ms`);
     };
     try {
-      let asset: ImagePicker.ImagePickerAsset | null = null;
-
       const editOptions = Platform.OS === "web"
         ? {}
         : { allowsEditing: true as const, aspect: [1, 1] as [number, number] };
-
-      phase = "permission";
-      if (fromCamera) {
-        const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-        if (!granted) {
-          showError("Camera access is required to scan dogs. Please enable it in Settings.");
-          return;
-        }
-        phase = "camera";
-        const picked = await ImagePicker.launchCameraAsync({
-          mediaTypes: "images",
-          // Accuracy first: keep high JPEG quality on all platforms.
-          quality: 0.85,
-          base64: true,
-          ...editOptions,
-        });
-        if (picked.canceled || !picked.assets?.[0]) return;
-        asset = picked.assets[0];
-      } else {
-        const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!granted) {
-          showError("Photo library access is required. Please enable it in Settings.");
-          return;
-        }
-        phase = "picker";
-        const picked = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: "images",
-          quality: 0.85,
-          base64: true,
-          ...editOptions,
-        });
-        if (picked.canceled || !picked.assets?.[0]) return;
-        asset = picked.assets[0];
-      }
-
-      pickedUri = asset.uri;
-      logTiming(`${phase} done`);
       setOriginalUri(asset.uri);
+      logTiming("photo captured");
 
       try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
 
       let base64Data: string;
-      let displayUri = "";
+      let displayUri = asset.uri;
 
       // On native, skip expo-image-manipulator — it can take 10+ seconds on
       // high-resolution camera photos. Send the picker's base64 directly to the
@@ -295,10 +279,85 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function pickAndDetect(fromCamera: boolean) {
+    let pickedUri = "";
+    try {
+      const editOptions = Platform.OS === "web"
+        ? {}
+        : { allowsEditing: true as const, aspect: [1, 1] as [number, number] };
+
+      if (fromCamera) {
+        const { granted } = await ImagePicker.requestCameraPermissionsAsync();
+        if (!granted) {
+          showError("Camera access is required to scan dogs. Please enable it in Settings.");
+          return;
+        }
+        const picked = await ImagePicker.launchCameraAsync({
+          mediaTypes: "images",
+          quality: 0.85,
+          base64: true,
+          ...editOptions,
+        });
+        if (picked.canceled || !picked.assets?.[0]) return;
+        pickedUri = picked.assets[0].uri;
+        await processImage({
+          uri: picked.assets[0].uri,
+          base64: picked.assets[0].base64 ?? undefined,
+        });
+      } else {
+        const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!granted) {
+          showError("Photo library access is required. Please enable it in Settings.");
+          return;
+        }
+        const picked = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: "images",
+          quality: 0.85,
+          base64: true,
+          ...editOptions,
+        });
+        if (picked.canceled || !picked.assets?.[0]) return;
+        pickedUri = picked.assets[0].uri;
+        await processImage({
+          uri: picked.assets[0].uri,
+          base64: picked.assets[0].base64 ?? undefined,
+        });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      showError(msg, pickedUri);
+    }
+  }
+
+  async function openCameraScan() {
+    if (Platform.OS === "web") {
+      await pickAndDetect(false);
+      return;
+    }
+
+    const capture = cameraCaptureRef.current;
+    if (capture) {
+      try {
+        const photo = await capture();
+        if (photo) {
+          await processImage(photo);
+          return;
+        }
+      } catch (err) {
+        console.warn("[DoggoDex] live camera capture failed; opening camera picker", err);
+      }
+    }
+
+    // Fallback for a camera preview that has not mounted yet or an older build.
+    await pickAndDetect(true);
+  }
+
   return (
     <ScanContext.Provider
       value={{
         openScan,
+        openCameraScan,
+        registerCameraCapture,
         isScanning: detecting,
         xpMessage,
         confettiActive,
