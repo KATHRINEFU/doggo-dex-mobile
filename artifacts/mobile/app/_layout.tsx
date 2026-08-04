@@ -27,17 +27,21 @@ import { ScanProvider } from "@/context/ScanContext";
 
 const extra = Constants.expoConfig?.extra ?? {};
 
-// Clerk key: read from app.config.js extra (which injects process.env.CLERK_PUBLISHABLE_KEY at dev-server startup)
+// Production API domain — used when no EXPO_PUBLIC_DOMAIN is injected
+// (i.e. store/TestFlight builds made outside the Replit dev environment).
+const PRODUCTION_DOMAIN = "dog-breed-hunter.replit.app";
+
+// Clerk key: injected as EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY at build/dev-server time.
 const publishableKey: string =
-  extra.clerkPublishableKey ||
   process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+  extra.clerkPublishableKey ||
   "";
 
-// Domain: prefer app.config.js extra, fall back to EXPO_PUBLIC_ variant
+// Domain: dev server injects EXPO_PUBLIC_DOMAIN; store builds fall back to production.
 const domain: string =
-  extra.domain ||
   process.env.EXPO_PUBLIC_DOMAIN ||
-  "";
+  extra.domain ||
+  PRODUCTION_DOMAIN;
 
 const _apiBase = domain ? `https://${domain}` : "";
 console.log("[DoggoDex] API base URL:", _apiBase, "| Clerk key present:", !!publishableKey);
