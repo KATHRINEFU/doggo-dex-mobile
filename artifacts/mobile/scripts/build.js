@@ -140,6 +140,13 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
     EXPO_PUBLIC_REPL_ID: expoPublicReplId,
+    // Metro inlines EXPO_PUBLIC_* at bundle time; map the server-side secret
+    // name to the public one so production bundles embed the Clerk key
+    // (mirrors the dev script in package.json).
+    EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+      process.env.CLERK_PUBLISHABLE_KEY ||
+      "",
   };
 
   if (expoPublicReplId) {
