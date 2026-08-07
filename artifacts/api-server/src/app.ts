@@ -2,14 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
 import healthRouter from "./routes/health";
 
 const app: Express = express();
@@ -34,8 +28,6 @@ app.use(
   }),
 );
 
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
@@ -45,14 +37,9 @@ app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 // when production Clerk configuration is unavailable during startup.
 app.use("/api", healthRouter);
 
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+// External Clerk instance: keys come straight from CLERK_PUBLISHABLE_KEY /
+// CLERK_SECRET_KEY env vars — no host-based key rewriting or FAPI proxying.
+app.use(clerkMiddleware());
 
 app.use("/api", router);
 
