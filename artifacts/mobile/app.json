@@ -2,7 +2,7 @@
   "expo": {
     "name": "Doggo Dex",
     "slug": "doggodex",
-    "owner": "lizhen",
+    "owner": "lizhenpi413",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,7 +19,8 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "Doggo Dex uses your camera to take photos of dogs for breed detection.",
-        "NSPhotoLibraryUsageDescription": "Doggo Dex accesses your photo library so you can pick dog photos for breed detection."
+        "NSPhotoLibraryUsageDescription": "Doggo Dex accesses your photo library so you can pick dog photos for breed detection.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -30,7 +31,8 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -43,10 +45,7 @@
     ],
     "plugins": [
       [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
+        "expo-router"
       ],
       "expo-font",
       "expo-web-browser",
@@ -72,7 +71,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "603150f3-fa2a-4aa0-b7de-25a20c9f0c44"
+        "projectId": "7c75d66e-ab48-40dc-8322-38879c803595"
       }
     }
   }
