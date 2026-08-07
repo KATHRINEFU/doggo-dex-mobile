@@ -55,6 +55,7 @@ interface CollectionContextValue {
   collectedDogs: CollectedDog[];
   addDog: (dog: Omit<CollectedDog, "timesSpotted">) => Promise<{ isNew: boolean; xpGained: number }>;
   bumpSpotted: (breedId: string) => Promise<void>;
+  resetCollection: () => Promise<void>;
   isCollected: (breedId: string) => boolean;
   getEntry: (breedId: string) => CollectedDog | undefined;
   collectionCount: number;
@@ -174,6 +175,20 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
     });
   }, []);
 
+  const resetCollection = useCallback(async () => {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEY,
+      XP_KEY,
+      STREAK_KEY,
+      LAST_DATE_KEY,
+      "@dogdex_v2_badge_share_images",
+    ]);
+    setCollectedDogs([]);
+    setXp(0);
+    setStreak(0);
+    setLastDiscoveryDate(null);
+  }, []);
+
   const isCollected = useCallback(
     (breedId: string) => collectedDogs.some((d) => d.breedId === breedId),
     [collectedDogs]
@@ -197,6 +212,7 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
         collectedDogs,
         addDog,
         bumpSpotted,
+        resetCollection,
         isCollected,
         getEntry,
         collectionCount: collectedDogs.length,

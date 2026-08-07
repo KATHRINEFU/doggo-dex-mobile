@@ -35,7 +35,7 @@ export default function ProfileScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { getToken, isSignedIn } = useAuth();
-  const { collectionCount, xp, streak, addDog, isCollected } = useCollection();
+  const { collectionCount, xp, streak, addDog, isCollected, resetCollection } = useCollection();
   // Dev-only: breed catalog for seeding test data
   const { data: allBreeds } = useGetDogBreeds({ query: { enabled: __DEV__ } } as any);
   const [seeding, setSeeding] = useState(false);
@@ -231,6 +231,26 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleResetAppData = () => {
+    Alert.alert(
+      "Start over?",
+      "This permanently clears this device's Doggo Dex collection, XP, streak, and saved badge images, then signs you out. Your Clerk account is not deleted.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset and sign out",
+          style: "destructive",
+          onPress: async () => {
+            await resetCollection();
+            queryClient.clear();
+            await signOut();
+            router.replace("/(auth)/sign-up");
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -423,6 +443,14 @@ export default function ProfileScreen() {
           <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
             <Feather name="log-out" size={18} color="#FF6B6B" />
             <Text style={styles.signOutText}>Sign Out</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.signOutBtn, { borderColor: "rgba(255,107,107,0.55)" }]}
+            onPress={handleResetAppData}
+          >
+            <Feather name="refresh-ccw" size={18} color="#FF6B6B" />
+            <Text style={styles.signOutText}>Reset app data</Text>
           </Pressable>
 
           {/* Dev-only: seed test breeds for badge testing */}
