@@ -137,6 +137,10 @@ export default function ProfileScreen() {
   };
 
   const handleSelectCountry = async (option: CountryOption) => {
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Please sign in again before changing your country.");
+      return;
+    }
     // Fall back to Clerk username or email prefix if DB profile isn't synced yet
     const username =
       profile?.username ??
@@ -163,8 +167,30 @@ export default function ProfileScreen() {
       // of useGetMyProfile to power the "My Country" scope) and the leaderboard.
       await queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetLeaderboardQueryKey() });
-    } catch {
-      Alert.alert("Error", "Failed to update country. Please try again.");
+    } catch (err: any) {
+      // Surface the actual reason instead of a generic retry message — the
+      // status tells us whether it's auth, a name clash, or a server fault.
+      const status: number | undefined = err?.status;
+      const serverMessage: string | undefined = err?.data?.message;
+      console.warn("[Profile] country update failed", status, serverMessage ?? err?.message);
+
+      let message: string;
+      if (status === 401) {
+        message = "Your session expired. Please sign out and sign in again.";
+      } else if (status === 409) {
+        message =
+          serverMessage ??
+          `The name "${username}" is already taken. Pick a different name, then set your country.`;
+      } else if (status === 400) {
+        message = serverMessage ?? "That username or country wasn't accepted. Please try a different one.";
+      } else if (status && status >= 500) {
+        message = "The server couldn't save your country right now. Please try again in a moment.";
+      } else if (status === undefined) {
+        message = "Couldn't reach the server. Check your connection and try again.";
+      } else {
+        message = serverMessage ?? `Failed to update country (error ${status}).`;
+      }
+      Alert.alert("Couldn't update country", message);
     }
   };
 

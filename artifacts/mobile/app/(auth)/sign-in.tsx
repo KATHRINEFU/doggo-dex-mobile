@@ -21,6 +21,45 @@ import { FontAwesome } from "@expo/vector-icons";
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Clerk's raw copy ("Identifier is not valid", "Couldn't find your account")
+ * doesn't tell someone what to do next. Translate the codes we can act on into
+ * plain language; return null to fall back to Clerk's own wording.
+ */
+function friendlySignInError(
+  code: string,
+  param: string,
+  identifier: string,
+): string | null {
+  switch (code) {
+    case "form_identifier_not_found":
+      return `No account found for ${identifier || "that email"}. Create an account first — tap "Sign up" below.`;
+    case "form_password_incorrect":
+    case "form_password_validation_failed":
+      return "Incorrect password. Please try again, or reset it below.";
+    case "strategy_for_user_invalid":
+      return "This account signs in with Google or Apple. Use one of the buttons below instead of a password.";
+    case "form_param_format_invalid":
+      return param === "identifier"
+        ? "That doesn't look like a valid email address."
+        : null;
+    case "form_param_nil":
+      return param === "identifier"
+        ? "Enter the email address you signed up with."
+        : null;
+    case "identifier_not_allowed":
+      return "This app signs in with an email address. Enter the email you signed up with.";
+    case "too_many_requests":
+      return "Too many attempts. Please wait a minute and try again.";
+    default:
+      // Some instances return an unknown email as a generic invalid identifier.
+      if (param === "identifier" && code.includes("not_valid")) {
+        return `No account found for ${identifier || "that email"}. Check the address, or tap "Sign up" to create one.`;
+      }
+      return null;
+  }
+}
+
 function useWarmUpBrowser() {
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -129,11 +168,15 @@ export default function SignInScreen() {
         for (const e of clerkErrors) {
           const code: string = e.code ?? "";
           const param: string = e.meta?.paramName ?? "";
-          if (param === "identifier" || code.includes("identifier") || code === "form_identifier_not_found") {
-            setEmailError(e.longMessage ?? e.message);
+          const friendly = friendlySignInError(code, param, email.trim());
+          if (param === "identifier" || code.includes("identifier")) {
+            setEmailError(friendly ?? e.longMessage ?? e.message);
             hadFieldError = true;
           } else if (param === "password" || code.includes("password")) {
-            setPasswordError(e.longMessage ?? e.message);
+            setPasswordError(friendly ?? e.longMessage ?? e.message);
+            hadFieldError = true;
+          } else if (friendly) {
+            setError(friendly);
             hadFieldError = true;
           }
         }

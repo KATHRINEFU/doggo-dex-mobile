@@ -1,5 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useAuth } from "@clerk/expo";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export interface CollectedDog {
   breedId: string;
@@ -66,10 +74,35 @@ interface CollectionContextValue {
   xpLevel: (typeof XP_LEVELS)[number];
 }
 
-const STORAGE_KEY = "@dogdex_v2_collection";
-const XP_KEY = "@dogdex_v2_xp";
-const STREAK_KEY = "@dogdex_v2_streak";
-const LAST_DATE_KEY = "@dogdex_v2_last_date";
+/**
+ * Progress is stored per signed-in account. Every key is suffixed with the
+ * Clerk user id so two accounts sharing one device never see each other's Dex.
+ * The unsuffixed v2 keys below are the old device-global storage; they are
+ * deleted on first launch rather than migrated, because there is no way to
+ * know which account that progress belonged to.
+ */
+const collectionKey = (uid: string) => `@dogdex_v3_collection:${uid}`;
+const xpKey = (uid: string) => `@dogdex_v3_xp:${uid}`;
+const streakKey = (uid: string) => `@dogdex_v3_streak:${uid}`;
+const lastDateKey = (uid: string) => `@dogdex_v3_last_date:${uid}`;
+export const badgeShareIndexKey = (uid: string) =>
+  `@dogdex_v3_badge_share_images:${uid}`;
+
+const userKeys = (uid: string) => [
+  collectionKey(uid),
+  xpKey(uid),
+  streakKey(uid),
+  lastDateKey(uid),
+  badgeShareIndexKey(uid),
+];
+
+const LEGACY_KEYS = [
+  "@dogdex_v2_collection",
+  "@dogdex_v2_xp",
+  "@dogdex_v2_streak",
+  "@dogdex_v2_last_date",
+  "@dogdex_v2_badge_share_images",
+];
 
 const CollectionContext = createContext<CollectionContextValue | null>(null);
 
@@ -78,24 +111,85 @@ function todayStr() {
 }
 
 export function CollectionProvider({ children }: { children: React.ReactNode }) {
+  const { userId, isLoaded } = useAuth();
   const [collectedDogs, setCollectedDogs] = useState<CollectedDog[]>([]);
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState(0);
   const [lastDiscoveryDate, setLastDiscoveryDate] = useState<string | null>(null);
 
+  /**
+   * The account whose progress is currently held in state. Writes are only
+   * persisted when this matches the signed-in account, so an update that is
+   * in flight while accounts switch can never be saved under the wrong one.
+   */
+  const loadedUserRef = useRef<string | null>(null);
+
+  const persist = useCallback(
+    (makeKey: (uid: string) => string, value: string) => {
+      const uid = loadedUserRef.current;
+      if (!uid || uid !== userId) return;
+      AsyncStorage.setItem(makeKey(uid), value).catch(() => {});
+    },
+    [userId],
+  );
+
+  // Discard the old device-global progress once — it is not attributable to
+  // any account, and leaving it in place would keep leaking between users.
   useEffect(() => {
-    Promise.all([
-      AsyncStorage.getItem(STORAGE_KEY),
-      AsyncStorage.getItem(XP_KEY),
-      AsyncStorage.getItem(STREAK_KEY),
-      AsyncStorage.getItem(LAST_DATE_KEY),
-    ]).then(([dogs, xpStr, streakStr, lastDate]) => {
-      if (dogs) try { setCollectedDogs(JSON.parse(dogs)); } catch { /* ignore */ }
-      if (xpStr) setXp(parseInt(xpStr, 10) || 0);
-      if (streakStr) setStreak(parseInt(streakStr, 10) || 0);
-      if (lastDate) setLastDiscoveryDate(lastDate);
-    });
+    AsyncStorage.multiRemove(LEGACY_KEYS).catch(() => {});
   }, []);
+
+  // Load the signed-in account's progress; clear everything when signed out.
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!userId) {
+      loadedUserRef.current = null;
+      setCollectedDogs([]);
+      setXp(0);
+      setStreak(0);
+      setLastDiscoveryDate(null);
+      return;
+    }
+
+    let cancelled = false;
+    // Blank the previous account's data immediately so it is never visible
+    // during the async read of the new account's data.
+    loadedUserRef.current = null;
+    setCollectedDogs([]);
+    setXp(0);
+    setStreak(0);
+    setLastDiscoveryDate(null);
+
+    AsyncStorage.multiGet([
+      collectionKey(userId),
+      xpKey(userId),
+      streakKey(userId),
+      lastDateKey(userId),
+    ])
+      .then((entries) => {
+        if (cancelled) return;
+        const [dogs, xpStr, streakStr, lastDate] = entries.map(([, v]) => v);
+        if (dogs) {
+          try {
+            setCollectedDogs(JSON.parse(dogs));
+          } catch {
+            /* ignore */
+          }
+        }
+        if (xpStr) setXp(parseInt(xpStr, 10) || 0);
+        if (streakStr) setStreak(parseInt(streakStr, 10) || 0);
+        if (lastDate) setLastDiscoveryDate(lastDate);
+        loadedUserRef.current = userId;
+      })
+      .catch(() => {
+        if (!cancelled) loadedUserRef.current = userId;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, isLoaded]);
 
   const addDog = useCallback(
     async (dog: Omit<CollectedDog, "timesSpotted">): Promise<{ isNew: boolean; xpGained: number }> => {
@@ -114,7 +208,7 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
               ? { ...d, timesSpotted: d.timesSpotted + 1, photos: newPhotos }
               : d
           );
-          AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          persist(collectionKey, JSON.stringify(updated));
           return updated;
         }
         isNew = true;
@@ -125,7 +219,7 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
           photos: dog.imageUri ? [dog.imageUri] : [],
         };
         const updated = [...prev, newEntry];
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        persist(collectionKey, JSON.stringify(updated));
         return updated;
       });
 
@@ -133,7 +227,7 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
         xpGained = XP_PER_RARITY[dog.rarity] ?? 10;
         setXp((prev) => {
           const next = prev + xpGained;
-          AsyncStorage.setItem(XP_KEY, String(next));
+          persist(xpKey, String(next));
           return next;
         });
 
@@ -154,40 +248,37 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
             }
           }
           setStreak(newStreak);
-          AsyncStorage.setItem(STREAK_KEY, String(newStreak));
-          AsyncStorage.setItem(LAST_DATE_KEY, today);
+          persist(streakKey, String(newStreak));
+          persist(lastDateKey, today);
           return today;
         });
       }
 
       return { isNew, xpGained };
     },
-    [streak]
+    [streak, persist]
   );
 
-  const bumpSpotted = useCallback(async (breedId: string) => {
-    setCollectedDogs((prev) => {
-      const updated = prev.map((d) =>
-        d.breedId === breedId ? { ...d, timesSpotted: d.timesSpotted + 1 } : d
-      );
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+  const bumpSpotted = useCallback(
+    async (breedId: string) => {
+      setCollectedDogs((prev) => {
+        const updated = prev.map((d) =>
+          d.breedId === breedId ? { ...d, timesSpotted: d.timesSpotted + 1 } : d
+        );
+        persist(collectionKey, JSON.stringify(updated));
+        return updated;
+      });
+    },
+    [persist]
+  );
 
   const resetCollection = useCallback(async () => {
-    await AsyncStorage.multiRemove([
-      STORAGE_KEY,
-      XP_KEY,
-      STREAK_KEY,
-      LAST_DATE_KEY,
-      "@dogdex_v2_badge_share_images",
-    ]);
+    if (userId) await AsyncStorage.multiRemove(userKeys(userId));
     setCollectedDogs([]);
     setXp(0);
     setStreak(0);
     setLastDiscoveryDate(null);
-  }, []);
+  }, [userId]);
 
   const isCollected = useCallback(
     (breedId: string) => collectedDogs.some((d) => d.breedId === breedId),

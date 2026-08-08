@@ -4,4 +4,6 @@
 - [Breed catalog in code](breed-catalog-in-code.md) — catalog is a TS array (DB migration cancelled); keep 3 breed_index_to_id.json copies identical; non-breed classes stay null.
 - [Expo Launch static config](expo-launch-static-config.md) — App Store publishing breaks with dynamic app.config.js; use static app.json, EXPO_PUBLIC_* env vars, and the prod-domain fallback in _layout.
 - [External Clerk instance](external-clerk-migration.md) — user's own Clerk account now; plain clerkMiddleware(), FAPI proxy deleted, build.js maps CLERK key → EXPO_PUBLIC at bundle time.
+- [Device-local progress scoping](device-local-progress-scoping.md) — Dex/XP/streak/badges live on the device; namespace every key by Clerk user id and clear on auth change, or progress leaks between accounts.
+- [Clerk key change needs republish](clerk-key-change-needs-republish.md) — prod keeps the old Clerk keys until republished, so new-instance tokens 401 in store builds while dev works.
 - [Clerk needs_client_trust](clerk-needs-client-trust.md) — native needs the mfa email-code trust flow (SignInFuture API); only Replit dev web preview may bypass via setActive. Navigate on isSignedIn effect, not right after setActive.

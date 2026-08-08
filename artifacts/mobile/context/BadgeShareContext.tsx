@@ -9,7 +9,12 @@ import React, {
 } from "react";
 import { NativeModules, Platform, StyleSheet, View } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
-import { useCollection, type Medal } from "@/context/CollectionContext";
+import { useAuth } from "@clerk/expo";
+import {
+  badgeShareIndexKey,
+  useCollection,
+  type Medal,
+} from "@/context/CollectionContext";
 import { BadgeShareCard } from "@/components/BadgeShareCard";
 
 /**
@@ -20,7 +25,8 @@ import { BadgeShareCard } from "@/components/BadgeShareCard";
  * AsyncStorage as { [medalId]: fileUri }.
  */
 
-const INDEX_KEY = "@dogdex_v2_badge_share_images";
+// Share images are cached per account: the card renders the account's own dogs,
+// so one account must never reuse another's generated PNG.
 
 // A development build made before react-native-view-shot was installed does
 // not contain RNViewShot. Avoid loading the native library in that old binary:
@@ -55,9 +61,13 @@ const BadgeShareContext = createContext<BadgeShareContextValue>({
 });
 
 export function BadgeShareProvider({ children }: { children: React.ReactNode }) {
+  const { userId, isLoaded: authLoaded } = useAuth();
   const { medals, collectedDogs } = useCollection();
   const [index, setIndex] = useState<Record<string, CacheEntry>>({});
   const [indexLoaded, setIndexLoaded] = useState(false);
+  // Account the loaded index belongs to, so an in-flight capture can never be
+  // written into another account's cache.
+  const indexUserRef = useRef<string | null>(null);
 
   // Medal currently being rendered off-screen for capture
   const [pending, setPending] = useState<Medal | null>(null);
@@ -67,19 +77,44 @@ export function BadgeShareProvider({ children }: { children: React.ReactNode }) 
   // Capped retries per medal so a persistent capture failure can't loop forever
   const failures = useRef<Record<string, number>>({});
 
-  // Load the index once
+  // Load the signed-in account's index; drop it entirely when signed out.
   useEffect(() => {
-    AsyncStorage.getItem(INDEX_KEY).then((raw) => {
-      if (raw) {
-        try {
-          setIndex(JSON.parse(raw));
-        } catch {
-          /* ignore */
+    if (!authLoaded) return;
+
+    indexUserRef.current = null;
+    setIndex({});
+    failures.current = {};
+
+    if (!userId) {
+      setIndexLoaded(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIndexLoaded(false);
+    AsyncStorage.getItem(badgeShareIndexKey(userId))
+      .then((raw) => {
+        if (cancelled) return;
+        if (raw) {
+          try {
+            setIndex(JSON.parse(raw));
+          } catch {
+            /* ignore */
+          }
         }
-      }
-      setIndexLoaded(true);
-    });
-  }, []);
+        indexUserRef.current = userId;
+        setIndexLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        indexUserRef.current = userId;
+        setIndexLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, authLoaded]);
 
   // Whenever badges change, queue the first unlocked badge whose image is
   // missing or stale (the dogs shown on the card changed).
@@ -112,7 +147,13 @@ export function BadgeShareProvider({ children }: { children: React.ReactNode }) 
         quality: 1,
         result: "tmpfile",
       });
-      const dest = `${FileSystem.documentDirectory}badge-share-${medal.id}.png`;
+      const owner = indexUserRef.current;
+      // The account changed while the card was rendering — throw the capture away.
+      if (!owner || owner !== userId) {
+        setPending(null);
+        return;
+      }
+      const dest = `${FileSystem.documentDirectory}badge-share-${owner}-${medal.id}.png`;
       // Overwrite any stale file
       await FileSystem.deleteAsync(dest, { idempotent: true });
       await FileSystem.moveAsync({ from: tmpUri, to: dest });
@@ -122,7 +163,9 @@ export function BadgeShareProvider({ children }: { children: React.ReactNode }) 
           ...prev,
           [medal.id]: { uri: dest, sig: cardSignature(medal, collectedDogs) },
         };
-        AsyncStorage.setItem(INDEX_KEY, JSON.stringify(next));
+        AsyncStorage.setItem(badgeShareIndexKey(owner), JSON.stringify(next)).catch(
+          () => {},
+        );
         return next;
       });
       delete failures.current[medal.id];
@@ -132,7 +175,7 @@ export function BadgeShareProvider({ children }: { children: React.ReactNode }) 
     } finally {
       setPending(null);
     }
-  }, [pending, collectedDogs]);
+  }, [pending, collectedDogs, userId]);
 
   // Capture when all grid images have settled — with a safety timeout so a
   // stuck image load can never block generation forever.

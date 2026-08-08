@@ -12,7 +12,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -52,7 +52,21 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function AuthTokenProvider({ children }: { children: React.ReactNode }) {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, userId, isLoaded } = useAuth();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+
+  // Cached API responses (profile, leaderboard rank) belong to whoever was
+  // signed in when they were fetched. Drop them whenever the account changes
+  // — including on sign-out — so nothing from one account is ever shown to
+  // another while fresh data loads.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const current = userId ?? null;
+    if (previousUserId.current !== undefined && previousUserId.current !== current) {
+      queryClient.clear();
+    }
+    previousUserId.current = current;
+  }, [userId, isLoaded]);
 
   useEffect(() => {
     if (isSignedIn) {
