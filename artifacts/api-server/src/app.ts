@@ -41,16 +41,18 @@ app.use("/api", healthRouter);
 // CLERK_SECRET_KEY env vars — no host-based key rewriting or FAPI proxying.
 app.use(clerkMiddleware());
 
-// TEMPORARY DIAGNOSTIC: every authenticated call from the app is coming back
-// 401 while a server-minted token for the same instance succeeds. Log why the
-// token was rejected — whether it arrived at all, and what it claims — without
-// ever logging the token itself. Remove once the cause is fixed.
+// Diagnostic for rejected credentials: when a request carries a token that
+// Clerk will not accept, record why — did the header arrive, had the token
+// expired, which session and instance issued it. The token itself is never
+// logged. Requests that authenticate successfully log nothing.
 app.use("/api", (req, _res, next) => {
+  const state = (req as any).auth;
+  const resolvedAuth = typeof state === "function" ? state() : state;
+  if (resolvedAuth?.userId) return next();
+
   const header = req.headers.authorization;
-  if (!header) {
-    req.log?.warn({ url: req.url?.split("?")[0] }, "AUTHDEBUG no authorization header");
-    return next();
-  }
+  if (!header) return next(); // Anonymous request to a public route.
+
   const token = header.replace(/^Bearer\s+/i, "");
   let claims: Record<string, unknown> = {};
   try {
@@ -71,17 +73,14 @@ app.use("/api", (req, _res, next) => {
   } catch (err) {
     claims = { decodeError: String(err), tokenLength: token.length };
   }
-  const state = (req as any).auth;
-  const resolved = typeof state === "function" ? state() : state;
   req.log?.warn(
     {
       url: req.url?.split("?")[0],
       claims,
-      userId: resolved?.userId ?? null,
-      reason: resolved?.reason ?? null,
-      message: resolved?.message ?? null,
+      reason: resolvedAuth?.reason ?? null,
+      message: resolvedAuth?.message ?? null,
     },
-    "AUTHDEBUG token seen",
+    "Token present but not accepted",
   );
   next();
 });
