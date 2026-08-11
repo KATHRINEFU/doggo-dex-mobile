@@ -7,6 +7,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { ClerkProvider, ClerkLoaded } from "@clerk/expo";
 import { tokenCache } from "@/lib/tokenCache";
+import { clerkInstanceHost, clerkPublishableKey } from "@/lib/clerkInstance";
 import { initBreedModel } from "@/lib/BreedModel";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -31,13 +32,9 @@ const extra = Constants.expoConfig?.extra ?? {};
 // (i.e. store/TestFlight builds made outside the Replit dev environment).
 const PRODUCTION_DOMAIN = "dog-breed-hunter.replit.app";
 
-// Clerk key: app.json is the source of truth for the production Clerk instance.
-// Keep it ahead of EXPO_PUBLIC_* so a stale value in a developer's shell cannot
-// silently make a native Release bundle contact an old Clerk instance.
-const publishableKey: string =
-  extra.clerkPublishableKey ||
-  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-  "";
+// Clerk key + instance host are resolved in lib/clerkInstance so the token
+// cache and the auth screens all agree on which instance this bundle targets.
+const publishableKey = clerkPublishableKey;
 
 // Domain: the dev server injects EXPO_PUBLIC_DOMAIN and must win, otherwise the
 // Replit preview would talk to the production API. Store builds have no such
@@ -49,28 +46,14 @@ const domain: string =
 
 const _apiBase = domain ? `https://${domain}` : "";
 
-// Which Clerk instance is this bundle actually pointed at? A build can carry a
-// stale key from a previous instance, which makes the server reject providers
-// that look enabled in the dashboard. The publishable key is public (it ships
-// in the client bundle) and encodes its own frontend-API host, so log that host
-// rather than the raw key.
-function clerkInstanceHost(key: string): string {
-  const body = key.split("_", 3)[2];
-  if (!body) return "unknown";
-  try {
-    // eslint-disable-next-line no-undef
-    const decoded = typeof atob === "function" ? atob(body) : "";
-    return decoded.replace(/\$$/, "") || "undecodable";
-  } catch {
-    return "undecodable";
-  }
-}
-
+// A build can carry a stale key from a previous Clerk instance, which makes the
+// server reject providers that look enabled in the dashboard. Log the instance
+// host (derived from the public key) rather than the key itself.
 console.log(
   "[DoggoDex] API base URL:",
   _apiBase,
   "| Clerk instance:",
-  publishableKey ? clerkInstanceHost(publishableKey) : "NO KEY",
+  clerkInstanceHost,
 );
 setBaseUrl(_apiBase);
 

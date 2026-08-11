@@ -18,6 +18,7 @@ import { useRouter, Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
+import { clerkInstanceLabel } from "@/lib/clerkInstance";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -416,6 +417,12 @@ export default function SignInScreen() {
               <Pressable><Text style={styles.link}>Create account</Text></Pressable>
             </Link>
           </View>
+
+          {/* Which Clerk instance is this build talking to? A binary carrying a
+              key from a retired instance fails Apple sign-in and 401s profile
+              saves, while looking correctly configured everywhere else. This
+              makes that visible on the device itself. */}
+          <Text style={styles.instanceTag}>auth: {clerkInstanceLabel}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -486,4 +493,10 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: "row", marginTop: 20, alignItems: "center" },
   footerText: { color: "rgba(255,255,255,0.7)", fontFamily: "Inter_400Regular" },
   link: { color: "#fff", fontFamily: "Inter_700Bold" },
+  instanceTag: {
+    color: "rgba(255,255,255,0.4)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: 16,
+  },
 });

@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import Constants from "expo-constants";
+import { clerkInstanceNamespace } from "./clerkInstance";
 
 // Clerk's TokenCache interface: getToken / saveToken / clearToken
 // On web, expo-secure-store is a no-op (returns null for all reads),
@@ -14,28 +14,7 @@ import Constants from "expo-constants";
 // iOS Keychain, which survives an app delete + reinstall, so the stale session
 // cannot be cleared by reinstalling. Namespacing the key by the instance host
 // abandons old-instance tokens instead of resurrecting them.
-function instanceNamespace(): string {
-  const key: string =
-    (Constants.expoConfig?.extra as { clerkPublishableKey?: string } | undefined)
-      ?.clerkPublishableKey ||
-    process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-    "";
-  const body = key.split("_", 3)[2];
-  if (!body) return "unknown";
-  try {
-    // eslint-disable-next-line no-undef
-    const decoded = typeof atob === "function" ? atob(body) : "";
-    const host = decoded.replace(/\$$/, "");
-    // SecureStore keys allow only alphanumerics, ".", "-" and "_".
-    return host ? host.replace(/[^A-Za-z0-9.\-_]/g, "_") : "unknown";
-  } catch {
-    return "unknown";
-  }
-}
-
-const NS = instanceNamespace();
-
-const scopedKey = (key: string) => `${NS}__${key}`;
+const scopedKey = (key: string) => `${clerkInstanceNamespace}__${key}`;
 
 const webCache = {
   getToken: async (key: string): Promise<string | null> => {
