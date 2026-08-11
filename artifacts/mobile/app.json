@@ -71,10 +71,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "7c75d66e-ab48-40dc-8322-38879c803595"
-      },
-      "clerkPublishableKey": "pk_test_YnVyc3RpbmctYmVhci03LmNsZXJrLmFjY291bnRzLmRldiQ",
-      "domain": "dog-breed-hunter.replit.app"
+        "projectId": "7c75d66e-ab48-40dc-8322-38879c803595",
+        "clerkPublishableKey": "pk_test_YnVyc3RpbmctYmVhci03LmNsZXJrLmFjY291bnRzLmRldiQ",
+        "domain": "dog-breed-hunter.replit.app"
+      }
     }
   }
 }

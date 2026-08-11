@@ -10,6 +10,10 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_DOMAIN": "dog-breed-hunter.replit.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_YnVyc3RpbmctYmVhci03LmNsZXJrLmFjY291bnRzLmRldiQ"
       }
     },
     "preview": {
