@@ -115,37 +115,63 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleGoogle = useCallback(async () => {
-    try {
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: "oauth_google",
-        redirectUrl: AuthSession.makeRedirectUri(),
-      });
-      if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        if (photoUri) pendingPhotoRef.current = photoUri;
-        setReadyToNavigate(true);
-      }
-    } catch (err) {
-      console.error("Google SSO error:", JSON.stringify(err));
-    }
-  }, [startSSOFlow, photoUri]);
+  const handleOAuth = useCallback(
+    async (strategy: "oauth_google" | "oauth_apple", providerName: string) => {
+      try {
+        const {
+          createdSessionId,
+          setActive,
+          authSessionResult,
+          signIn: ssoSignIn,
+          signUp: ssoSignUp,
+        } = await startSSOFlow({
+          strategy,
+          redirectUrl: AuthSession.makeRedirectUri(),
+        });
+        if (createdSessionId) {
+          await setActive!({ session: createdSessionId });
+          if (photoUri) pendingPhotoRef.current = photoUri;
+          setReadyToNavigate(true);
+          return;
+        }
 
-  const handleApple = useCallback(async () => {
-    try {
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: "oauth_apple",
-        redirectUrl: AuthSession.makeRedirectUri(),
-      });
-      if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        if (photoUri) pendingPhotoRef.current = photoUri;
-        setReadyToNavigate(true);
+        // User closed the browser sheet — not an error.
+        const resultType = authSessionResult?.type;
+        if (resultType === "cancel" || resultType === "dismiss") return;
+
+        // OAuth finished but no session was created (e.g. the account already
+        // exists and Clerk requires the device-trust email code, which only
+        // the sign-in screen can run). Don't fail silently — tell the user.
+        if (ssoSignIn?.status === "needs_client_trust") {
+          setFieldErrors((prev) => ({
+            ...prev,
+            general: `This ${providerName} account already exists. Please use "${providerName}" on the Sign In screen to verify this device.`,
+          }));
+          return;
+        }
+        setFieldErrors((prev) => ({
+          ...prev,
+          general:
+            `${providerName} sign-up did not complete` +
+            (ssoSignUp?.status || ssoSignIn?.status
+              ? ` (status: ${ssoSignUp?.status ?? ssoSignIn?.status})`
+              : "") +
+            ". Please try again.",
+        }));
+      } catch (err: any) {
+        console.error(`${providerName} SSO error:`, JSON.stringify(err));
+        setFieldErrors((prev) => ({
+          ...prev,
+          general:
+            err?.errors?.[0]?.longMessage ?? err?.message ?? `${providerName} sign-up failed.`,
+        }));
       }
-    } catch (err) {
-      console.error("Apple SSO error:", JSON.stringify(err));
-    }
-  }, [startSSOFlow, photoUri]);
+    },
+    [startSSOFlow, photoUri],
+  );
+
+  const handleGoogle = useCallback(() => handleOAuth("oauth_google", "Google"), [handleOAuth]);
+  const handleApple = useCallback(() => handleOAuth("oauth_apple", "Apple"), [handleOAuth]);
 
   const handleSignUp = async () => {
     if (!isLoaded) return;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -89,6 +89,10 @@ export default function SignInScreen() {
   // Client-trust email-code verification state
   const [needsTrustCode, setNeedsTrustCode] = useState(false);
   const [trustCode, setTrustCode] = useState("");
+  // When the trust code was triggered by an SSO (Apple/Google) sign-in, the
+  // flow must continue on the legacy resource returned by useSSO — the modern
+  // `signIn` object is a separate state holder and is NOT updated by it.
+  const ssoTrustRef = useRef<{ signIn: any; setActive: any } | null>(null);
 
   // Safety net: if Clerk reports us signed in while this screen is open,
   // go to the tabs. This covers every path (password, SSO, trust code).
@@ -123,35 +127,78 @@ export default function SignInScreen() {
     }
   }, [signIn]);
 
-  const handleGoogle = useCallback(async () => {
-    try {
-      const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({
-        strategy: "oauth_google",
-        redirectUrl: AuthSession.makeRedirectUri(),
-      });
-      if (createdSessionId) {
-        await ssoSetActive!({ session: createdSessionId });
-        // Navigation happens via the isSignedIn effect.
-      }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Google sign-in failed.");
-    }
-  }, [startSSOFlow, router]);
+  const handleOAuth = useCallback(
+    async (strategy: "oauth_google" | "oauth_apple", providerName: string) => {
+      try {
+        const {
+          createdSessionId,
+          setActive: ssoSetActive,
+          authSessionResult,
+          signIn: ssoSignIn,
+          signUp: ssoSignUp,
+        } = await startSSOFlow({
+          strategy,
+          redirectUrl: AuthSession.makeRedirectUri(),
+        });
 
-  const handleApple = useCallback(async () => {
-    try {
-      const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({
-        strategy: "oauth_apple",
-        redirectUrl: AuthSession.makeRedirectUri(),
-      });
-      if (createdSessionId) {
-        await ssoSetActive!({ session: createdSessionId });
-        // Navigation happens via the isSignedIn effect.
+        if (createdSessionId) {
+          await ssoSetActive!({ session: createdSessionId });
+          // Navigation happens via the isSignedIn effect.
+          return;
+        }
+
+        // User closed the browser sheet — not an error, stay quiet.
+        const resultType = authSessionResult?.type;
+        if (resultType === "cancel" || resultType === "dismiss") return;
+
+        // OAuth succeeded but no session was created: the sign-in stopped at
+        // an intermediate status. Previously this fell through silently and
+        // the user was dumped back on the login screen with no session.
+        // useSSO and useSignIn wrap the same underlying sign-in resource, so
+        // the trust flow can continue on the modern `signIn` object.
+        const status = ssoSignIn?.status;
+
+        if (status === "needs_client_trust" && ssoSignIn) {
+          // New device: Clerk requires a one-time email code (Client Trust).
+          // Continue on the SAME legacy resource useSSO used — the modern
+          // `signIn` object is a separate state holder and knows nothing
+          // about this attempt.
+          try {
+            const emailFactor: any = (ssoSignIn.supportedSecondFactors ?? []).find(
+              (f: any) => f.strategy === "email_code",
+            );
+            await ssoSignIn.prepareSecondFactor({
+              strategy: "email_code",
+              ...(emailFactor?.emailAddressId
+                ? { emailAddressId: emailFactor.emailAddressId }
+                : {}),
+            });
+            ssoTrustRef.current = { signIn: ssoSignIn, setActive: ssoSetActive };
+            setNeedsTrustCode(true);
+          } catch (prepErr: any) {
+            setError(
+              prepErr?.errors?.[0]?.longMessage ??
+                `${providerName} sign-in needs email verification, but the code could not be sent. Please try again.`,
+            );
+          }
+          return;
+        }
+
+        setError(
+          `${providerName} sign-in did not complete` +
+            (status ? ` (status: ${status}` +
+              (ssoSignUp?.status ? `, sign-up: ${ssoSignUp.status}` : "") + ")" : "") +
+            ". Please try again.",
+        );
+      } catch (err: any) {
+        setError(err?.errors?.[0]?.longMessage ?? err?.message ?? `${providerName} sign-in failed.`);
       }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Apple sign-in failed.");
-    }
-  }, [startSSOFlow, router]);
+    },
+    [startSSOFlow, signIn],
+  );
+
+  const handleGoogle = useCallback(() => handleOAuth("oauth_google", "Google"), [handleOAuth]);
+  const handleApple = useCallback(() => handleOAuth("oauth_apple", "Apple"), [handleOAuth]);
 
   const handleSignIn = async () => {
     clearErrors();
@@ -209,6 +256,7 @@ export default function SignInScreen() {
           setError("Could not send the verification code. Please try again.");
           return;
         }
+        ssoTrustRef.current = null; // password path: use the modern resource
         setNeedsTrustCode(true);
       } else if (signIn.status === "needs_second_factor") {
         setError("Your account has two-factor authentication enabled, which isn't supported in this app yet.");
@@ -226,6 +274,31 @@ export default function SignInScreen() {
     setError(null);
     setLoading(true);
     try {
+      // SSO-originated trust flow: verify + activate on the legacy resource.
+      if (ssoTrustRef.current) {
+        const { signIn: ssoSignIn, setActive: ssoSetActive } = ssoTrustRef.current;
+        try {
+          const res = await ssoSignIn.attemptSecondFactor({
+            strategy: "email_code",
+            code: trustCode.trim(),
+          });
+          if (res.status === "complete" && res.createdSessionId) {
+            ssoTrustRef.current = null;
+            await ssoSetActive({ session: res.createdSessionId });
+            // Navigation happens via the isSignedIn effect.
+          } else {
+            setError(`Verification incomplete (status: ${res.status}). Please try again.`);
+          }
+        } catch (ssoErr: any) {
+          setError(
+            ssoErr?.errors?.[0]?.longMessage ??
+              ssoErr?.errors?.[0]?.message ??
+              "Invalid code. Please check the code and try again.",
+          );
+        }
+        return;
+      }
+
       const { error: verifyError } = await signIn.mfa.verifyEmailCode({ code: trustCode.trim() });
       if (verifyError) {
         const clerkErrors: any[] = (verifyError as any)?.errors ?? [];
@@ -251,6 +324,19 @@ export default function SignInScreen() {
   const handleResendTrustCode = async () => {
     setError(null);
     try {
+      if (ssoTrustRef.current) {
+        const ssoSignIn = ssoTrustRef.current.signIn;
+        const emailFactor: any = (ssoSignIn.supportedSecondFactors ?? []).find(
+          (f: any) => f.strategy === "email_code",
+        );
+        await ssoSignIn.prepareSecondFactor({
+          strategy: "email_code",
+          ...(emailFactor?.emailAddressId
+            ? { emailAddressId: emailFactor.emailAddressId }
+            : {}),
+        });
+        return;
+      }
       const { error: resendError } = await signIn.mfa.sendEmailCode();
       if (resendError) {
         setError("Could not resend the code. Please try again.");
@@ -275,7 +361,7 @@ export default function SignInScreen() {
             <Feather name="mail" size={48} color="rgba(255,255,255,0.9)" />
             <Text style={styles.title}>Check your email</Text>
             <Text style={styles.subtitle}>
-              We sent a verification code to {email.trim()}.{"\n"}Enter it below to finish signing in.
+              We sent a verification code to {email.trim() || "your email address"}.{"\n"}Enter it below to finish signing in.
             </Text>
 
             <View style={styles.card}>
