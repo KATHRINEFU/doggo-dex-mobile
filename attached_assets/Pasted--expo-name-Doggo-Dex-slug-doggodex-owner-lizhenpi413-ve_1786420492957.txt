@@ -1,0 +1,78 @@
+{
+  "expo": {
+    "name": "Doggo Dex",
+    "slug": "doggodex",
+    "owner": "lizhenpi413",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "mobile",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#5AC8FA"
+    },
+    "ios": {
+      "bundleIdentifier": "com.lizhen.doggodex",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Doggo Dex uses your camera to take photos of dogs for breed detection.",
+        "NSPhotoLibraryUsageDescription": "Doggo Dex accesses your photo library so you can pick dog photos for breed detection.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.lizhen.doggodex",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#5AC8FA"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "assets": [
+      "./assets/ml/dog_breed_classifier.tflite",
+      "./assets/ml/labels.json",
+      "./assets/ml/breed_index_to_id.json"
+    ],
+    "plugins": [
+      [
+        "expo-router"
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "./plugins/withReactNativeSpmGuard",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Doggo Dex accesses your photos to identify dog breeds.",
+          "cameraPermission": "Doggo Dex uses your camera to take photos of dogs."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Doggo Dex uses your camera for the AR background and to scan dog breeds.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7c75d66e-ab48-40dc-8322-38879c803595"
+      }
+    }
+  }
+}
