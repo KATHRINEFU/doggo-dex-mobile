@@ -20,6 +20,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Doggo Dex uses your camera to take photos of dogs for breed detection.",
         "NSPhotoLibraryUsageDescription": "Doggo Dex accesses your photo library so you can pick dog photos for breed detection.",
+        "NSPhotoLibraryAddUsageDescription": "Doggo Dex saves your generated achievement badges to your photo library.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -57,6 +58,12 @@
           "cameraPermission": "Doggo Dex uses your camera to take photos of dogs."
         }
       ],
+       [
+         "expo-media-library",
+         {
+           "photosPermission": "Doggo Dex saves your generated achievement badges to your photo library."
+         }
+       ],
       [
         "expo-camera",
         {

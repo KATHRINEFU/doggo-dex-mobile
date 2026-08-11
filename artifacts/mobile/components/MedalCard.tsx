@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -137,8 +138,8 @@ export function MedalCard({ medal, currentCount }: Props) {
     }
   };
 
-  /** Opens the native save/share sheet only after the preview is open. */
-  const downloadImage = async () => {
+  /** Saves the previewed PNG directly into the device's Photos album. */
+  const saveToPhotos = async () => {
     if (isBusy) return;
     setIsBusy(true);
     try {
@@ -158,20 +159,44 @@ export function MedalCard({ medal, currentCount }: Props) {
         setPreviewUri(result.uri);
       }
 
-      if (Sharing && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(imageUri, {
-          mimeType: "image/png",
-          dialogTitle: "Your DoggoDex badge",
-          UTI: "public.png",
-        });
+      const permission = await MediaLibrary.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Photos permission needed",
+          "Allow Doggo Dex to add your badge to Photos, then try again.",
+        );
         return;
       }
-      Alert.alert("Saved", "Your badge image was downloaded.");
+
+      await MediaLibrary.saveToLibraryAsync(imageUri);
+      Alert.alert("Saved to Photos", "Your DoggoDex badge is now in your photo library.");
     } catch {
       Alert.alert(
-        "Download failed",
-        "We couldn't download your badge image. Please try again.",
+        "Could not save",
+        "We couldn't save your badge to Photos. Please try again.",
       );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  /** Shares the image only after the user explicitly selects Share. */
+  const shareImage = async () => {
+    if (isBusy || !previewUri) return;
+    if (!Sharing || !(await Sharing.isAvailableAsync())) {
+      Alert.alert("Sharing unavailable", "Sharing is not available on this device.");
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      await Sharing.shareAsync(previewUri, {
+        mimeType: "image/png",
+        dialogTitle: "Your DoggoDex badge",
+        UTI: "public.png",
+      });
+    } catch {
+      Alert.alert("Share failed", "We couldn't open the share sheet. Please try again.");
     } finally {
       setIsBusy(false);
     }
@@ -318,8 +343,8 @@ export function MedalCard({ medal, currentCount }: Props) {
                 <Text style={styles.previewSecondaryText}>Close</Text>
               </Pressable>
               <Pressable
-                style={[styles.previewPrimaryButton, isBusy && styles.shareBtnBusy]}
-                onPress={downloadImage}
+                style={[styles.previewSaveButton, isBusy && styles.shareBtnBusy]}
+                onPress={saveToPhotos}
                 disabled={isBusy}
               >
                 {isBusy ? (
@@ -327,11 +352,21 @@ export function MedalCard({ medal, currentCount }: Props) {
                 ) : (
                   <>
                     <Feather name="download" size={16} color="#FFFFFF" />
-                    <Text style={styles.previewPrimaryText}>Download / Share</Text>
+                    <Text style={styles.previewPrimaryText}>Save to Photos</Text>
                   </>
                 )}
               </Pressable>
             </View>
+            {Sharing && (
+              <Pressable
+                style={styles.previewShareButton}
+                onPress={shareImage}
+                disabled={isBusy}
+              >
+                <Feather name="share-2" size={15} color="rgba(255,255,255,0.82)" />
+                <Text style={styles.previewShareText}>Share instead</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </Modal>
@@ -426,7 +461,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.82)",
   },
-  previewPrimaryButton: {
+  previewSaveButton: {
     flex: 1.5,
     minHeight: 46,
     borderRadius: 14,
@@ -440,6 +475,19 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
     color: "#FFFFFF",
+  },
+  previewShareButton: {
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    marginTop: 8,
+  },
+  previewShareText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.82)",
   },
 
   iconOuter: {
