@@ -1665,7 +1665,7 @@ router.post("/dogs/detect", async (req, res) => {
     tfliteResult.top1.confidence < TFLITE_CONFIDENCE_THRESHOLD ||
     !tfliteResult.top1.dogdex_id;
 
-  req.log?.info({ useFallback }, "GPT-5 fallback decision");
+  req.log?.info({ useFallback }, "GPT-5.6-Luna fallback decision");
 
   if (useFallback) {
     const t2 = Date.now();
@@ -1674,7 +1674,7 @@ router.post("/dogs/detect", async (req, res) => {
     try {
       const response = await openai.chat.completions.create(
         {
-          model: "gpt-5",
+          model: "gpt-5.6-luna",
           max_completion_tokens: 512,
           messages: [
             {

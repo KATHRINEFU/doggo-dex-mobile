@@ -26,6 +26,9 @@ video, long LLM reports). Two constraints that are easy to miss:
   start endpoint must be idempotent, or double-taps burn duplicate API spend.
 - A failure that never writes a terminal status makes the client poll forever;
   wrap the failure write in its own try/catch and log if even that fails.
+- For completed mobile images, separate "open/preview" from "download/share":
+  fetching into the app cache for an in-app preview is not the same as offering
+  the native save/share sheet. The user should explicitly choose the latter.
 
 ## Object path convention
 

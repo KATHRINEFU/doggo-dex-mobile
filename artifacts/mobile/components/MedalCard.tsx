@@ -5,6 +5,8 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   NativeModules,
   Platform,
   Pressable,
@@ -65,6 +67,8 @@ export function MedalCard({ medal, currentCount }: Props) {
   const { collectedDogs } = useCollection();
   const { getToken } = useAuth();
   const [isBusy, setIsBusy] = useState(false);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const status = getStatus(medal.id);
 
@@ -104,8 +108,8 @@ export function MedalCard({ medal, currentCount }: Props) {
     }
   };
 
-  /** Downloads the finished image and opens the share/save sheet. */
-  const downloadImage = async () => {
+  /** Fetches the finished image into the app cache for private preview. */
+  const loadPreviewImage = async () => {
     if (isBusy) return;
     setIsBusy(true);
     try {
@@ -121,8 +125,41 @@ export function MedalCard({ medal, currentCount }: Props) {
       );
       if (result.status !== 200) throw new Error(`status ${result.status}`);
 
+      setPreviewUri(result.uri);
+      setIsPreviewVisible(true);
+    } catch {
+      Alert.alert(
+        "Could not open badge",
+        "We couldn't open your badge image. Please try again.",
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  /** Opens the native save/share sheet only after the preview is open. */
+  const downloadImage = async () => {
+    if (isBusy) return;
+    setIsBusy(true);
+    try {
+      let imageUri = previewUri;
+      if (!imageUri) {
+        const domain = Constants.expoConfig?.extra?.domain || process.env.EXPO_PUBLIC_DOMAIN;
+        if (!domain) throw new Error("API domain is unavailable");
+        const token = await getToken();
+        const target = `${FileSystem.cacheDirectory}doggodex-${medal.id}.png`;
+        const result = await FileSystem.downloadAsync(
+          `https://${domain}/api/badge-image/${medal.id}/file`,
+          target,
+          { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
+        );
+        if (result.status !== 200) throw new Error(`status ${result.status}`);
+        imageUri = result.uri;
+        setPreviewUri(result.uri);
+      }
+
       if (Sharing && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(result.uri, {
+        await Sharing.shareAsync(imageUri, {
           mimeType: "image/png",
           dialogTitle: "Your DoggoDex badge",
           UTI: "public.png",
@@ -142,7 +179,7 @@ export function MedalCard({ medal, currentCount }: Props) {
 
   const handleShare = async () => {
     if (status === "ready") {
-      await downloadImage();
+      await loadPreviewImage();
       return;
     }
     if (status === "pending") {
@@ -159,10 +196,10 @@ export function MedalCard({ medal, currentCount }: Props) {
     await startGeneration();
   };
 
-  const shareIcon = status === "ready" ? "download" : "share-2";
+  const shareIcon = status === "ready" ? "eye" : "share-2";
   const shareLabel =
     status === "ready"
-      ? "Download badge image"
+      ? "Open badge image"
       : status === "pending"
         ? "Badge image in progress"
         : "Create badge image";
@@ -240,6 +277,64 @@ export function MedalCard({ medal, currentCount }: Props) {
           {Math.min(currentCount, medal.required)}/{medal.required} breeds
         </Text>
       </View>
+      <Modal
+        visible={isPreviewVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsPreviewVisible(false)}
+      >
+        <View style={styles.previewBackdrop}>
+          <View style={styles.previewSheet}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewTitle}>Your DoggoDex badge</Text>
+              <Pressable
+                onPress={() => setIsPreviewVisible(false)}
+                hitSlop={10}
+                accessibilityLabel="Close badge preview"
+              >
+                <Feather name="x" size={24} color="#FFFFFF" />
+              </Pressable>
+            </View>
+
+            {previewUri ? (
+              <Image
+                source={{ uri: previewUri }}
+                style={styles.previewImage}
+                resizeMode="contain"
+                accessibilityLabel={`${medal.name} badge image`}
+              />
+            ) : (
+              <View style={styles.previewLoading}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+              </View>
+            )}
+
+            <View style={styles.previewActions}>
+              <Pressable
+                style={styles.previewSecondaryButton}
+                onPress={() => setIsPreviewVisible(false)}
+                disabled={isBusy}
+              >
+                <Text style={styles.previewSecondaryText}>Close</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.previewPrimaryButton, isBusy && styles.shareBtnBusy]}
+                onPress={downloadImage}
+                disabled={isBusy}
+              >
+                {isBusy ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Feather name="download" size={16} color="#FFFFFF" />
+                    <Text style={styles.previewPrimaryText}>Download / Share</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -270,6 +365,82 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   shareBtnBusy: { opacity: 0.7 },
+
+  previewBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(4, 12, 35, 0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  previewSheet: {
+    width: "100%",
+    maxWidth: 430,
+    maxHeight: "92%",
+    borderRadius: 24,
+    padding: 16,
+    backgroundColor: "#102C68",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+  },
+  previewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  previewTitle: {
+    flex: 1,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 17,
+    color: "#FFFFFF",
+  },
+  previewImage: {
+    width: "100%",
+    aspectRatio: 2 / 3,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  previewLoading: {
+    width: "100%",
+    aspectRatio: 2 / 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+  previewSecondaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewSecondaryText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "rgba(255,255,255,0.82)",
+  },
+  previewPrimaryButton: {
+    flex: 1.5,
+    minHeight: 46,
+    borderRadius: 14,
+    backgroundColor: "#2F80ED",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  previewPrimaryText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#FFFFFF",
+  },
 
   iconOuter: {
     width: 54, height: 54, borderRadius: 27,
