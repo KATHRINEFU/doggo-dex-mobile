@@ -9,6 +9,40 @@ import * as zod from 'zod';
 
 
 /**
+ * Queues an AI badge image for the authenticated user and returns immediately. Generation continues server-side, so the client can leave and return later.
+
+ * @summary Start generating a badge share image
+ */
+
+
+
+export const StartBadgeImageBody = zod.object({
+  "badgeId": zod.string(),
+  "breeds": zod.array(zod.string()).describe('Most recently collected breed names, newest first'),
+  "totalCollected": zod.number().min(1).describe('Total number of dogs collected by the user'),
+  "regenerate": zod.boolean().optional().describe('Discard any existing image and generate a new one')
+})
+
+export const StartBadgeImageResponse = zod.object({
+  "status": zod.enum(['none', 'pending', 'ready', 'failed']).describe('none = never requested, pending = generating'),
+  "objectPath": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get badge share image status
+ */
+export const GetBadgeImageStatusParams = zod.object({
+  "badgeId": zod.coerce.string()
+})
+
+export const GetBadgeImageStatusResponse = zod.object({
+  "status": zod.enum(['none', 'pending', 'ready', 'failed']).describe('none = never requested, pending = generating'),
+  "objectPath": zod.string().nullish()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

@@ -3,14 +3,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system/legacy";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   NativeModules,
   Platform,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useAuth } from "@clerk/expo";
 import type { Medal } from "@/context/CollectionContext";
 import { useBadgeShare } from "@/context/BadgeShareContext";
 import { useCollection } from "@/context/CollectionContext";
@@ -59,69 +61,111 @@ export function MedalCard({ medal, currentCount }: Props) {
   const gradColors = TIER_GRADIENTS[medal.id] ?? ["#5AC8FA", "#007AFF"];
   const icon = ICON_MAP[medal.id] ?? "award";
 
-  const { getShareImageUri } = useBadgeShare();
+  const { getStatus, requestImage } = useBadgeShare();
   const { collectedDogs } = useCollection();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { getToken } = useAuth();
+  const [isBusy, setIsBusy] = useState(false);
 
-  const handleShare = async () => {
-    if (isGenerating) return;
-    setIsGenerating(true);
+  const status = getStatus(medal.id);
+
+  /**
+   * The prompt features the 10 most recently collected breeds, newest first.
+   * `collectedDogs` is stored oldest-first, so take from the end.
+   */
+  const recentBreeds = collectedDogs
+    .slice()
+    .reverse()
+    .map((dog) => dog.breedName)
+    .slice(0, 10);
+
+  const startGeneration = async (regenerate = false) => {
+    if (isBusy) return;
+    setIsBusy(true);
+    try {
+      const next = await requestImage(
+        medal.id,
+        recentBreeds,
+        collectedDogs.length,
+        regenerate,
+      );
+      if (next === "failed") {
+        Alert.alert(
+          "Could not start",
+          "We couldn't start your badge image. Please try again.",
+        );
+        return;
+      }
+      Alert.alert(
+        "Generating your badge with the doggos!",
+        "Please come back in a few minutes.",
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  /** Downloads the finished image and opens the share/save sheet. */
+  const downloadImage = async () => {
+    if (isBusy) return;
+    setIsBusy(true);
     try {
       const domain = Constants.expoConfig?.extra?.domain || process.env.EXPO_PUBLIC_DOMAIN;
       if (!domain) throw new Error("API domain is unavailable");
-      const response = await fetch(`https://${domain}/api/share-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          badgeName: medal.name,
-          totalCollected: collectedDogs.length,
-          breeds: collectedDogs.map((dog) => dog.breedName),
-        }),
-      });
-      if (!response.ok) throw new Error("Image generation failed");
-      const { imageBase64 } = (await response.json()) as { imageBase64?: string };
-      if (!imageBase64) throw new Error("No image returned");
+      const token = await getToken();
 
-      const imageUri = `${FileSystem.cacheDirectory}doggo-dex-${medal.id}-${Date.now()}.png`;
-      await FileSystem.writeAsStringAsync(imageUri, imageBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      if (Sharing && await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(imageUri, {
+      const target = `${FileSystem.cacheDirectory}doggodex-${medal.id}.png`;
+      const result = await FileSystem.downloadAsync(
+        `https://${domain}/api/badge-image/${medal.id}/file`,
+        target,
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
+      );
+      if (result.status !== 200) throw new Error(`status ${result.status}`);
+
+      if (Sharing && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(result.uri, {
           mimeType: "image/png",
-          dialogTitle: "Your Doggo Dex collection",
+          dialogTitle: "Your DoggoDex badge",
+          UTI: "public.png",
         });
         return;
       }
+      Alert.alert("Saved", "Your badge image was downloaded.");
     } catch {
-      // If AI generation fails, retain the existing instant badge-card share.
+      Alert.alert(
+        "Download failed",
+        "We couldn't download your badge image. Please try again.",
+      );
     } finally {
-      setIsGenerating(false);
+      setIsBusy(false);
     }
-
-    // Prefer the pre-generated badge image (created when the badge unlocked,
-    // so there's no latency here). Share sheet lets the user save/download it.
-    const imageUri = getShareImageUri(medal.id);
-    if (imageUri && Sharing) {
-      try {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(imageUri, {
-            mimeType: "image/png",
-            dialogTitle: "Doggo Dex Badge",
-          });
-          return;
-        }
-      } catch {
-        // fall through to text share
-      }
-    }
-    try {
-      await Share.share({
-        message: `I just earned the "${medal.name}" badge on Doggo Dex! I've discovered ${medal.required} dog breeds. Can you beat me?`,
-        title: "Doggo Dex Badge",
-      });
-    } catch {}
   };
+
+  const handleShare = async () => {
+    if (status === "ready") {
+      await downloadImage();
+      return;
+    }
+    if (status === "pending") {
+      Alert.alert(
+        "Image production in progress!",
+        "Your doggos are posing…Come back in a few minutes.",
+      );
+      return;
+    }
+    if (status === "failed") {
+      await startGeneration(true);
+      return;
+    }
+    await startGeneration();
+  };
+
+  const shareIcon = status === "ready" ? "download" : "share-2";
+  const shareLabel =
+    status === "ready"
+      ? "Download badge image"
+      : status === "pending"
+        ? "Badge image in progress"
+        : "Create badge image";
 
   return (
     <View style={[styles.card, medal.unlocked && styles.cardUnlocked]}>
@@ -132,13 +176,17 @@ export function MedalCard({ medal, currentCount }: Props) {
       {/* Share button — top-right, unlocked badges only */}
       {medal.unlocked && (
         <Pressable
-          style={[styles.shareBtn, isGenerating && styles.shareBtnBusy]}
+          style={[styles.shareBtn, isBusy && styles.shareBtnBusy]}
           onPress={handleShare}
           hitSlop={8}
-          disabled={isGenerating}
-          accessibilityLabel={isGenerating ? "Creating share image" : "Share badge"}
+          disabled={isBusy}
+          accessibilityLabel={shareLabel}
         >
-          <Feather name={isGenerating ? "loader" : "share-2"} size={14} color="rgba(255,255,255,0.8)" />
+          {isBusy || status === "pending" ? (
+            <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+          ) : (
+            <Feather name={shareIcon} size={14} color="rgba(255,255,255,0.8)" />
+          )}
         </Pressable>
       )}
 

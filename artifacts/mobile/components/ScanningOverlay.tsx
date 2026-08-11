@@ -5,6 +5,7 @@ import {
   Dimensions,
   Easing,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -14,12 +15,14 @@ import { Feather } from "@expo/vector-icons";
 interface Props {
   visible: boolean;
   imageUri: string;
+  usingGptFallback: boolean;
+  onCancel: () => void;
 }
 
 const { width } = Dimensions.get("window");
 const IMAGE_SIZE = Math.min(width * 0.72, 300);
 
-export function ScanningOverlay({ visible, imageUri }: Props) {
+export function ScanningOverlay({ visible, imageUri, usingGptFallback, onCancel }: Props) {
   const scanY = useRef(new Animated.Value(0)).current;
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
@@ -132,6 +135,16 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
         colors={["rgba(30,60,130,0.97)", "rgba(20,40,100,0.99)"]}
         style={styles.overlay}
       >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cancel analysis"
+          hitSlop={12}
+          onPress={onCancel}
+          style={styles.cancelButton}
+        >
+          <Feather name="arrow-left" size={26} color="#FFFFFF" />
+        </Pressable>
+
         {/* Image frame */}
         <View style={styles.imageContainer}>
           {/* Pulse ring */}
@@ -194,7 +207,9 @@ export function ScanningOverlay({ visible, imageUri }: Props) {
         </Animated.View>
 
         {/* Label */}
-        <Text style={styles.label}>Analyzing breed</Text>
+        <Text style={styles.label}>
+          {usingGptFallback ? "🔍 Sniffing a little deeper…" : "Analyzing breed"}
+        </Text>
 
         {/* Dots */}
         <View style={styles.dots}>
@@ -221,6 +236,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 20,
+  },
+  cancelButton: {
+    position: "absolute",
+    top: 54,
+    left: 22,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
   },
 
   imageContainer: {

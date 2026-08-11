@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './badgeImageStatus';
+export * from './badgeImageStatusStatus';
 export * from './collectRequest';
 export * from './detectBreedRequest';
 export * from './detectBreedResult';
@@ -18,5 +20,6 @@ export * from './getLeaderboardParams';
 export * from './healthStatus';
 export * from './leaderboardEntry';
 export * from './myProfile';
+export * from './startBadgeImageRequest';
 export * from './successResponse';
 export * from './syncUserRequest';

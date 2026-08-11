@@ -143,6 +143,38 @@ export interface LeaderboardEntry {
   avatarUrl?: string | null;
 }
 
+export interface StartBadgeImageRequest {
+  badgeId: string;
+  /** Most recently collected breed names, newest first */
+  breeds: string[];
+  /**
+     * Total number of dogs collected by the user
+     * @minimum 1
+     */
+  totalCollected: number;
+  /** Discard any existing image and generate a new one */
+  regenerate?: boolean;
+}
+
+/**
+ * none = never requested, pending = generating
+ */
+export type BadgeImageStatusStatus = typeof BadgeImageStatusStatus[keyof typeof BadgeImageStatusStatus];
+
+
+export const BadgeImageStatusStatus = {
+  none: 'none',
+  pending: 'pending',
+  ready: 'ready',
+  failed: 'failed',
+} as const;
+
+export interface BadgeImageStatus {
+  /** none = never requested, pending = generating */
+  status: BadgeImageStatusStatus;
+  objectPath?: string | null;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;

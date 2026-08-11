@@ -66,6 +66,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const recordCollection = useRecordCollection();
 
   const [detecting, setDetecting] = useState(false);
+  const [usingGptFallback, setUsingGptFallback] = useState(false);
   const [imageUri, setImageUri] = useState("");
   const [originalUri, setOriginalUri] = useState("");
   const [result, setResult] = useState<DetectBreedResult | null>(null);
@@ -75,12 +76,14 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [xpMessage, setXpMessage] = useState("");
   const confettiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraCaptureRef = useRef<(() => Promise<LiveCameraPhoto | undefined>) | null>(null);
+  const scanIdRef = useRef(0);
 
   const showError = useCallback((message: string, uri = "") => {
     setResult({ ...ERROR_RESULT, description: message });
     setMatchedBreed(null);
     setImageUri(uri);
     setDetecting(false);
+    setUsingGptFallback(false);
     setModalVisible(true);
   }, []);
 
@@ -139,6 +142,8 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   );
 
   async function processImage(asset: LiveCameraPhoto) {
+    const scanId = ++scanIdRef.current;
+    const isActiveScan = () => scanIdRef.current === scanId;
     let pickedUri = asset.uri;
     const clientStart = Date.now();
     let phase: string | null = null;
@@ -211,8 +216,10 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         }
         logTiming(`${phase} done`);
       }
+      if (!isActiveScan()) return;
       setImageUri(displayUri);
       setDetecting(true);
+      setUsingGptFallback(false);
 
       let res: DetectBreedResult | null = null;
 
@@ -222,6 +229,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         try {
           phase = "device-detect";
           const deviceRes = await detectBreedOnDevice(base64Data);
+          if (!isActiveScan()) return;
           // TTA-averaged confidence is better calibrated — accept at 60%+.
           if (deviceRes && deviceRes.isDog && deviceRes.confidence >= 0.6) {
             res = deviceRes as unknown as DetectBreedResult;
@@ -236,12 +244,15 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         if (!res) {
           // Server pipeline: proper image handling + GPT Vision fallback.
           phase = "detect";
+          setUsingGptFallback(true);
           res = await detectMutation.mutateAsync({
             data: { imageBase64: base64Data, mimeType: "image/jpeg" },
           });
+          if (!isActiveScan()) return;
           logTiming("detect done (server)");
         }
       } catch (apiErr: unknown) {
+        if (!isActiveScan()) return;
         let msg = "Could not analyze the image. Please try again.";
         if (apiErr && typeof apiErr === "object") {
           const anyErr = apiErr as Record<string, unknown>;
@@ -262,6 +273,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      if (!isActiveScan()) return;
       setResult(res);
 
       const found =
@@ -272,12 +284,22 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       logTiming("result ready");
 
       setDetecting(false);
+      setUsingGptFallback(false);
       setModalVisible(true);
     } catch (err) {
+      if (!isActiveScan()) return;
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       showError(msg, pickedUri);
     }
   }
+
+  const cancelAnalysis = useCallback(() => {
+    // Invalidate the request immediately. The underlying fetch may finish in
+    // the background, but its response can no longer update this scan UI.
+    scanIdRef.current += 1;
+    setDetecting(false);
+    setUsingGptFallback(false);
+  }, []);
 
   async function pickAndDetect(fromCamera: boolean) {
     let pickedUri = "";
@@ -364,7 +386,12 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-      <ScanningOverlay visible={detecting} imageUri={imageUri} />
+      <ScanningOverlay
+        visible={detecting}
+        imageUri={imageUri}
+        usingGptFallback={usingGptFallback}
+        onCancel={cancelAnalysis}
+      />
       <ConfettiAnimation active={confettiActive} />
       <DetectionResultModal
         visible={modalVisible}

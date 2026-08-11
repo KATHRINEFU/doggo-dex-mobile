@@ -16,7 +16,69 @@ tags:
     description: User profile and leaderboard
   - name: leaderboard
     description: Rankings by collection
+  - name: badgeImage
+    description: AI-generated badge share images
 paths:
+  /badge-image:
+    post:
+      operationId: startBadgeImage
+      tags: [badgeImage]
+      summary: Start generating a badge share image
+      description: >
+        Queues an AI badge image for the authenticated user and returns
+        immediately. Generation continues server-side, so the client can leave
+        and return later.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartBadgeImageRequest"
+      responses:
+        "200":
+          description: Generation state after the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadgeImageStatus"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /badge-image/{badgeId}:
+    get:
+      operationId: getBadgeImageStatus
+      tags: [badgeImage]
+      summary: Get badge share image status
+      parameters:
+        - name: badgeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current generation state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadgeImageStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -442,6 +504,41 @@ components:
         - countryFlag
         - collectionCount
         - xp
+
+    StartBadgeImageRequest:
+      type: object
+      properties:
+        badgeId:
+          type: string
+        breeds:
+          type: array
+          description: Most recently collected breed names, newest first
+          items:
+            type: string
+        totalCollected:
+          type: integer
+          minimum: 1
+          description: Total number of dogs collected by the user
+        regenerate:
+          type: boolean
+          description: Discard any existing image and generate a new one
+      required:
+        - badgeId
+        - breeds
+        - totalCollected
+
+    BadgeImageStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: none = never requested, pending = generating
+          enum: [none, pending, ready, failed]
+        objectPath:
+          type: string
+          nullable: true
+      required:
+        - status
 
     ErrorResponse:
       type: object

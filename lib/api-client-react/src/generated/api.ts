@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BadgeImageStatus,
   CollectRequest,
   DetectBreedRequest,
   DetectBreedResult,
@@ -29,6 +30,7 @@ import type {
   HealthStatus,
   LeaderboardEntry,
   MyProfile,
+  StartBadgeImageRequest,
   SuccessResponse,
   SyncUserRequest
 } from './api.schemas';
@@ -42,6 +44,156 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+export const getStartBadgeImageUrl = () => {
+
+
+
+
+  return `/api/badge-image`
+}
+
+/**
+ * Queues an AI badge image for the authenticated user and returns immediately. Generation continues server-side, so the client can leave and return later.
+
+ * @summary Start generating a badge share image
+ */
+export const startBadgeImage = async (startBadgeImageRequest: StartBadgeImageRequest, options?: RequestInit): Promise<BadgeImageStatus> => {
+
+  return customFetch<BadgeImageStatus>(getStartBadgeImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      startBadgeImageRequest,)
+  }
+);}
+
+
+
+
+export const getStartBadgeImageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startBadgeImage>>, TError,{data: BodyType<StartBadgeImageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startBadgeImage>>, TError,{data: BodyType<StartBadgeImageRequest>}, TContext> => {
+
+const mutationKey = ['startBadgeImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startBadgeImage>>, {data: BodyType<StartBadgeImageRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startBadgeImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartBadgeImageMutationResult = NonNullable<Awaited<ReturnType<typeof startBadgeImage>>>
+    export type StartBadgeImageMutationBody = BodyType<StartBadgeImageRequest>
+    export type StartBadgeImageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start generating a badge share image
+ */
+export const useStartBadgeImage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startBadgeImage>>, TError,{data: BodyType<StartBadgeImageRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startBadgeImage>>,
+        TError,
+        {data: BodyType<StartBadgeImageRequest>},
+        TContext
+      > => {
+      return useMutation(getStartBadgeImageMutationOptions(options));
+    }
+
+export const getGetBadgeImageStatusUrl = (badgeId: string,) => {
+
+
+
+
+  return `/api/badge-image/${badgeId}`
+}
+
+/**
+ * @summary Get badge share image status
+ */
+export const getBadgeImageStatus = async (badgeId: string, options?: RequestInit): Promise<BadgeImageStatus> => {
+
+  return customFetch<BadgeImageStatus>(getGetBadgeImageStatusUrl(badgeId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBadgeImageStatusQueryKey = (badgeId: string,) => {
+    return [
+    `/api/badge-image/${badgeId}`
+    ] as const;
+    }
+
+
+export const getGetBadgeImageStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBadgeImageStatus>>, TError = ErrorType<ErrorResponse>>(badgeId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBadgeImageStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBadgeImageStatusQueryKey(badgeId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBadgeImageStatus>>> = ({ signal }) => getBadgeImageStatus(badgeId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(badgeId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBadgeImageStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBadgeImageStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBadgeImageStatus>>>
+export type GetBadgeImageStatusQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get badge share image status
+ */
+
+export function useGetBadgeImageStatus<TData = Awaited<ReturnType<typeof getBadgeImageStatus>>, TError = ErrorType<ErrorResponse>>(
+ badgeId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBadgeImageStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBadgeImageStatusQueryOptions(badgeId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
 
 
 
