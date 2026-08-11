@@ -44,7 +44,30 @@ const domain: string =
   PRODUCTION_DOMAIN;
 
 const _apiBase = domain ? `https://${domain}` : "";
-console.log("[DoggoDex] API base URL:", _apiBase, "| Clerk key present:", !!publishableKey);
+
+// Which Clerk instance is this bundle actually pointed at? A build can carry a
+// stale key from a previous instance, which makes the server reject providers
+// that look enabled in the dashboard. The publishable key is public (it ships
+// in the client bundle) and encodes its own frontend-API host, so log that host
+// rather than the raw key.
+function clerkInstanceHost(key: string): string {
+  const body = key.split("_", 3)[2];
+  if (!body) return "unknown";
+  try {
+    // eslint-disable-next-line no-undef
+    const decoded = typeof atob === "function" ? atob(body) : "";
+    return decoded.replace(/\$$/, "") || "undecodable";
+  } catch {
+    return "undecodable";
+  }
+}
+
+console.log(
+  "[DoggoDex] API base URL:",
+  _apiBase,
+  "| Clerk instance:",
+  publishableKey ? clerkInstanceHost(publishableKey) : "NO KEY",
+);
 setBaseUrl(_apiBase);
 
 SplashScreen.preventAutoHideAsync();
