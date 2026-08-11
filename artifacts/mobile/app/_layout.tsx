@@ -31,13 +31,17 @@ const extra = Constants.expoConfig?.extra ?? {};
 // (i.e. store/TestFlight builds made outside the Replit dev environment).
 const PRODUCTION_DOMAIN = "dog-breed-hunter.replit.app";
 
-// Clerk key: injected as EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY at build/dev-server time.
+// Clerk key: app.json is the source of truth for the production Clerk instance.
+// Keep it ahead of EXPO_PUBLIC_* so a stale value in a developer's shell cannot
+// silently make a native Release bundle contact an old Clerk instance.
 const publishableKey: string =
-  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
   extra.clerkPublishableKey ||
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
   "";
 
-// Domain: dev server injects EXPO_PUBLIC_DOMAIN; store builds fall back to production.
+// Domain: the dev server injects EXPO_PUBLIC_DOMAIN and must win, otherwise the
+// Replit preview would talk to the production API. Store builds have no such
+// injection and fall back to app.json / the production domain.
 const domain: string =
   process.env.EXPO_PUBLIC_DOMAIN ||
   extra.domain ||
