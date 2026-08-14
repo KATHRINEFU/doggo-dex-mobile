@@ -1,4 +1,4 @@
-const { withPodfile } = require("@expo/config-plugins");
+const { withPodfile } = require("expo/config-plugins");
 
 /**
  * React Native 0.81's SPM post-install hook (scripts/cocoapods/spm.rb)
