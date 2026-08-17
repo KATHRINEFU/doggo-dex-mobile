@@ -17,6 +17,7 @@
     "ios": {
       "bundleIdentifier": "com.lizhen.doggodex",
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Doggo Dex uses your camera to take photos of dogs for breed detection.",
         "NSPhotoLibraryUsageDescription": "Doggo Dex accesses your photo library so you can pick dog photos for breed detection.",

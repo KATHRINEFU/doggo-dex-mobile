@@ -176,7 +176,8 @@ export default function ProfileScreen() {
 
       let message: string;
       if (status === 401) {
-        message = "Your session expired. Please sign out and sign in again.";
+        message =
+          "The server rejected your sign-in. Sign out and sign in again — if that doesn't help, update to the latest version of the app.";
       } else if (status === 409) {
         message =
           serverMessage ??
