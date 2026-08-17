@@ -30,7 +30,7 @@ const extra = Constants.expoConfig?.extra ?? {};
 
 // Production API domain — used when no EXPO_PUBLIC_DOMAIN is injected
 // (i.e. store/TestFlight builds made outside the Replit dev environment).
-const PRODUCTION_DOMAIN = "dog-breed-hunter.replit.app";
+const PRODUCTION_DOMAIN = "doggodexapp.com";
 
 // Clerk key + instance host are resolved in lib/clerkInstance so the token
 // cache and the auth screens all agree on which instance this bundle targets.

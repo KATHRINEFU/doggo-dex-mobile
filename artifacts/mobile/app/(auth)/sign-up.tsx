@@ -24,6 +24,7 @@ import { Feather } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
 import { CountryPickerModal, type CountryOption } from "@/components/CountryPicker";
 import { useSyncUser } from "@workspace/api-client-react";
+import { useSignInWithApple } from "@clerk/expo/apple";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -50,6 +51,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
+  const { startAppleAuthenticationFlow } = useSignInWithApple();
   const { isSignedIn } = useAuth();
   const { signUp, setActive, isLoaded } = useSignUp();
   const { user } = useUser();
@@ -171,7 +173,38 @@ export default function SignUpScreen() {
   );
 
   const handleGoogle = useCallback(() => handleOAuth("oauth_google", "Google"), [handleOAuth]);
-  const handleApple = useCallback(() => handleOAuth("oauth_apple", "Apple"), [handleOAuth]);
+  const handleApple = useCallback(async () => {
+    try {
+      console.log("[Apple] starting");
+      const { createdSessionId, setActive: appleSetActive } =
+        await startAppleAuthenticationFlow();
+      console.log("[Apple] result:", createdSessionId);
+
+      if (createdSessionId && appleSetActive) {
+        await appleSetActive({ session: createdSessionId });
+
+        if (photoUri) {
+          pendingPhotoRef.current = photoUri;
+        }
+
+        setReadyToNavigate(true);
+      }
+    } catch (err: any) {
+      console.error("[Apple] error FULL:", JSON.stringify(err, null, 2));
+      console.error("[Apple] error RAW:", err);
+      if (err?.code === "ERR_REQUEST_CANCELED") {
+        return;
+      }
+
+      setFieldErrors((prev) => ({
+        ...prev,
+        general:
+          err?.errors?.[0]?.longMessage ??
+          err?.message ??
+          "Apple sign-up failed. Please try again.",
+      }));
+    }
+  }, [startAppleAuthenticationFlow, photoUri]);
 
   const handleSignUp = async () => {
     if (!isLoaded) return;

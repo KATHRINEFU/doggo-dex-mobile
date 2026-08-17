@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
 import { clerkInstanceLabel } from "@/lib/clerkInstance";
+import { useSignInWithApple } from "@clerk/expo/apple";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -74,6 +75,7 @@ export default function SignInScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startSSOFlow } = useSSO();
+  const { startAppleAuthenticationFlow } = useSignInWithApple();
   const { isSignedIn } = useAuth();
   const { setActive } = useClerk();
   const { signIn, fetchStatus } = useSignIn();
@@ -198,7 +200,32 @@ export default function SignInScreen() {
   );
 
   const handleGoogle = useCallback(() => handleOAuth("oauth_google", "Google"), [handleOAuth]);
-  const handleApple = useCallback(() => handleOAuth("oauth_apple", "Apple"), [handleOAuth]);
+  const handleApple = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      console.log("[Apple] starting");
+      const { createdSessionId, setActive: appleSetActive } =
+        await startAppleAuthenticationFlow();
+      console.log("[Apple] result:", createdSessionId);
+      if (createdSessionId && appleSetActive) {
+        await appleSetActive({ session: createdSessionId });
+      }
+    } catch (err: any) {
+      console.error("[Apple] error FULL:", JSON.stringify(err, null, 2));
+      console.error("[Apple] error RAW:", err);
+      if (err?.code === "ERR_REQUEST_CANCELED") return;
+
+      setError(
+        err?.errors?.[0]?.longMessage ??
+          err?.message ??
+          "Apple sign-in failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [startAppleAuthenticationFlow]);
 
   const handleSignIn = async () => {
     clearErrors();
