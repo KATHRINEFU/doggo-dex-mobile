@@ -85,3 +85,31 @@ uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "DogDex icon with natural ears"
 description = "Square app icon variant with the refined natural floppy ears."
+
+[[outputs]]
+id = "rRNyrvWqlRjS1NRLziNRA"
+uri = "file://attached_assets/appstore/01-scan-1284x2778.jpg"
+type = "image"
+title = "App Store screenshot 1 — Scan (1284×2778)"
+description = "Portrait screenshot showing the live camera scan with the on-device breed match chip, XP pop and collection progress card."
+
+[[outputs]]
+id = "U1HBIJvpJFvTHuk2iMvLa"
+uri = "file://attached_assets/appstore/02-dex-1242x2688.jpg"
+type = "image"
+title = "App Store screenshot 2 — Doggo Dex (1242×2688)"
+description = "Portrait screenshot of the breed collection grid with rarity tiers, filters and progress."
+
+[[outputs]]
+id = "Yua7lLtjryTdBDMHn1THp"
+uri = "file://attached_assets/appstore/03-progress-2778x1284.jpg"
+type = "image"
+title = "App Store screenshot 3 — Progress (2778×1284)"
+description = "Landscape screenshot pairing the scan screen with the Field Journal: XP, streaks and badges."
+
+[[outputs]]
+id = "z6voXhBm7wK9eJx4J_rJX"
+uri = "file://attached_assets/appstore/pawdex-poster-2400x3600.jpg"
+type = "image"
+title = "PawDex promo poster (2400×3600)"
+description = "Lifestyle promotion poster: a woman photographing a golden retriever in a sunlit park, with the real scan UI alongside."
