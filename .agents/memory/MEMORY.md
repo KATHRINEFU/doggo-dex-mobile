@@ -9,4 +9,5 @@
 - [Clerk config truth source](clerk-config-truth-source.md) — check `<fapi>/v1/environment` for `used_for_first_factor`, not dashboard labels; "strategy not allowed" always means the client hit a different instance.
 - [Clerk token cache instance bleed](clerk-token-cache-instance-bleed.md) — cache key isn't per-instance, so an old session JWT replays and 401s; check the rejected token's `iss` before re-keying anything.
 - [Long-running AI jobs](long-running-ai-jobs.md) — image gen takes 20-60s; the DB row owns the lifecycle, client polls. Start must be idempotent; store `/objects/<entityId>` paths only.
+- [Clerk instance parity](clerk-instance-parity.md) — a fresh token that 401s everywhere means bundle and API decode to different Clerk hosts; never pin one canonical instance in the client.
 - [Clerk needs_client_trust](clerk-needs-client-trust.md) — native needs the mfa email-code trust flow (SignInFuture API); only Replit dev web preview may bypass via setActive. Navigate on isSignedIn effect, not right after setActive.
