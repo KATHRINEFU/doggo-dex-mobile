@@ -113,3 +113,17 @@ uri = "file://attached_assets/appstore/pawdex-poster-2400x3600.jpg"
 type = "image"
 title = "PawDex promo poster (2400×3600)"
 description = "Lifestyle promotion poster: a woman photographing a golden retriever in a sunlit park, with the real scan UI alongside."
+
+[[outputs]]
+id = "Ed4oxm_gd-umIiBzXIM8t"
+uri = "file://attached_assets/appstore/04-rank-1284x2778.jpg"
+type = "image"
+title = "App Store screenshot 4 — Rank (1284×2778)"
+description = "Portrait App Store screenshot in the PawDex style showing the global leaderboard, podium, collector rows, and active Rank tab."
+
+[[outputs]]
+id = "en45f1QXhtOAA6waqAH1p"
+uri = "file://attached_assets/appstore/05-profile-1242x2688.jpg"
+type = "image"
+title = "App Store screenshot 5 — Profile (1242×2688)"
+description = "Portrait App Store screenshot in the PawDex style showing My Profile, trainer level, local progress stats, country, username, and account actions."

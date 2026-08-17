@@ -1,9 +1,11 @@
 """
-Builds the three App Store screenshots at exact accepted pixel dimensions.
+Builds App Store screenshots at exact accepted pixel dimensions.
 
   1. 1284 x 2778  (6.5"/6.7" portrait)  — Scan
   2. 1242 x 2688  (6.5" portrait)       — Dex
   3. 2778 x 1284  (6.5"/6.7" landscape) — Journal + Scan pair
+  4. 1284 x 2778  (6.5"/6.7" portrait)  — Rank
+  5. 1242 x 2688  (6.5" portrait)       — Profile
 """
 
 from __future__ import annotations
@@ -90,6 +92,46 @@ def shot_dex(w: int, h: int, path: str):
     return path
 
 
+def shot_rank(w: int, h: int, path: str):
+    s = w / 1284
+    c = Canvas(w, h)
+    c.overlay(linear_gradient((w, h), ["#4BB8FA", "#3A8FDC", "#1E4E8C"],
+                              [0, 0.5, 1], (0.25, 0), (0.75, 1)))
+    c.overlay(radial_glow((int(w * 1.6), int(w * 1.6)), (255, 255, 255, 70)),
+              -w * 0.3, -w * 0.45)
+    caption(c, "Climb the leaderboard.", "Collect more breeds. Rise through the ranks.", 124 * s, s)
+    ph_w = int(w * 0.76)
+    screen = Phone(ph_w, int(ph_w * (2778 / 1284))).rank().img
+    dev = framed(screen, s, 62 * s)
+    x = (w - dev.width) // 2
+    y = int(312 * s)
+    c.shadow((x, y, x + dev.width, y + dev.height), radius=68 * s, blur=46 * s,
+             color=(9, 33, 66, 190), dy=26 * s)
+    c.overlay(dev, x, y)
+    c.save(path)
+    return path
+
+
+def shot_profile(w: int, h: int, path: str):
+    s = w / 1242
+    c = Canvas(w, h)
+    c.overlay(linear_gradient((w, h), ["#4BB8FA", "#3A8FDC", "#1E4E8C"],
+                              [0, 0.5, 1], (0.25, 0), (0.75, 1)))
+    c.overlay(radial_glow((int(w * 1.6), int(w * 1.6)), (255, 255, 255, 70)),
+              -w * 0.3, -w * 0.45)
+    caption(c, "Make your Dex yours.", "Track your journey, your way.", 124 * s, s)
+    ph_w = int(w * 0.76)
+    screen = Phone(ph_w, int(ph_w * (2688 / 1242))).profile().img
+    dev = framed(screen, s, 60 * s)
+    x = (w - dev.width) // 2
+    y = int(312 * s)
+    c.shadow((x, y, x + dev.width, y + dev.height), radius=66 * s, blur=44 * s,
+             color=(9, 33, 66, 190), dy=24 * s)
+    c.overlay(dev, x, y)
+    c.save(path)
+    return path
+
+
 # ----------------------------------------------------------- landscape 3 --
 def shot_landscape(w: int, h: int, path: str):
     s = w / 2778
@@ -154,3 +196,5 @@ if __name__ == "__main__":
     print(shot_scan(1284, 2778, os.path.join(OUT, "01-scan-1284x2778.jpg")))
     print(shot_dex(1242, 2688, os.path.join(OUT, "02-dex-1242x2688.jpg")))
     print(shot_landscape(2778, 1284, os.path.join(OUT, "03-progress-2778x1284.jpg")))
+    print(shot_rank(1284, 2778, os.path.join(OUT, "04-rank-1284x2778.jpg")))
+    print(shot_profile(1242, 2688, os.path.join(OUT, "05-profile-1242x2688.jpg")))

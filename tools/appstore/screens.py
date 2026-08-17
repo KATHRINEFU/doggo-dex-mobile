@@ -253,6 +253,179 @@ class Phone:
         self.tab_bar("index")
         return self.c
 
+    # ================================================ SCREEN 1A — RANK ==
+    def rank(self):
+        """Leaderboard tab, rendered from the current mobile screen structure."""
+        c, s = self.c, self.s
+        W, H = self.p(self.W), self.p(self.H)
+        c.overlay(linear_gradient((int(W), int(H)), ["#4BB8FA", "#3A8FDC", "#2C5EAD"],
+                                  [0, 0.5, 1], (0.3, 0), (0.7, 1)))
+        c.overlay(radial_glow((int(W * 1.5), int(W * 1.5)), (255, 255, 255, 58)),
+                  -W * 0.28, -H * 0.12)
+        self.status_bar()
+
+        x0 = self.p(16)
+        y = self.p(self.TOP_INSET + 16)
+        c.text((x0, y), "Leaderboard", font("serif-bold", self.p(28)), "#FFFFFF")
+        c.text((x0, y + self.p(38)), "Top collectors worldwide",
+               font("regular", self.p(14)), (255, 255, 255, 190))
+
+        # Scope toggle matches leaderboard.tsx: a translucent group with a
+        # bright selected segment.
+        y += self.p(78)
+        toggle = (x0, y, W - x0, y + self.p(44))
+        c.rect(toggle, radius=self.p(12), fill=(255, 255, 255, 38),
+               outline=(255, 255, 255, 35), width=max(1, self.p(1)))
+        half = (toggle[2] - toggle[0] - self.p(8)) / 2
+        c.rect((x0 + self.p(4), y + self.p(4), x0 + self.p(4) + half, y + self.p(40)),
+               radius=self.p(10), fill=(255, 255, 255, 235))
+        c.text((x0 + self.p(4) + half / 2, y + self.p(22)), "Global",
+               font("semibold", self.p(13)), "#1E3A5F", anchor="mm")
+        c.text((x0 + self.p(8) + half + half / 2, y + self.p(22)), "My Country",
+               font("semibold", self.p(13)), (255, 255, 255, 215), anchor="mm")
+
+        # A compact podium gives the ranking screen an immediate hero moment,
+        # followed by rows using the app's actual rank/avatar/name/breed layout.
+        y += self.p(74)
+        podium_y = y + self.p(98)
+        podium = [
+            (x0 + self.p(195), "1st", "Maya Chen", "CAN", 82, "#FBBF24", "M"),
+            (x0 + self.p(92), "2nd", "Noah Park", "USA", 64, "#CBD5E1", "N"),
+            (x0 + self.p(298), "3rd", "Lena Ortiz", "ESP", 57, "#D97706", "L"),
+        ]
+        for px, place, name, flag, count, col, initial in podium:
+            r = self.p(29 if place == "1st" else 25)
+            c.circle(px, podium_y - r - self.p(16), r, fill=(255, 255, 255, 226),
+                     outline=col, width=self.p(3))
+            c.circle(px, podium_y - r - self.p(16), r - self.p(4), fill="#3B82F6")
+            c.text((px, podium_y - r - self.p(16)), initial, font("bold", self.p(20)),
+                   "#FFFFFF", anchor="mm")
+            c.text((px, podium_y + self.p(5)), place, font("bold", self.p(14)), col, anchor="ma")
+            c.text((px, podium_y + self.p(27)), name, font("semibold", self.p(11)),
+                   "#FFFFFF", anchor="ma")
+            c.text((px, podium_y + self.p(44)), f"{flag}  {count} breeds",
+                   font("medium", self.p(10)), (255, 255, 255, 180), anchor="ma")
+
+        y = podium_y + self.p(79)
+        entries = [
+            ("#4", "Alex", "USA", 37, True, "#64748B", "A"),
+            ("#5", "Sofia Kim", "KOR", 35, False, "#64748B", "S"),
+            ("#6", "Theo Martin", "FRA", 31, False, "#64748B", "T"),
+            ("#7", "Priya Shah", "GBR", 29, False, "#64748B", "P"),
+            ("#8", "Jordan Lee", "AUS", 26, False, "#64748B", "J"),
+        ]
+        for rank, name, flag, count, is_me, rank_col, initial in entries:
+            rh = self.p(65)
+            box = (x0, y, W - x0, y + rh)
+            c.rect(box, radius=self.p(14), fill=(255, 255, 255, 228) if is_me else (255, 255, 255, 195),
+                   outline=(90, 200, 250, 120) if is_me else (255, 255, 255, 25),
+                   width=max(1, self.p(1)))
+            c.text((x0 + self.p(31), y + rh / 2), rank, font("bold", self.p(15)),
+                   rank_col, anchor="mm")
+            ax = x0 + self.p(72)
+            c.circle(ax, y + rh / 2, self.p(20), fill="#3B82F6",
+                     outline="#5AC8FA" if is_me else None, width=self.p(2))
+            c.text((ax, y + rh / 2), initial, font("bold", self.p(15)), "#FFFFFF", anchor="mm")
+            c.text((x0 + self.p(103), y + self.p(25)), f"{name}  " + ("YOU" if is_me else ""),
+                   font("semibold", self.p(14)), "#1E293B")
+            c.text((x0 + self.p(103), y + self.p(46)), f"{flag}  " + ("United States" if is_me else "Collector"),
+                   font("regular", self.p(10.5)), "#64748B")
+            c.text((W - x0 - self.p(16), y + self.p(24)), str(count),
+                   font("bold", self.p(16)), "#1E3A5F", anchor="ra")
+            c.text((W - x0 - self.p(16), y + self.p(45)), "breeds",
+                   font("regular", self.p(9.5)), "#64748B", anchor="ra")
+            y += rh + self.p(10)
+
+        self.tab_bar("leaderboard")
+        return self.c
+
+    # ============================================== SCREEN 1B — PROFILE ==
+    def profile(self):
+        """Profile modal, matching profile.tsx's gradient/cards and copy."""
+        c, s = self.c, self.s
+        W, H = self.p(self.W), self.p(self.H)
+        c.overlay(linear_gradient((int(W), int(H)), ["#4BB8FA", "#3A8FDC", "#2C5EAD"],
+                                  [0, 0.5, 1], (0.3, 0), (0.7, 1)))
+        c.overlay(radial_glow((int(W * 1.5), int(W * 1.5)), (255, 255, 255, 55)),
+                  -W * 0.28, -H * 0.12)
+        self.status_bar()
+
+        # Modal header
+        top = self.p(self.TOP_INSET + 8)
+        c.circle(self.p(39), top + self.p(19), self.p(19), fill=(255, 255, 255, 38),
+                 outline=(255, 255, 255, 70), width=self.p(1))
+        c.icon("x", self.p(20), (255, 255, 255, 225), cx=self.p(39), cy=top + self.p(19))
+        c.text((W / 2, top + self.p(19)), "My Profile", font("bold", self.p(17)),
+               "#FFFFFF", anchor="mm")
+
+        # Avatar / identity block
+        y = top + self.p(75)
+        avatar_y = y + self.p(48)
+        c.circle(W / 2, avatar_y, self.p(50), fill=(255, 255, 255, 47),
+                 outline=(255, 255, 255, 170), width=self.p(3))
+        c.circle(W / 2, avatar_y, self.p(43), fill="#2C6FBE")
+        c.text((W / 2, avatar_y), "A", font("bold", self.p(36)), "#FFFFFF", anchor="mm")
+        c.circle(W / 2 + self.p(35), avatar_y + self.p(35), self.p(14),
+                 fill="#2C5EAD", outline="#FFFFFF", width=self.p(2))
+        c.icon("camera", self.p(13), "#FFFFFF", cx=W / 2 + self.p(35), cy=avatar_y + self.p(35))
+        c.text((W / 2, avatar_y + self.p(70)), "Alex", font("bold", self.p(21)),
+               "#FFFFFF", anchor="ma")
+        level_w = self.p(132)
+        c.rect((W / 2 - level_w / 2, avatar_y + self.p(98),
+                W / 2 + level_w / 2, avatar_y + self.p(126)), radius=self.p(14),
+               fill=(255, 255, 255, 35), outline=(255, 255, 255, 65), width=self.p(1))
+        c.text((W / 2, avatar_y + self.p(112)), "Lv.8 Trainer  ·  i",
+               font("semibold", self.p(11)), (255, 255, 255, 220), anchor="mm")
+        c.text((W / 2, avatar_y + self.p(148)), "alex@example.com",
+               font("regular", self.p(11)), (255, 255, 255, 175), anchor="ma")
+
+        # Three stats in the same order as profile.tsx.
+        y = avatar_y + self.p(177)
+        gap = self.p(10)
+        sw = (W - self.p(40) - gap * 2) / 3
+        for i, (ic, value, label, col) in enumerate([
+            ("hash", "37", "Breeds", "#5AC8FA"),
+            ("battery", "740", "XP", "#A7F3D0"),
+            ("sun", "12", "Streak", "#FBBF24"),
+        ]):
+            x = self.p(20) + i * (sw + gap)
+            c.rect((x, y, x + sw, y + self.p(88)), radius=self.p(16),
+                   fill=(255, 255, 255, 35), outline=(255, 255, 255, 54), width=self.p(1))
+            c.icon(ic, self.p(18), col, cx=x + sw / 2, cy=y + self.p(23))
+            c.text((x + sw / 2, y + self.p(50)), value, font("bold", self.p(20)),
+                   "#FFFFFF", anchor="mm")
+            c.text((x + sw / 2, y + self.p(70)), label, font("medium", self.p(10)),
+                   (255, 255, 255, 180), anchor="mm")
+
+        # Editable profile cards, enough content to communicate the page
+        # without running into the sign-out controls below the screenshot crop.
+        y += self.p(106)
+        for title, value, ic, accent in [
+            ("Display Name", "Alex", "edit-2", "#5AC8FA"),
+            ("Country", "USA  ·  United States", "edit-2", "#A7F3D0"),
+            ("Username", "@alex", "user", "#FBBF24"),
+        ]:
+            box = (self.p(20), y, W - self.p(20), y + self.p(74))
+            c.rect(box, radius=self.p(16), fill=(255, 255, 255, 35),
+                   outline=(255, 255, 255, 54), width=self.p(1))
+            c.text((box[0] + self.p(18), box[1] + self.p(23)), title,
+                   font("semibold", self.p(13)), (255, 255, 255, 185))
+            c.text((box[0] + self.p(18), box[1] + self.p(50)), value,
+                   font("medium", self.p(15)), "#FFFFFF")
+            c.icon(ic, self.p(16), accent, cx=box[2] - self.p(24), cy=box[1] + self.p(25))
+            y += self.p(86)
+
+        # Lower actions are visible but subordinate, matching the real screen.
+        for label, ic, col in [("Sign Out", "log-out", "#FF8B8B"), ("Reset app data", "refresh-ccw", "#FF8B8B")]:
+            box = (self.p(20), y, W - self.p(20), y + self.p(48))
+            c.rect(box, radius=self.p(14), fill=(255, 255, 255, 18),
+                   outline=(255, 107, 107, 105), width=self.p(1))
+            c.icon(ic, self.p(17), col, cx=box[0] + self.p(27), cy=box[1] + self.p(24))
+            c.text((box[0] + self.p(51), box[1] + self.p(24)), label,
+                   font("semibold", self.p(13)), col, anchor="lm")
+            y += self.p(60)
+        return self.c
+
     # ===================================================== SCREEN 2 — DEX ==
     def dex(self):
         c = self.c

@@ -27,3 +27,8 @@ at it before choosing. Pair each photo with the breed it actually depicts
 rather than trusting the catalog pairing, drop the dead ids, and keep the
 verified files checked in so the asset build does not depend on a live fetch.
 Rarity labels, unlike photos, can be trusted straight from the catalog.
+
+The Pillow renderer also does not have an emoji-capable font. Country flags
+that render correctly in React Native become empty boxes in generated artwork,
+so store creatives should use short country codes or another non-emoji
+representation instead.
