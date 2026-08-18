@@ -1,14 +1,14 @@
 kind = "web"
-previewPath = "/doggodex-home/"
-title = "PawDex Homepage"
-description = "A public PawDex website for dog lovers, introducing the on-device breed scanner and collectible Doggo Dex, with App Store download information and a Chinese privacy policy."
+previewPath = "/"
+title = "Doggo Dex Homepage"
+description = "A public Doggo Dex website for dog lovers, introducing breed scanning, collectible progress, and a privacy policy."
 version = "1.0.0"
 id = "artifacts/doggodex-home"
 router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/doggodex-home/" ]
+paths = [ "/" ]
 localPort = 21764
 
 [services.development]
@@ -25,4 +25,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "21764"
-BASE_PATH = "/doggodex-home/"
+BASE_PATH = "/"
