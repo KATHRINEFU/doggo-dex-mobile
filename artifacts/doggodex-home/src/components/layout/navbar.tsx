@@ -9,9 +9,9 @@ export function Navbar() {
       <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105 active:scale-95" data-testid="link-home-logo">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden shadow-sm">
-            <img src={logoImage} alt="PawDex logo" className="w-full h-full object-cover" />
+            <img src={logoImage} alt="Doggo Dex logo" className="w-full h-full object-cover" />
           </div>
-          <span className="font-display font-bold text-xl tracking-tight text-foreground">PawDex</span>
+          <span className="font-display font-bold text-xl tracking-tight text-foreground">Doggo Dex</span>
         </Link>
         
         <nav className="hidden md:flex items-center gap-6">
@@ -19,7 +19,7 @@ export function Navbar() {
             Home
           </Link>
           <Link href="/privacy" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            隐私政策
+            Privacy Policy
           </Link>
         </nav>
         

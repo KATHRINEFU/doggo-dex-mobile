@@ -7,7 +7,7 @@ export function Privacy() {
           <p className="text-slate-500 font-medium mb-8">最后更新时间：2026年8月</p>
 
           <p>
-            欢迎使用 PawDex（以下简称“我们”或“本应用”）。我们非常重视您的隐私，并致力于保护您的个人信息。本隐私政策详细说明了我们在您使用本应用时，如何收集、使用、存储和保护您的数据。
+            欢迎使用 Doggo Dex（以下简称“我们”或“本应用”）。我们非常重视您的隐私，并致力于保护您的个人信息。本隐私政策详细说明了我们在您使用本应用时，如何收集、使用、存储和保护您的数据。
           </p>
 
           <h2 className="text-2xl font-display font-bold text-slate-900 mt-10 mb-4">1. 我们收集和使用哪些信息</h2>
@@ -41,7 +41,7 @@ export function Privacy() {
 
           <h3 className="text-xl font-bold text-slate-800 mt-6 mb-3">1.2 账户与个人资料数据</h3>
           <p>
-            当您创建 PawDex 账户时，我们会收集您的基本信息（如用户名、电子邮件地址和个人头像）。这些信息仅用于创建您的公开档案、排行榜展示以及跨设备同步您的数据。
+            当您创建 Doggo Dex 账户时，我们会收集您的基本信息（如用户名、电子邮件地址和个人头像）。这些信息仅用于创建您的公开档案、排行榜展示以及跨设备同步您的数据。
           </p>
 
           <h3 className="text-xl font-bold text-slate-800 mt-6 mb-3">1.3 游戏进度与 Doggo Dex 数据</h3>

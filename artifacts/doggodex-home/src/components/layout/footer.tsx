@@ -13,9 +13,9 @@ export function Footer() {
           <div className="md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2 inline-flex" data-testid="link-footer-logo">
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center overflow-hidden">
-                <img src={logoImage} alt="PawDex logo" className="w-full h-full object-cover" />
+                <img src={logoImage} alt="Doggo Dex logo" className="w-full h-full object-cover" />
               </div>
-              <span className="font-display font-bold text-2xl tracking-tight text-white">PawDex</span>
+              <span className="font-display font-bold text-2xl tracking-tight text-white">Doggo Dex</span>
             </Link>
             <p className="text-slate-400 max-w-sm mt-4 text-sm md:text-base leading-relaxed">
               Every walk is an adventure. Point your camera, collect the breed, and build the ultimate Doggo Dex.
@@ -27,7 +27,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link href="/privacy" className="text-slate-400 hover:text-white transition-colors text-sm" data-testid="link-footer-privacy">
-                  隐私政策
+                  Privacy Policy
                 </Link>
               </li>
               <li>
@@ -57,7 +57,7 @@ export function Footer() {
         </div>
         
         <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-          <p>© {currentYear} PawDex. All rights reserved.</p>
+          <p>© {currentYear} Doggo Dex. All rights reserved.</p>
           <div className="flex items-center gap-1">
             <span>Powered by on-device AI.</span>
           </div>

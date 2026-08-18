@@ -138,7 +138,7 @@ export function Home() {
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-foreground">Point. Snap.<br/>Identified.</h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            See a cute dog but don't know the breed? Just point your camera. Our on-device model identifies over 100 breeds in about a second. When it isn't confident enough, PawDex sends that photo to our secure service for a second opinion, so you still get an answer.
+            See a cute dog but don't know the breed? Just point your camera. Our on-device model identifies over 100 breeds in about a second. When it isn't confident enough, Doggo Dex sends that photo to our secure service for a second opinion, so you still get an answer.
           </p>
           <ul className="space-y-4 pt-4">
             {[
@@ -270,7 +270,7 @@ export function Home() {
             data-testid="button-download-bottom"
           >
             <Download className="w-6 h-6 mr-3 text-primary group-hover:-translate-y-1 transition-transform" />
-            Get PawDex for Free
+            Get Doggo Dex for Free
           </Button>
           <p className="text-sm text-sky-200 mt-6">
             Available on iOS. Requires iPhone 11 or newer for on-device AI features.
