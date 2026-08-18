@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/doggodex-home/"
+title = "PawDex Homepage"
+description = "A public PawDex website for dog lovers, introducing the on-device breed scanner and collectible Doggo Dex, with App Store download information and a Chinese privacy policy."
+version = "1.0.0"
+id = "artifacts/doggodex-home"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/doggodex-home/" ]
+localPort = 21764
+
+[services.development]
+run = "pnpm --filter @workspace/doggodex-home run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/doggodex-home", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/doggodex-home/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21764"
+BASE_PATH = "/doggodex-home/"
