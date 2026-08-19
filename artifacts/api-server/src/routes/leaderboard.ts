@@ -1,8 +1,14 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
+import { deleteBadgeSharesForUser } from "../services/badgeShareCleanup";
+import {
+  AccountDeletionInProgressError,
+  beginAccountDeletion,
+  withAccountWriteLock,
+} from "../services/accountDeletionGuard";
 
 const router = Router();
 
@@ -13,6 +19,20 @@ function isValidUrl(s: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isClerkNotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const candidate = err as {
+    status?: unknown;
+    clerkError?: unknown;
+    errors?: Array<{ code?: unknown }>;
+  };
+  return (
+    candidate.status === 404 ||
+    candidate.clerkError === true &&
+      candidate.errors?.some(({ code }) => code === "resource_not_found") === true
+  );
 }
 
 /**
@@ -46,54 +66,70 @@ router.post("/users/sync", async (req, res) => {
   }
 
   try {
-    // Check username uniqueness (globally) — case-insensitive
-    const normalized = username.toLowerCase();
-    const nameTaken = await db
-      .select()
-      .from(usersTable)
-      .where(
-        and(
-          sql`LOWER(${usersTable.username}) = ${normalized}`,
-          sql`${usersTable.clerkId} != ${clerkId}`,
-        ),
-      )
-      .limit(1);
-    if (nameTaken.length > 0) {
+    const nameTaken = await withAccountWriteLock(clerkId, async (tx) => {
+      // Check username uniqueness (globally) — case-insensitive
+      const normalized = username.toLowerCase();
+      const conflicts = await tx
+        .select()
+        .from(usersTable)
+        .where(
+          and(
+            sql`LOWER(${usersTable.username}) = ${normalized}`,
+            sql`${usersTable.clerkId} != ${clerkId}`,
+          ),
+        )
+        .limit(1);
+      if (conflicts.length > 0) return true;
+
+      // Upsert: insert if new, update if exists
+      const existing = await tx
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.clerkId, clerkId))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await tx
+          .update(usersTable)
+          .set({
+            username,
+            displayName: displayName ?? existing[0].displayName,
+            country,
+            countryFlag,
+            avatarUrl: avatarUrl ?? existing[0].avatarUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(usersTable.clerkId, clerkId));
+      } else {
+        await tx.insert(usersTable).values({
+          clerkId,
+          username,
+          displayName: displayName ?? null,
+          country,
+          countryFlag,
+          avatarUrl: avatarUrl ?? null,
+        });
+      }
+
+      return false;
+    });
+
+    if (nameTaken) {
       return res.status(409).json({
         error: "username_taken",
         message: `The username "${username}" is already taken. Please pick another one.`,
       });
     }
 
-    // Upsert: insert if new, update if exists
-    const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId)).limit(1);
-
-    if (existing.length > 0) {
-      await db
-        .update(usersTable)
-        .set({
-          username,
-          displayName: displayName ?? existing[0].displayName,
-          country,
-          countryFlag,
-          avatarUrl: avatarUrl ?? existing[0].avatarUrl,
-          updatedAt: new Date(),
-        })
-        .where(eq(usersTable.clerkId, clerkId));
-    } else {
-      await db.insert(usersTable).values({
-        clerkId,
-        username,
-        displayName: displayName ?? null,
-        country,
-        countryFlag,
-        avatarUrl: avatarUrl ?? null,
-      });
-    }
-
     req.log?.info({ clerkId, country }, "User synced");
     return res.json({ success: true });
   } catch (err) {
+    if (err instanceof AccountDeletionInProgressError) {
+      return res.status(409).json({
+        error: "account_deletion_in_progress",
+        message: "Account deletion is in progress.",
+      });
+    }
     req.log?.error({ err }, "User sync failed");
     return res.status(500).json({ error: "db_error", message: "Failed to save user" });
   }
@@ -131,6 +167,38 @@ router.get("/users/me", async (req, res) => {
 });
 
 /**
+ * DELETE /users/me
+ * Removes all Doggo Dex data and the authenticated Clerk user.
+ */
+router.delete("/users/me", async (req, res) => {
+  const auth = getAuth(req);
+  const clerkId = auth?.userId;
+  if (!clerkId) {
+    return res.status(401).json({ error: "unauthorized", message: "Sign in required" });
+  }
+
+  try {
+    await beginAccountDeletion(clerkId);
+    await deleteBadgeSharesForUser(clerkId);
+    await db.delete(usersTable).where(eq(usersTable.clerkId, clerkId));
+    try {
+      await clerkClient.users.deleteUser(clerkId);
+    } catch (err) {
+      if (!isClerkNotFoundError(err)) throw err;
+    }
+
+    req.log?.info({ clerkId }, "User account deleted");
+    return res.json({ success: true });
+  } catch (err) {
+    req.log?.error({ err, clerkId }, "User account data deletion failed");
+    return res.status(500).json({
+      error: "account_deletion_failed",
+      message: "Could not delete account data. Please try again.",
+    });
+  }
+});
+
+/**
  * PATCH /users/display-name
  * Updates only the display name for the authenticated user.
  */
@@ -146,13 +214,21 @@ router.patch("/users/display-name", async (req, res) => {
     : null;
 
   try {
-    await db
-      .update(usersTable)
-      .set({ displayName, updatedAt: new Date() })
-      .where(eq(usersTable.clerkId, clerkId));
+    await withAccountWriteLock(clerkId, (tx) =>
+      tx
+        .update(usersTable)
+        .set({ displayName, updatedAt: new Date() })
+        .where(eq(usersTable.clerkId, clerkId)),
+    );
 
     return res.json({ success: true });
   } catch (err) {
+    if (err instanceof AccountDeletionInProgressError) {
+      return res.status(409).json({
+        error: "account_deletion_in_progress",
+        message: "Account deletion is in progress.",
+      });
+    }
     req.log?.error({ err }, "Display name update failed");
     return res.status(500).json({ error: "db_error", message: "Failed to update display name" });
   }
@@ -175,18 +251,26 @@ router.post("/users/collect", async (req, res) => {
   }
 
   try {
-    await db
-      .update(usersTable)
-      .set({
-        collectionCount: sql`${usersTable.collectionCount} + 1`,
-        xp: sql`${usersTable.xp} + ${xpDelta}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(usersTable.clerkId, clerkId));
+    await withAccountWriteLock(clerkId, (tx) =>
+      tx
+        .update(usersTable)
+        .set({
+          collectionCount: sql`${usersTable.collectionCount} + 1`,
+          xp: sql`${usersTable.xp} + ${xpDelta}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(usersTable.clerkId, clerkId)),
+    );
 
     req.log?.info({ clerkId, xpDelta }, "Collection recorded");
     return res.json({ success: true });
   } catch (err) {
+    if (err instanceof AccountDeletionInProgressError) {
+      return res.status(409).json({
+        error: "account_deletion_in_progress",
+        message: "Account deletion is in progress.",
+      });
+    }
     req.log?.error({ err }, "Collection update failed");
     return res.status(500).json({ error: "db_error", message: "Failed to update stats" });
   }

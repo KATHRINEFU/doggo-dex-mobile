@@ -164,6 +164,16 @@ export const GetMyProfileResponse = zod.object({
 
 
 /**
+ * Permanently deletes the authenticated user's profile, leaderboard record, generated badge image records, generated badge files, and Clerk account.
+
+ * @summary Delete current user's Doggo Dex data
+ */
+export const DeleteMyAccountDataResponse = zod.object({
+  "success": zod.boolean().optional()
+})
+
+
+/**
  * Creates or updates the user's profile with country and username
  * @summary Sync user profile after registration
  */

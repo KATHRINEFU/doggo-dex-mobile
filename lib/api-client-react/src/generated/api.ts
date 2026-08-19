@@ -580,6 +580,78 @@ export function useGetMyProfile<TData = Awaited<ReturnType<typeof getMyProfile>>
 
 
 
+export const getDeleteMyAccountDataUrl = () => {
+
+
+
+
+  return `/api/users/me`
+}
+
+/**
+ * Permanently deletes the authenticated user's profile, leaderboard record, generated badge image records, generated badge files, and Clerk account.
+
+ * @summary Delete current user's Doggo Dex data
+ */
+export const deleteMyAccountData = async ( options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteMyAccountDataUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteMyAccountDataMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyAccountData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMyAccountData>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteMyAccountData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMyAccountData>>, void> = () => {
+
+
+          return  deleteMyAccountData(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMyAccountDataMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMyAccountData>>>
+
+    export type DeleteMyAccountDataMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete current user's Doggo Dex data
+ */
+export const useDeleteMyAccountData = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyAccountData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMyAccountData>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteMyAccountDataMutationOptions(options));
+    }
+
 export const getSyncUserUrl = () => {
 
 

@@ -4,13 +4,21 @@ import OpenAI from "openai";
 import { db } from "@workspace/db";
 import { badgeShareImagesTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 import {
   ObjectNotFoundError,
   ObjectStorageService,
   objectStorageClient,
 } from "../lib/objectStorage";
 import { logger } from "../lib/logger";
+import {
+  deleteBadgeShareObject,
+  getBadgeShareStorageTarget,
+} from "../services/badgeShareCleanup";
+import {
+  AccountDeletionInProgressError,
+  isAccountDeletionStarted,
+  withAccountWriteLock,
+} from "../services/accountDeletionGuard";
 
 const router = Router();
 
@@ -69,20 +77,20 @@ Do not include Pokémon characters, logos, Poké Balls, or copyrighted Pokémon 
 Do not add any extra text. Make all requested text highly legible.`;
 }
 
-async function uploadPng(buffer: Buffer): Promise<string> {
-  // PRIVATE_OBJECT_DIR looks like "/<bucket>/<prefix>". The entity id is the
-  // path *within* that dir — that is what /objects/<id> resolves against.
-  const privateDir = objectStorage.getPrivateObjectDir().replace(/^\/+|\/+$/g, "");
-  const [bucketName, ...prefixParts] = privateDir.split("/");
-  const entityId = `badge-shares/${randomUUID()}.png`;
-  const objectName = [...prefixParts, entityId].join("/");
+async function uploadPng(
+  buffer: Buffer,
+  clerkId: string,
+  badgeId: string,
+): Promise<string> {
+  const { bucketName, objectName, objectPath } =
+    getBadgeShareStorageTarget(clerkId, badgeId);
 
   await objectStorageClient
     .bucket(bucketName)
     .file(objectName)
     .save(buffer, { contentType: "image/png" });
 
-  return `/objects/${entityId}`;
+  return objectPath;
 }
 
 /**
@@ -94,20 +102,33 @@ async function generateInBackground(
   badgeId: string,
   breedNames: string[],
   totalCollected: number,
+  previousObjectPath: string | null,
 ) {
   const finish = async (fields: { status: string; objectPath?: string | null; error?: string | null }) => {
-    await db
-      .update(badgeShareImagesTable)
-      .set({ ...fields, updatedAt: new Date() })
-      .where(
-        and(
-          eq(badgeShareImagesTable.clerkId, clerkId),
-          eq(badgeShareImagesTable.badgeId, badgeId),
-        ),
+    try {
+      return await withAccountWriteLock(clerkId, (tx) =>
+        tx
+          .update(badgeShareImagesTable)
+          .set({ ...fields, updatedAt: new Date() })
+          .where(
+            and(
+              eq(badgeShareImagesTable.clerkId, clerkId),
+              eq(badgeShareImagesTable.badgeId, badgeId),
+            ),
+          )
+          .returning({ badgeId: badgeShareImagesTable.badgeId }),
       );
+    } catch (err) {
+      if (err instanceof AccountDeletionInProgressError) return [];
+      throw err;
+    }
   };
 
+  let uploadedObjectPath: string | null = null;
+
   try {
+    if (await isAccountDeletionStarted(clerkId)) return;
+
     const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
     const baseURL = process.env.AI_INTEGRATIONS_OPENAI_API_KEY
       ? process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
@@ -124,12 +145,47 @@ async function generateInBackground(
 
     const b64 = result.data?.[0]?.b64_json;
     if (!b64) throw new Error("OpenAI returned no image data");
+    if (await isAccountDeletionStarted(clerkId)) return;
 
-    const objectPath = await uploadPng(Buffer.from(b64, "base64"));
-    await finish({ status: "ready", objectPath, error: null });
+    const objectPath = await uploadPng(
+      Buffer.from(b64, "base64"),
+      clerkId,
+      badgeId,
+    );
+    uploadedObjectPath = objectPath;
+
+    if (await isAccountDeletionStarted(clerkId)) {
+      await deleteBadgeShareObject(objectPath);
+      uploadedObjectPath = null;
+      return;
+    }
+
+    if (previousObjectPath && previousObjectPath !== objectPath) {
+      await deleteBadgeShareObject(previousObjectPath);
+    }
+
+    const updated = await finish({ status: "ready", objectPath, error: null });
+    if (updated.length === 0) {
+      await deleteBadgeShareObject(objectPath);
+      uploadedObjectPath = null;
+      return;
+    }
+
+    uploadedObjectPath = null;
     logger.info({ clerkId, badgeId, ms: Date.now() - started }, "Badge share image ready");
   } catch (err) {
     logger.error({ err, clerkId, badgeId }, "Badge share image generation failed");
+    if (uploadedObjectPath) {
+      try {
+        await deleteBadgeShareObject(uploadedObjectPath);
+      } catch (deleteErr) {
+        logger.error(
+          { err: deleteErr, clerkId, badgeId },
+          "Failed to remove incomplete badge image",
+        );
+      }
+    }
+    if (await isAccountDeletionStarted(clerkId)) return;
     try {
       await finish({
         status: "failed",
@@ -179,52 +235,94 @@ router.post("/badge-image", async (req, res) => {
   }
 
   try {
-    const existing = await db
-      .select()
-      .from(badgeShareImagesTable)
-      .where(
-        and(
-          eq(badgeShareImagesTable.clerkId, clerkId),
-          eq(badgeShareImagesTable.badgeId, badgeId),
-        ),
-      )
-      .limit(1);
-
-    const current = existing[0];
-
-    // A generation already running: never start a second one for the same badge.
-    if (current?.status === "pending" && !regenerate) {
-      return res.json({ status: "pending", objectPath: null });
-    }
-    // Already produced: hand back the finished image.
-    if (current?.status === "ready" && current.objectPath && !regenerate) {
-      return res.json({ status: "ready", objectPath: current.objectPath });
-    }
-
-    if (current) {
-      await db
-        .update(badgeShareImagesTable)
-        .set({ status: "pending", objectPath: null, error: null, updatedAt: new Date() })
-        .where(
-          and(
-            eq(badgeShareImagesTable.clerkId, clerkId),
-            eq(badgeShareImagesTable.badgeId, badgeId),
-          ),
-        );
-    } else {
-      await db.insert(badgeShareImagesTable).values({ clerkId, badgeId, status: "pending" });
-    }
-
-    // Fire-and-forget: the response goes out now, the image lands later.
-    void generateInBackground(
+    const preparation = await withAccountWriteLock(
       clerkId,
-      badgeId,
-      breedNames,
-      totalCollected as number,
+      async (tx): Promise<{
+        status: "pending" | "ready";
+        objectPath: string | null;
+        shouldGenerate: boolean;
+        previousObjectPath: string | null;
+      }> => {
+        const existing = await tx
+          .select()
+          .from(badgeShareImagesTable)
+          .where(
+            and(
+              eq(badgeShareImagesTable.clerkId, clerkId),
+              eq(badgeShareImagesTable.badgeId, badgeId),
+            ),
+          )
+          .limit(1);
+
+        const current = existing[0];
+
+        // A generation already running: never start a second one for the same badge.
+        if (current?.status === "pending" && !regenerate) {
+          return {
+            status: "pending",
+            objectPath: null,
+            shouldGenerate: false,
+            previousObjectPath: current.objectPath,
+          };
+        }
+        // Already produced: hand back the finished image.
+        if (current?.status === "ready" && current.objectPath && !regenerate) {
+          return {
+            status: "ready",
+            objectPath: current.objectPath,
+            shouldGenerate: false,
+            previousObjectPath: current.objectPath,
+          };
+        }
+
+        if (current) {
+          await tx
+            .update(badgeShareImagesTable)
+            .set({ status: "pending", error: null, updatedAt: new Date() })
+            .where(
+              and(
+                eq(badgeShareImagesTable.clerkId, clerkId),
+                eq(badgeShareImagesTable.badgeId, badgeId),
+              ),
+            );
+        } else {
+          await tx
+            .insert(badgeShareImagesTable)
+            .values({ clerkId, badgeId, status: "pending" });
+        }
+
+        return {
+          status: "pending",
+          objectPath: null,
+          shouldGenerate: true,
+          previousObjectPath: current?.objectPath ?? null,
+        };
+      },
     );
 
-    return res.json({ status: "pending", objectPath: null });
+    if (preparation.shouldGenerate) {
+      // Fire-and-forget: the response goes out now, the image lands later.
+      void generateInBackground(
+        clerkId,
+        badgeId,
+        breedNames,
+        totalCollected as number,
+        preparation.previousObjectPath,
+      );
+    }
+
+    return res.json({
+      status: preparation.status,
+      objectPath: preparation.objectPath,
+    });
   } catch (err) {
+    if (err instanceof AccountDeletionInProgressError) {
+      return res.status(409).json({
+        error: "account_deletion_in_progress",
+        message: "Account deletion is in progress.",
+      });
+    }
+
     req.log?.error({ err }, "Failed to start badge image generation");
     return res.status(500).json({
       error: "db_error",

@@ -23,6 +23,7 @@ import { CountryPickerModal, type CountryOption } from "@/components/CountryPick
 import {
   useGetMyProfile,
   useSyncUser,
+  useDeleteMyAccountData,
   useGetDogBreeds,
   getGetLeaderboardQueryKey,
   getGetMyProfileQueryKey,
@@ -36,15 +37,16 @@ export default function ProfileScreen() {
   const { signOut } = useClerk();
   const { getToken, isSignedIn } = useAuth();
   const { collectionCount, xp, streak, addDog, isCollected, resetCollection } = useCollection();
+  const [deletingAccount, setDeletingAccount] = useState(false);
   // Dev-only: breed catalog for seeding test data
   const { data: allBreeds } = useGetDogBreeds({ query: { enabled: __DEV__ } } as any);
   const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && !isSignedIn && !deletingAccount) {
       router.replace("/(auth)/sign-in");
     }
-  }, [isLoaded, isSignedIn]);
+  }, [deletingAccount, isLoaded, isSignedIn, router]);
 
   // DB profile — wait until Clerk auth is ready so the token getter is registered
   const { data: profile, refetch: refetchProfile } = useGetMyProfile(
@@ -70,6 +72,7 @@ export default function ProfileScreen() {
   const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
 
   const syncUser = useSyncUser();
+  const deleteAccountData = useDeleteMyAccountData();
   const queryClient = useQueryClient();
 
   const apiBase = process.env.EXPO_PUBLIC_DOMAIN
@@ -278,6 +281,95 @@ export default function ProfileScreen() {
     );
   };
 
+  const deleteAccountPermanently = async () => {
+    if (!user || !isSignedIn || deletingAccount) {
+      if (!user || !isSignedIn) {
+        Alert.alert(
+          "Sign in required",
+          "Please sign in again before deleting your account.",
+        );
+      }
+      return;
+    }
+
+    setDeletingAccount(true);
+
+    try {
+      await deleteAccountData.mutateAsync();
+
+      let localCleanupFailed = false;
+      try {
+        await resetCollection();
+      } catch {
+        localCleanupFailed = true;
+      }
+      queryClient.clear();
+      try {
+        await signOut();
+      } catch {
+        // The server invalidates the active session when Clerk deletion succeeds.
+      }
+      router.replace("/(auth)/sign-up");
+
+      if (localCleanupFailed) {
+        Alert.alert(
+          "Account deleted",
+          "Your account was deleted, but some inaccessible cached files may remain until the operating system clears the app cache.",
+        );
+      }
+    } catch (err: any) {
+      const status: number | undefined = err?.status;
+      const serverMessage: string | undefined = err?.data?.message;
+
+      let message: string;
+      if (status === 401) {
+        message =
+          "Your session could not be verified. Sign out, sign in again, then retry account deletion.";
+      } else if (status === undefined) {
+        message =
+          "Doggo Dex could not reach the server. Check your connection and try again.";
+      } else {
+        message =
+          serverMessage ??
+          "Doggo Dex could not finish deleting your account. Your sign-in may still be active, so please try again.";
+      }
+
+      Alert.alert("Couldn't delete account", message);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (deletingAccount) return;
+
+    Alert.alert(
+      "Delete account?",
+      "This permanently deletes your Doggo Dex profile, leaderboard record, generated badge images, collection, XP, streak, and sign-in account.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Permanently delete account?",
+              "This action cannot be undone. You will need to create a new account to use Doggo Dex again.",
+              [
+                { text: "Keep Account", style: "cancel" },
+                {
+                  text: "Delete Account",
+                  style: "destructive",
+                  onPress: () => void deleteAccountPermanently(),
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -467,7 +559,11 @@ export default function ProfileScreen() {
           ) : null}
 
           {/* Sign out */}
-          <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
+          <Pressable
+            style={styles.signOutBtn}
+            onPress={handleSignOut}
+            disabled={deletingAccount}
+          >
             <Feather name="log-out" size={18} color="#FF6B6B" />
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
@@ -475,9 +571,30 @@ export default function ProfileScreen() {
           <Pressable
             style={[styles.signOutBtn, { borderColor: "rgba(255,107,107,0.55)" }]}
             onPress={handleResetAppData}
+            disabled={deletingAccount}
           >
             <Feather name="refresh-ccw" size={18} color="#FF6B6B" />
             <Text style={styles.signOutText}>Reset app data</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete Account"
+            style={[
+              styles.deleteAccountBtn,
+              deletingAccount && styles.disabledBtn,
+            ]}
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+          >
+            {deletingAccount ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Feather name="trash-2" size={18} color="#FFFFFF" />
+            )}
+            <Text style={styles.deleteAccountText}>
+              {deletingAccount ? "Deleting Account…" : "Delete Account"}
+            </Text>
           </Pressable>
 
           {/* Dev-only: seed test breeds for badge testing */}
@@ -754,6 +871,26 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 16,
     color: "#FF6B6B",
+  },
+  deleteAccountBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#B42318",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.32)",
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginTop: 4,
+  },
+  deleteAccountText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#FFFFFF",
+  },
+  disabledBtn: {
+    opacity: 0.65,
   },
 
   // Level info modal

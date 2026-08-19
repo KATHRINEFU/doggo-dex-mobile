@@ -12,3 +12,4 @@
 - [Clerk instance parity](clerk-instance-parity.md) — a fresh token that 401s everywhere means bundle and API decode to different Clerk hosts; never pin one canonical instance in the client.
 - [Breed photo ids unreliable](breed-photo-ids-unreliable.md) — catalog Unsplash ids include dead links and wrong subjects (forests!); contact-sheet them before any store asset.
 - [Clerk needs_client_trust](clerk-needs-client-trust.md) — native needs the mfa email-code trust flow (SignInFuture API); only Replit dev web preview may bypass via setActive. Navigate on isSignedIn effect, not right after setActive.
+- [Durable account deletion](durable-account-deletion.md) — async per-user work needs a durable deletion tombstone and user-scoped object paths; process-local guards can recreate data after deletion.

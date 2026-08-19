@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@clerk/expo";
+import * as FileSystem from "expo-file-system/legacy";
 import React, {
   createContext,
   useCallback,
@@ -273,7 +274,18 @@ export function CollectionProvider({ children }: { children: React.ReactNode }) 
   );
 
   const resetCollection = useCallback(async () => {
-    if (userId) await AsyncStorage.multiRemove(userKeys(userId));
+    const badgeCachePaths = FileSystem.cacheDirectory
+      ? BADGES.map(
+          ({ id }) => `${FileSystem.cacheDirectory}doggodex-${id}.png`,
+        )
+      : [];
+
+    await Promise.all([
+      userId ? AsyncStorage.multiRemove(userKeys(userId)) : Promise.resolve(),
+      ...badgeCachePaths.map((path) =>
+        FileSystem.deleteAsync(path, { idempotent: true }),
+      ),
+    ]);
     setCollectedDogs([]);
     setXp(0);
     setStreak(0);

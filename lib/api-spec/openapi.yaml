@@ -185,6 +185,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMyAccountData
+      tags: [users]
+      summary: Delete current user's Doggo Dex data
+      description: >
+        Permanently deletes the authenticated user's profile, leaderboard
+        record, generated badge image records, generated badge files, and
+        Clerk account.
+      responses:
+        "200":
+          description: User data deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Account data deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /users/sync:
     post:
